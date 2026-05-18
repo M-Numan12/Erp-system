@@ -710,7 +710,7 @@ export default function Billing({ type }) {
                   ]} onChange={(e) => { setTransportType(e.value); setSelectedVehicleId(''); }} placeholder="Transport Type" className="flex-1" />
                   
                   {transportType && (
-                    <Dropdown value={selectedVehicleId} options={vehicles.filter(v => (v.ownership_type || '').toString().toLowerCase().trim() === transportType.toLowerCase().trim()).map(v => ({
+                    <Dropdown value={selectedVehicleId} options={vehicles.filter(v => !v.is_deleted && (v.ownership_type || '').toString().toLowerCase().trim() === transportType.toLowerCase().trim()).map(v => ({
                       label: `${v.vehicle_number} (${v.driver_name})`,
                       value: v.id
                     }))} onChange={(e) => setSelectedVehicleId(e.value)} placeholder="Select Vehicle" className="flex-1" />
@@ -1577,7 +1577,7 @@ export default function Billing({ type }) {
                       <div className="col-7">
                         <Dropdown 
                           value={returnVehicleId} 
-                          options={vehicles.filter(v => (v.ownership_type || '').toString().toLowerCase().trim() === returnVehicleType.toLowerCase().trim()).map(v => ({
+                          options={vehicles.filter(v => !v.is_deleted && (v.ownership_type || '').toString().toLowerCase().trim() === returnVehicleType.toLowerCase().trim()).map(v => ({
                             label: `${v.vehicle_number} (${v.driver_name})`,
                             value: v.id
                           }))}

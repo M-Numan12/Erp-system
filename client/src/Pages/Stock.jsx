@@ -616,7 +616,7 @@ export default function Stock({ type }) {
                           setReceiveForm({ ...receiveForm, vehicle_id: vId, vehicle_number: vObj ? vObj.vehicle_number : '' });
                         }}>
                         <option value="">Select Transport Vehicle</option>
-                        {vehicles.map(v => (
+                        {vehicles.filter(v => !v.is_deleted).map(v => (
                           <option key={v.id} value={v.id}>{v.vehicle_number} ({v.driver_name})</option>
                         ))}
                       </select>
@@ -791,7 +791,7 @@ export default function Stock({ type }) {
                       style={{width:'100%', padding:'10px', borderRadius:'8px', border:'1px solid #cbd5e1'}}
                     >
                       <option value="">-- No Vehicle --</option>
-                      {vehicles.map(v => (
+                      {vehicles.filter(v => !v.is_deleted).map(v => (
                         <option key={v.id} value={v.id}>{v.vehicle_number} ({v.driver_name})</option>
                       ))}
                     </select>

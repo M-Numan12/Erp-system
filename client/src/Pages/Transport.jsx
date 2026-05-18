@@ -238,7 +238,8 @@ export default function Transport({ type }) {
     const matchesTab = (r.ownership_type || "Personal").toLowerCase() === activeTab.toLowerCase();
     const matchesSearch = (r.driver_name || "").toLowerCase().includes(search.toLowerCase()) || 
                           (r.vehicle_number || "").toLowerCase().includes(search.toLowerCase());
-    return matchesTab && matchesSearch;
+    const matchesDeleted = !r.is_deleted;
+    return matchesTab && matchesSearch && matchesDeleted;
   });
 
   if (user?.role === 'admin' && !activeCounter && !type) {
