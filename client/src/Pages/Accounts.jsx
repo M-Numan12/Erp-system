@@ -14,6 +14,13 @@ import "../Styles/ModulePages.scss";
 export default function Accounts() {
   const { user } = useContext(AuthContext);
 
+  const checkIsCash = (acc) => {
+    if (!acc) return false;
+    return !!(acc.isCash || 
+              acc.bank_name?.toLowerCase() === 'cash' || 
+              acc.bank_name?.toLowerCase() === 'cash account');
+  };
+
   // State for bank accounts
   const [accounts, setAccounts] = useState([]);
   const [form, setForm] = useState({ bank_name: "", account_title: "", account_number: "", opening_balance: "" });
@@ -532,10 +539,13 @@ export default function Accounts() {
       ...filteredOtherExpenses.map(o => ({ ...o, isExpense: true, payment_type: o.payment_method }))
     ].sort((a, b) => new Date(a.created_at || a.expense_date || a.purchase_date || a.date) - new Date(b.created_at || b.expense_date || b.purchase_date || b.date));
 
+    const realCashAcc = filteredAccounts.find(b => (b.bank_name.toLowerCase() === 'cash' || b.bank_name.toLowerCase() === 'cash account') && b.module_type !== 'Admin Recipient');
+    const cashOpeningBal = realCashAcc ? (parseFloat(realCashAcc.opening_balance) || 0) : 0;
+
     const initial = filteredAccounts.filter(b => b.module_type !== 'Admin Recipient').reduce((acc, b) => {
       acc[b.id] = parseFloat(b.opening_balance) || 0;
       return acc;
-    }, { 'Cash': 0 });
+    }, { 'Cash': cashOpeningBal });
 
     const res = rawList.reduce((acc, s) => {
       if (s.payment_type === 'Deduction') return acc;
@@ -576,7 +586,7 @@ export default function Accounts() {
 
 
   const totalCash = paymentSummary['Cash'] || 0;
-  const totalBank = filteredAccounts.filter(acc => !acc.isCash && acc.module_type !== 'Admin Recipient').reduce((sum, acc) => sum + Math.max(0, paymentSummary[acc.id] || 0), 0);
+  const totalBank = filteredAccounts.filter(acc => !checkIsCash(acc) && acc.module_type !== 'Admin Recipient').reduce((sum, acc) => sum + Math.max(0, paymentSummary[acc.id] || 0), 0);
 
   const totalAdminReceived = useMemo(() => {
     const isToday = (dateStr) => {
@@ -696,7 +706,7 @@ export default function Accounts() {
   const calculatedTransactions = useMemo(() => {
     const sortedAsc = [...ledgerTransactions].sort((a, b) => new Date(a.created_at || a.purchase_date || a.date || a.created_at) - new Date(b.created_at || b.purchase_date || b.date || b.created_at));
     let currentBal = parseFloat(selectedLedgerAccount?.opening_balance || 0);
-    const isCashAcc = selectedLedgerAccount?.isCash || selectedLedgerAccount?.bank_name.toLowerCase() === 'cash' || selectedLedgerAccount?.bank_name.toLowerCase() === 'cash account';
+    const isCashAcc = checkIsCash(selectedLedgerAccount);
     
     const withRunning = sortedAsc.map(t => {
       const amt = getTransactionAmount(t);
@@ -736,7 +746,7 @@ export default function Accounts() {
   }, [ledgerTransactions, selectedLedgerAccount, calculatedTransactions]);
 
   const getRecentTransactionsForAccount = (acc) => {
-    const isCash = acc.isCash || acc.bank_name.toLowerCase() === 'cash' || acc.bank_name.toLowerCase() === 'cash account';
+    const isCash = checkIsCash(acc);
     const accountTransactions = [
       ...filteredSales,
       ...filteredSupplierPayments.map(p => ({ ...p, isExpense: true, customer_name: p.supplier_name || 'Supplier', amount: p.paid_amount, created_at: p.created_at || p.purchase_date })),
@@ -971,7 +981,7 @@ export default function Accounts() {
           marginBottom: '35px'
         }}>
           {displayAccounts.map(acc => {
-            let bal = acc.isCash ? (paymentSummary['Cash'] || 0) : (paymentSummary[acc.id] || 0);
+            let bal = checkIsCash(acc) ? (paymentSummary['Cash'] || 0) : (paymentSummary[acc.id] || 0);
             
             if (acc.module_type === 'Admin Recipient') {
               bal = getAdminBankBalance(acc);
@@ -1011,8 +1021,8 @@ export default function Accounts() {
                 <div>
                   <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px'}}>
                     <div style={{display: 'flex', alignItems: 'center', gap: '10px'}}>
-                      <div style={{padding: '8px', borderRadius: '10px', background: acc.isCash ? '#f0fdf4' : (isAdminRecipient ? '#fef3c7' : '#eff6ff'), color: acc.isCash ? '#16a34a' : (isAdminRecipient ? '#d97706' : '#2563eb')}}>
-                        {acc.isCash ? <CreditCard size={18}/> : <Landmark size={18}/>}
+                      <div style={{padding: '8px', borderRadius: '10px', background: checkIsCash(acc) ? '#f0fdf4' : (isAdminRecipient ? '#fef3c7' : '#eff6ff'), color: checkIsCash(acc) ? '#16a34a' : (isAdminRecipient ? '#d97706' : '#2563eb')}}>
+                        {checkIsCash(acc) ? <CreditCard size={18}/> : <Landmark size={18}/>}
                       </div>
                       <div>
                         <div style={{display: 'flex', alignItems: 'center', gap: '5px'}}>
@@ -1084,8 +1094,8 @@ export default function Accounts() {
           onRowClick={(e) => { setSelectedLedgerAccount(e.data); setDateFilter('All'); setShowLedger(true); }} rowHover style={{cursor: 'pointer'}}>
           <Column field="bank_name" header="Account Name" body={acc => (
             <div style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
-              <div style={{padding: '6px', borderRadius: '8px', background: acc.isCash ? '#f0fdf4' : '#eff6ff', color: acc.isCash ? '#16a34a' : '#2563eb'}}>
-                {acc.isCash ? <CreditCard size={16}/> : <Landmark size={16}/>}
+              <div style={{padding: '6px', borderRadius: '8px', background: checkIsCash(acc) ? '#f0fdf4' : '#eff6ff', color: checkIsCash(acc) ? '#16a34a' : '#2563eb'}}>
+                {checkIsCash(acc) ? <CreditCard size={16}/> : <Landmark size={16}/>}
               </div>
               <div style={{fontWeight: 700, color: '#1e293b'}}>{acc.bank_name}</div>
             </div>
@@ -1102,7 +1112,7 @@ export default function Accounts() {
             <div style={{fontWeight: 700, color: '#64748b'}}>Rs. {parseFloat(acc.opening_balance || 0).toLocaleString()}</div>
           )} sortable />
           <Column header="Current Bal." body={acc => {
-            let bal = acc.isCash ? (paymentSummary['Cash'] || 0) : (paymentSummary[acc.id] || 0);
+            let bal = checkIsCash(acc) ? (paymentSummary['Cash'] || 0) : (paymentSummary[acc.id] || 0);
             if (acc.module_type === 'Admin Recipient') {
               bal = getAdminBankBalance(acc);
             } else if (bal < 0) {
@@ -1114,8 +1124,8 @@ export default function Accounts() {
             const isAdmin = user?.role === 'admin';
             return (
               <ActionMenu 
-                onEdit={acc.isCash || !isAdmin ? null : () => handleEdit(acc)}
-                onDelete={acc.isCash || !isAdmin ? null : () => {
+                onEdit={checkIsCash(acc) || !isAdmin ? null : () => handleEdit(acc)}
+                onDelete={checkIsCash(acc) || !isAdmin ? null : () => {
                   if (window.confirm(`Are you sure you want to delete ${acc.bank_name}?`)) {
                     handleDelete(acc.id);
                   }
