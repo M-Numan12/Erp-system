@@ -122,22 +122,24 @@ router.post('/payment', auth, async (req, res) => {
     }
     const vehicle = vehicleRes.rows[0];
 
-    // 2. Insert into expenses table
-    await pool.query(
-      `INSERT INTO expenses (description, amount, expense_type, category, payment_type, notes, user_id, module_type, vehicle_id, expense_date)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, CURRENT_DATE)`,
-      [
-        `Payment to Vehicle: ${vehicle.vehicle_number} - ${vehicle.driver_name}`,
-        paid_amount,
-        'Transport',
-        'Fare Payment',
-        payment_type,
-        notes || 'Payment Sent',
-        req.user.id,
-        finalModule,
-        vehicle_id
-      ]
-    );
+    // 2. Insert into expenses table (skip if it is a Deduction)
+    if (payment_type !== 'Deduction') {
+      await pool.query(
+        `INSERT INTO expenses (description, amount, expense_type, category, payment_type, notes, user_id, module_type, vehicle_id, expense_date)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, CURRENT_DATE)`,
+        [
+          `Payment to Vehicle: ${vehicle.vehicle_number} - ${vehicle.driver_name}`,
+          paid_amount,
+          'Transport',
+          'Fare Payment',
+          payment_type,
+          notes || 'Payment Sent',
+          req.user.id,
+          finalModule,
+          vehicle_id
+        ]
+      );
+    }
 
     // 3. Update vehicle total_earnings (subtraction)
     const updateRes = await pool.query(

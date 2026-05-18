@@ -600,10 +600,10 @@ export default function Accounts() {
   const ledgerTransactions = useMemo(() => {
     return [
       ...filteredSales, 
-      ...filteredSupplierPayments.map(p => ({ ...p, isExpense: true, customer_name: p.supplier_name || 'Supplier', amount: p.paid_amount, created_at: p.purchase_date })),
+      ...filteredSupplierPayments.map(p => ({ ...p, isExpense: true, customer_name: p.supplier_name || 'Supplier', amount: p.paid_amount, created_at: p.created_at || p.purchase_date })),
       ...filteredSupplierPayments.filter(p => parseFloat(p.delivery_charges) > 0).map(p => ({
         ...p, isExpense: true, isTransportFare: true, amount: p.delivery_charges, payment_type: p.fare_payment_type || 'Cash', 
-        created_at: p.purchase_date, isTransportFare: true
+        created_at: p.created_at || p.purchase_date, isTransportFare: true
       })),
       ...filteredGeneralExpenses.map(e => {
         if (e.expense_type === 'Admin Payment') {
@@ -612,20 +612,20 @@ export default function Accounts() {
             isExpense: false,
             isIncome: true,
             customer_name: e.description || `Received Admin Payment`,
-            created_at: e.expense_date
+            created_at: e.created_at || e.expense_date
           };
         }
         return {
           ...e,
           isExpense: true,
           customer_name: `General Expense: ${e.title || e.description || 'Office Expense'}`,
-          created_at: e.expense_date
+          created_at: e.created_at || e.expense_date
         };
       }),
-      ...filteredSalaries.map(s => ({ ...s, isExpense: true, customer_name: `Salary: ${s.employee_name}`, payment_type: 'Cash', created_at: s.payment_date })),
-      ...filteredRents.map(r => ({ ...r, isExpense: true, customer_name: `Rent: ${r.property_name}`, payment_type: 'Cash', created_at: r.rent_date })),
-      ...filteredOtherExpenses.map(o => ({ ...o, isExpense: true, customer_name: `Other: ${o.title}`, payment_type: o.payment_method, created_at: o.date })),
-      ...filteredInvestments.map(i => ({ ...i, isIncome: true, customer_name: `Invest: ${i.investor}`, payment_type: 'Cash', created_at: i.date }))
+      ...filteredSalaries.map(s => ({ ...s, isExpense: true, customer_name: `Salary: ${s.employee_name}`, payment_type: 'Cash', created_at: s.created_at || s.payment_date })),
+      ...filteredRents.map(r => ({ ...r, isExpense: true, customer_name: `Rent: ${r.property_name}`, payment_type: 'Cash', created_at: r.created_at || r.rent_date })),
+      ...filteredOtherExpenses.map(o => ({ ...o, isExpense: true, customer_name: `Other: ${o.title}`, payment_type: o.payment_method, created_at: o.created_at || o.date })),
+      ...filteredInvestments.map(i => ({ ...i, isIncome: true, customer_name: `Invest: ${i.investor}`, payment_type: 'Cash', created_at: i.created_at || i.date }))
     ].map(s => {
         if (selectedLedgerAccount?.module_type === 'Admin Recipient') {
           const isAdminPayment = s.expense_type === 'Admin Payment' || s.title?.includes('Admin Payment') || s.customer_name?.includes('Admin Payment');
@@ -739,11 +739,11 @@ export default function Accounts() {
     const isCash = acc.isCash || acc.bank_name.toLowerCase() === 'cash' || acc.bank_name.toLowerCase() === 'cash account';
     const accountTransactions = [
       ...filteredSales,
-      ...filteredSupplierPayments.map(p => ({ ...p, isExpense: true, customer_name: p.supplier_name || 'Supplier', amount: p.paid_amount, created_at: p.purchase_date })),
+      ...filteredSupplierPayments.map(p => ({ ...p, isExpense: true, customer_name: p.supplier_name || 'Supplier', amount: p.paid_amount, created_at: p.created_at || p.purchase_date })),
       ...filteredSupplierPayments.filter(p => parseFloat(p.delivery_charges) > 0).map(p => ({
         ...p, isExpense: true, customer_name: `Fare: ${p.vehicle_number || 'Vehicle'}`, 
         amount: p.delivery_charges, payment_type: p.fare_payment_type || 'Cash', 
-        created_at: p.purchase_date, isTransportFare: true
+        created_at: p.created_at || p.purchase_date, isTransportFare: true
       })),
       ...filteredGeneralExpenses.map(e => {
         if (e.expense_type === 'Admin Payment') {
@@ -752,20 +752,20 @@ export default function Accounts() {
             isExpense: false,
             isIncome: true,
             customer_name: e.description || `Received Admin Payment`,
-            created_at: e.expense_date
+            created_at: e.created_at || e.expense_date
           };
         }
         return {
           ...e,
           isExpense: true,
           customer_name: `General Expense: ${e.title || e.description || 'Office Expense'}`,
-          created_at: e.expense_date
+          created_at: e.created_at || e.expense_date
         };
       }),
-      ...filteredSalaries.map(s => ({ ...s, isExpense: true, customer_name: `Salary: ${s.employee_name}`, payment_type: 'Cash', created_at: s.payment_date })),
-      ...filteredRents.map(r => ({ ...r, isExpense: true, customer_name: `Rent: ${r.property_name}`, payment_type: 'Cash', created_at: r.rent_date })),
-      ...filteredOtherExpenses.map(o => ({ ...o, isExpense: true, customer_name: `Other: ${o.title}`, payment_type: o.payment_method, created_at: o.date })),
-      ...filteredInvestments.map(i => ({ ...i, isIncome: true, customer_name: `Invest: ${i.investor}`, payment_type: 'Cash', created_at: i.date }))
+      ...filteredSalaries.map(s => ({ ...s, isExpense: true, customer_name: `Salary: ${s.employee_name}`, payment_type: 'Cash', created_at: s.created_at || s.payment_date })),
+      ...filteredRents.map(r => ({ ...r, isExpense: true, customer_name: `Rent: ${r.property_name}`, payment_type: 'Cash', created_at: r.created_at || r.rent_date })),
+      ...filteredOtherExpenses.map(o => ({ ...o, isExpense: true, customer_name: `Other: ${o.title}`, payment_type: o.payment_method, created_at: o.created_at || o.date })),
+      ...filteredInvestments.map(i => ({ ...i, isIncome: true, customer_name: `Invest: ${i.investor}`, payment_type: 'Cash', created_at: i.created_at || i.date }))
     ].map(s => {
       if (acc.module_type === 'Admin Recipient') {
         const isGallaCloseout = s.customer_name?.includes('Galla Closeout') || s.title?.includes('Galla Closeout') || s.notes?.includes('Recipient Bank') || String(s.notes).includes(acc.bank_name);
