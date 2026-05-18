@@ -1,7 +1,7 @@
 // DYNAMIC API PATCH
 const API_BASE_URL = process.env.REACT_APP_API_URL ? `${process.env.REACT_APP_API_URL}/api` : 'https://erp-backend-3rf8.onrender.com/api';
 
-import React, { useState, useEffect, useContext } from "react";
+import React, { useState, useEffect, useContext, useMemo } from "react";
 import { 
   MoreHorizontal, Plus, Pencil, Trash2, X, Search,
   CircleDollarSign, Calendar, Tag, CreditCard, PieChart, Info
@@ -111,6 +111,17 @@ export default function OtherExpenses({ type }) {
     return matchSearch && matchCategory;
   });
 
+  const sortedFiltered = useMemo(() => {
+    return [...filtered].sort((a, b) => {
+      const dateA = new Date(a.date || a.created_at || 0);
+      const dateB = new Date(b.date || b.created_at || 0);
+      if (dateA.getTime() !== dateB.getTime()) {
+        return dateA - dateB;
+      }
+      return (a.id || 0) - (b.id || 0);
+    });
+  }, [filtered]);
+
   // If Admin and no counter selected, show selection screen
   if (user?.role === 'admin' && !activeTab && !type) {
     return (
@@ -200,8 +211,9 @@ export default function OtherExpenses({ type }) {
       </div>
 
       <div className="module-table-container" style={{padding: '20px', background: 'white', borderRadius: '16px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)'}}>
-        <DataTable value={filtered} paginator rows={10} rowsPerPageOptions={[5, 10, 25, 50]} 
+        <DataTable value={sortedFiltered} paginator rows={10} rowsPerPageOptions={[5, 10, 25, 50]} 
                    emptyMessage="No misc expenses found." className="p-datatable-sm" stripedRows responsiveLayout="scroll">
+          <Column header="S.No." body={(rowData, options) => <span style={{fontWeight: 700, color: '#64748b'}}>{options.rowIndex + 1}</span>} style={{width: '70px', textAlign: 'center'}} />
           <Column header="Expense Date" body={(r) => (
             <div style={{fontWeight: 700}}>{new Date(r.date).toLocaleDateString()}</div>
           )} sortable field="date" />

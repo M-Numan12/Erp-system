@@ -295,9 +295,10 @@ export default function Salary({ type }) {
 
   const filteredLedgerData = useMemo(() => {
     let arr = Array.isArray(ledgerData) ? ledgerData : [];
-    if (ledgerFilter === 'all') return arr;
-    if (ledgerFilter === 'custom' && (!ledgerFrom || !ledgerTo)) return arr;
-    return arr.filter(row => {
+    const sorted = [...arr].sort((a, b) => new Date(a.payment_date || a.created_at || 0) - new Date(b.created_at || b.created_at || 0));
+    if (ledgerFilter === 'all') return sorted;
+    if (ledgerFilter === 'custom' && (!ledgerFrom || !ledgerTo)) return sorted;
+    return sorted.filter(row => {
       if(!row.payment_date) return false;
       const rowDateStr = new Date(row.payment_date).toLocaleDateString('en-CA');
       return rowDateStr >= ledgerFrom && rowDateStr <= ledgerTo;
@@ -348,6 +349,17 @@ export default function Salary({ type }) {
     (r.employee_name || "").toLowerCase().includes(search.toLowerCase()) || 
     (r.cnic || "").includes(search)
   );
+
+  const sortedFiltered = useMemo(() => {
+    return [...filtered].sort((a, b) => {
+      const dateA = new Date(a.joining_date || a.created_at || 0);
+      const dateB = new Date(b.joining_date || b.created_at || 0);
+      if (dateA.getTime() !== dateB.getTime()) {
+        return dateA - dateB;
+      }
+      return (a.id || 0) - (b.id || 0);
+    });
+  }, [filtered]);
 
   // Print bill helper
   const printReceipt = () => {
@@ -435,6 +447,7 @@ export default function Salary({ type }) {
         <table className="module-table">
           <thead>
             <tr>
+              <th style={{width: '60px', textAlign: 'center'}}>S.No.</th>
               <th>Employee Info</th>
               <th>Role / Designation</th>
               <th>CNIC</th>
@@ -444,11 +457,12 @@ export default function Salary({ type }) {
             </tr>
           </thead>
           <tbody>
-            {filtered.length === 0 ? (
-              <tr><td colSpan="6" className="empty-msg">No registered employees found.</td></tr>
+            {sortedFiltered.length === 0 ? (
+              <tr><td colSpan="7" className="empty-msg">No registered employees found.</td></tr>
             ) : (
-              filtered.map(r => (
+              sortedFiltered.map((r, index) => (
                 <tr key={r.id}>
+                  <td style={{textAlign: 'center', fontWeight: 'bold', color: '#64748b'}}>{index + 1}</td>
                   <td>
                     <div className="prod-main-info">
                       <span className="name">{r.employee_name}</span>
@@ -755,6 +769,7 @@ export default function Salary({ type }) {
               <table style={{width: '100%', borderCollapse: 'collapse', marginTop: '10px'}}>
                 <thead>
                   <tr style={{background: '#f1f5f9'}}>
+                    <th style={{border: '1px solid #cbd5e1', padding: '8px', textAlign: 'center', width: '50px'}}>S.No.</th>
                     <th style={{border: '1px solid #cbd5e1', padding: '8px', textAlign: 'left'}}>Date</th>
                     <th style={{border: '1px solid #cbd5e1', padding: '8px', textAlign: 'left'}}>Type</th>
                     <th style={{border: '1px solid #cbd5e1', padding: '8px', textAlign: 'left'}}>Method</th>
@@ -763,8 +778,9 @@ export default function Salary({ type }) {
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredLedgerData.map(row => (
+                  {filteredLedgerData.map((row, index) => (
                     <tr key={row.id}>
+                      <td style={{border: '1px solid #cbd5e1', padding: '8px', textAlign: 'center', fontWeight: 'bold', color: '#64748b'}}>{index + 1}</td>
                       <td style={{border: '1px solid #cbd5e1', padding: '8px'}}>{new Date(row.payment_date).toLocaleDateString()}</td>
                       <td style={{border: '1px solid #cbd5e1', padding: '8px'}}>{row.transaction_type}</td>
                       <td style={{border: '1px solid #cbd5e1', padding: '8px'}}>{row.payment_type}</td>
@@ -839,6 +855,7 @@ export default function Salary({ type }) {
                     <table className="module-table">
                     <thead>
                         <tr>
+                        <th style={{width: '60px', textAlign: 'center'}}>S.No.</th>
                         <th>Date</th>
                         <th>Type</th>
                         <th>Method</th>
@@ -847,9 +864,10 @@ export default function Salary({ type }) {
                         </tr>
                     </thead>
                     <tbody>
-                        {filteredLedgerData.length === 0 ? (<tr><td colSpan="5" className="empty-msg">No payment logs found for this period.</td></tr>) : (
-                        filteredLedgerData.map((row) => (
+                        {filteredLedgerData.length === 0 ? (<tr><td colSpan="6" className="empty-msg">No payment logs found for this period.</td></tr>) : (
+                        filteredLedgerData.map((row, index) => (
                             <tr key={row.id}>
+                            <td style={{textAlign: 'center', fontWeight: 'bold', color: '#64748b'}}>{index + 1}</td>
                             <td>{new Date(row.payment_date).toLocaleDateString()}</td>
                             <td style={{fontWeight:600}}>{row.transaction_type}</td>
                             <td>{row.payment_type}</td>

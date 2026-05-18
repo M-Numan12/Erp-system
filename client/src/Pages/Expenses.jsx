@@ -1,7 +1,7 @@
 // DYNAMIC API PATCH
 const API_BASE_URL = process.env.REACT_APP_API_URL ? `${process.env.REACT_APP_API_URL}/api` : 'https://erp-backend-3rf8.onrender.com/api';
 
-import React, { useState, useEffect, useContext } from "react";
+import React, { useState, useEffect, useContext, useMemo } from "react";
 import { 
   Receipt, Plus, Pencil, Trash2, X, Search, 
   Home, Building2, Coffee, Zap, UserMinus, Wallet,
@@ -180,6 +180,17 @@ export default function Expenses({ type }) {
     return matchType && matchSearch && matchDate;
   });
 
+  const sortedFiltered = useMemo(() => {
+    return [...filtered].sort((a, b) => {
+      const dateA = new Date(a.expense_date || a.created_at || 0);
+      const dateB = new Date(b.expense_date || b.created_at || 0);
+      if (dateA.getTime() !== dateB.getTime()) {
+        return dateA - dateB;
+      }
+      return (a.id || 0) - (b.id || 0);
+    });
+  }, [filtered]);
+
   const targetAccountName = form.payment_source === 'Bank' ? form.bank_name : 'Cash';
   const availableBal = liveBalances[targetAccountName] || 0;
   const isInsufficient = form.payment_source === 'Bank' && parseFloat(form.amount || 0) > availableBal;
@@ -300,6 +311,7 @@ export default function Expenses({ type }) {
         <table className="module-table">
           <thead>
             <tr>
+              <th style={{width: '60px', textAlign: 'center'}}>S.No.</th>
               <th>Date</th>
               <th>Type / Category</th>
               <th>Description</th>
@@ -308,11 +320,12 @@ export default function Expenses({ type }) {
             </tr>
           </thead>
           <tbody>
-            {filtered.length === 0 ? (
-              <tr><td colSpan="5" className="empty-msg">No expenses found for {activeTab}.</td></tr>
+            {sortedFiltered.length === 0 ? (
+              <tr><td colSpan="6" className="empty-msg">No expenses found for {activeTab}.</td></tr>
             ) : (
-              filtered.map(r => (
+              sortedFiltered.map((r, index) => (
                 <tr key={r.id}>
+                  <td style={{textAlign: 'center', fontWeight: 'bold', color: '#64748b'}}>{index + 1}</td>
                   <td>{new Date(r.expense_date).toLocaleDateString()}</td>
                   <td>
                     <div className="prod-main-info">
