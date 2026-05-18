@@ -13,12 +13,39 @@ code {
 }
 
 @media print {
-  .no-print {
+  /* Global Layout Resets to prevent flexbox, scrollbar clipping, and margin offsets when printing */
+  html, body, #root, .main-layout, .content-area, .module-page, .modal-overlay, .receipt-preview-overlay, .modal, .p-dialog-mask, .p-dialog {
+    display: block !important;
+    position: static !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+    height: auto !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    border: none !important;
+    transform: none !important;
+    animation: none !important;
+    backdrop-filter: none !important;
+  }
+
+  .no-print,
+  .sidebar,
+  .mobile-header,
+  .sidebar-overlay,
+  button,
+  .p-button,
+  .p-dialog-header,
+  .p-dialog-footer {
     display: none !important;
   }
+
   .print-only {
     display: block !important;
   }
+
   body {
     background: white !important;
   }
