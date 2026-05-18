@@ -547,8 +547,36 @@ export default function Customers({ type }) {
             {/* Print Only Ledger Report */}
             <div className="ledger-report print-only" style={{padding: '20px', color: 'black'}}>
               <div style={{textAlign: 'center', marginBottom: '20px', borderBottom: '2px solid #000', paddingBottom: '10px'}}>
-                <h2 style={{margin: 0}}>DATA WALEY CEMENT DEALER</h2>
-                <p style={{margin: '5px 0'}}>Customer Financial Ledger Report</p>
+                {activeTab === 'Retail 2' ? (
+                  <>
+                    <h2 style={{margin: 0}}>DATA WALEY</h2>
+                    <h3 style={{fontSize: '15px', fontWeight: 'normal', margin: '2px 0 8px 0'}}>RETAIL 2</h3>
+                    <div style={{fontSize: '12px', margin: '5px 0'}}>
+                      <p style={{margin: '2px 0'}}>Waqar Butt: 0311-4105840</p>
+                      <p style={{margin: '2px 0'}}>Mhd Aiss: 0335-1430216</p>
+                      <p style={{margin: '2px 0'}}>Saifullah: 0333-4714628</p>
+                    </div>
+                    <p style={{fontSize: '11px', margin: '5px 0'}}>
+                      Ada Treadywali Stop Main Jaranwala Road,<br/>
+                      District Sheikupura.
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <h2 style={{margin: 0}}>DATA WALEY</h2>
+                    <h3 style={{fontSize: '15px', fontWeight: 'normal', margin: '2px 0 8px 0'}}>CEMENT DEALER</h3>
+                    <div style={{fontSize: '12px', margin: '5px 0'}}>
+                      <p style={{margin: '2px 0'}}>Tariq Mehmood: 0300-4269347</p>
+                      <p style={{margin: '2px 0'}}>Mian Shehroz: 0335-4294300</p>
+                      <p style={{margin: '2px 0'}}>Ziaullah: 0322-4295106</p>
+                    </div>
+                    <p style={{fontSize: '11px', margin: '5px 0'}}>
+                      12-KM Main Lahore Sheikhupura Road,<br/>
+                      Ada Kot Abdul Malik.
+                    </p>
+                  </>
+                )}
+                <p style={{margin: '10px 0 5px 0', borderTop: '1px dashed #cbd5e1', paddingTop: '5px'}}>Customer Financial Ledger Report</p>
                 <div style={{display: 'flex', justifyContent: 'space-between', marginTop: '15px', fontSize: '14px'}}>
                   <span><strong>Customer:</strong> {selectedCustomer.name}</span>
                   <span><strong>Period:</strong> {ledgerFilter === 'all' ? 'All Time' : `${ledgerFrom} to ${ledgerTo}`}</span>
@@ -944,8 +972,35 @@ export default function Customers({ type }) {
                   
                   <div className="print-bill-box" style={{background:'white', padding:'25px', width:'100%', color:'black', fontFamily: 'monospace'}}>
                         <div style={{textAlign:'center', borderBottom:'2px dashed #333', paddingBottom:'15px', marginBottom:'20px'}}>
-                            <h2 style={{margin:'0', fontSize:'1.4rem', fontWeight:'bold', letterSpacing:'1px'}}>DATA WALEY ERP</h2>
-                            <p style={{margin:'5px 0', fontSize:'0.9rem'}}>Building Tomorrow Today</p>
+                            {activeTab === 'Retail 2' ? (
+                              <>
+                                <h2 style={{margin: '0', fontSize: '1.4rem', fontWeight: 'bold'}}>DATA WALEY</h2>
+                                <h3 style={{fontSize: '14px', fontWeight: 'normal', margin: '2px 0 8px 0'}}>RETAIL 2</h3>
+                                <div style={{fontSize: '11px', margin: '5px 0'}}>
+                                  <p style={{margin: '2px 0'}}>Waqar Butt: 0311-4105840</p>
+                                  <p style={{margin: '2px 0'}}>Mhd Aiss: 0335-1430216</p>
+                                  <p style={{margin: '2px 0'}}>Saifullah: 0333-4714628</p>
+                                </div>
+                                <p style={{fontSize: '10px', margin: '5px 0'}}>
+                                  Ada Treadywali Stop Main Jaranwala Road,<br/>
+                                  District Sheikupura.
+                                </p>
+                              </>
+                            ) : (
+                              <>
+                                <h2 style={{margin: '0', fontSize: '1.4rem', fontWeight: 'bold'}}>DATA WALEY</h2>
+                                <h3 style={{fontSize: '14px', fontWeight: 'normal', margin: '2px 0 8px 0'}}>CEMENT DEALER</h3>
+                                <div style={{fontSize: '11px', margin: '5px 0'}}>
+                                  <p style={{margin: '2px 0'}}>Tariq Mehmood: 0300-4269347</p>
+                                  <p style={{margin: '2px 0'}}>Mian Shehroz: 0335-4294300</p>
+                                  <p style={{margin: '2px 0'}}>Ziaullah: 0322-4295106</p>
+                                </div>
+                                <p style={{fontSize: '10px', margin: '5px 0'}}>
+                                  12-KM Main Lahore Sheikhupura Road,<br/>
+                                  Ada Kot Abdul Malik.
+                                </p>
+                              </>
+                            )}
                             <h3 style={{marginTop:'15px', background:'#333', color:'#fff', padding:'4px 0', fontSize:'0.9rem'}}>RECEIPT VOUCHER</h3>
                         </div>
                         

@@ -577,8 +577,36 @@ export default function Labours({ type }) {
             {/* Print Only Header */}
             <div className="ledger-report print-only" style={{padding: '20px', color: 'black'}}>
               <div style={{textAlign: 'center', marginBottom: '20px', borderBottom: '2px solid #000', paddingBottom: '10px'}}>
-                <h2 style={{margin: 0}}>DATA WALEY CEMENT DEALER</h2>
-                <p style={{margin: '5px 0'}}>Labour Group Ledger Report</p>
+                {activeTab === 'Retail 2' ? (
+                  <>
+                    <h2 style={{margin: 0}}>DATA WALEY</h2>
+                    <h3 style={{fontSize: '15px', fontWeight: 'normal', margin: '2px 0 8px 0'}}>RETAIL 2</h3>
+                    <div style={{fontSize: '12px', margin: '5px 0'}}>
+                      <p style={{margin: '2px 0'}}>Waqar Butt: 0311-4105840</p>
+                      <p style={{margin: '2px 0'}}>Mhd Aiss: 0335-1430216</p>
+                      <p style={{margin: '2px 0'}}>Saifullah: 0333-4714628</p>
+                    </div>
+                    <p style={{fontSize: '11px', margin: '5px 0'}}>
+                      Ada Treadywali Stop Main Jaranwala Road,<br/>
+                      District Sheikupura.
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <h2 style={{margin: 0}}>DATA WALEY</h2>
+                    <h3 style={{fontSize: '15px', fontWeight: 'normal', margin: '2px 0 8px 0'}}>CEMENT DEALER</h3>
+                    <div style={{fontSize: '12px', margin: '5px 0'}}>
+                      <p style={{margin: '2px 0'}}>Tariq Mehmood: 0300-4269347</p>
+                      <p style={{margin: '2px 0'}}>Mian Shehroz: 0335-4294300</p>
+                      <p style={{margin: '2px 0'}}>Ziaullah: 0322-4295106</p>
+                    </div>
+                    <p style={{fontSize: '11px', margin: '5px 0'}}>
+                      12-KM Main Lahore Sheikhupura Road,<br/>
+                      Ada Kot Abdul Malik.
+                    </p>
+                  </>
+                )}
+                <p style={{margin: '10px 0 5px 0', borderTop: '1px dashed #cbd5e1', paddingTop: '5px'}}>Labour Group Ledger Report</p>
                 <div style={{display: 'flex', justifyContent: 'space-between', marginTop: '15px', fontSize: '14px'}}>
                   <span><strong>Labour Group:</strong> {selectedGroup}</span>
                   <span><strong>Workers:</strong> {selectedGroupDetails?.workersCount || 0}</span>
