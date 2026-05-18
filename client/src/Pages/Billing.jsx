@@ -1118,9 +1118,9 @@ export default function Billing({ type }) {
               <>
                 <h2 style={{ fontSize: '15px', fontWeight: 'normal', margin: '2px 0 8px 0' }}>CEMENT DEALER</h2>
                 <div className="contact-info">
+                  <p>Tariq Mehmood: 0300-4269347</p>
                   <p>Mian Shehroz: 0335-4294300</p>
                   <p>Ziaullah: 0322-4295106</p>
-                  <p>Tariq Mehmood: 0300-4269347</p>
                 </div>
                 <p className="address">
                   12-KM Main Lahore Sheikhupura Road,<br/>
