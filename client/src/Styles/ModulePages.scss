@@ -3592,10 +3592,7 @@ form {
 
   /* Position printed content absolute at the top-left of the page */
   .print-only,
-  .thermal-receipt,
   .ledger-report,
-  #return-slip-print,
-  .print-bill-box,
   #print-area {
     position: absolute !important;
     left: 0 !important;
@@ -3606,20 +3603,27 @@ form {
     overflow: visible !important;
   }
 
-  /* Specific styles for thermal receipt, payment vouchers, and return receipts (80mm width) */
+  /* Specific styles for thermal receipt, payment vouchers, and return receipts (72mm width centered with 4mm margins to prevent edge-cutting) */
   .thermal-receipt,
   #return-slip-print,
   .print-bill-box {
-    width: 80mm !important;
-    max-width: 80mm !important;
+    position: absolute !important;
+    left: 4mm !important;
+    top: 0 !important;
+    display: block !important;
+    margin: 0 !important;
+    background: white !important;
+    overflow: visible !important;
+    width: 72mm !important;
+    max-width: 72mm !important;
     font-family: 'Courier New', Courier, monospace !important;
     line-height: 1.2 !important;
     page-break-inside: avoid;
     box-sizing: border-box !important;
-    padding: 10px !important;
+    padding: 6px !important;
   }
 
-  /* Make everything bold and clear on printed thermal bills */
+  /* Make everything bold, clear, and perfectly sized on printed thermal bills */
   .thermal-receipt,
   .thermal-receipt *,
   #return-slip-print,
@@ -3627,7 +3631,7 @@ form {
   .print-bill-box,
   .print-bill-box * {
     font-weight: 800 !important;
-    font-size: 13px !important;
+    font-size: 12px !important;
     color: #000 !important;
   }
 
