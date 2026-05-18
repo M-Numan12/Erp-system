@@ -141,7 +141,7 @@ export default function Billing({ type }) {
     const [prodRes, salesRes, vehiclesRes, banksRes, custsRes, labRes] = await Promise.all([
       fetch(`${PRODUCTS_API}?type=${activeTab}`, { headers }),
       fetch(`${SALES_API}?type=${activeTab}`, { headers }),
-      fetch(`${TRANSPORT_API}`, { headers }),
+      fetch(`${TRANSPORT_API}?type=${activeTab}`, { headers }),
       fetch(`${API_BASE_URL}/banks`, { headers }),
       fetch(`${CUSTOMERS_API}?type=${activeTab}`, { headers }),
       fetch(`${API_BASE_URL}/labours`, { headers })
