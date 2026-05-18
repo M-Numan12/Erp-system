@@ -13,6 +13,10 @@ code {
 }
 
 @media print {
+  @page {
+    margin: 0;
+    size: 80mm 297mm;
+  }
   /* Global Layout Resets to prevent flexbox, scrollbar clipping, and margin offsets when printing */
   html, body, #root, .main-layout, .content-area, .module-page, .modal-overlay, .receipt-preview-overlay, .modal, .p-dialog-mask, .p-dialog {
     display: block !important;

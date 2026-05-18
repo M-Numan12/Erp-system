@@ -3522,7 +3522,7 @@ form {
 @media print {
   @page {
     margin: 0;
-    size: 80mm auto;
+    size: 80mm 297mm;
   }
 
   /* Reset layout wrappers and modals to block and static positioning to prevent flex/scrollbar/position printing bugs */
