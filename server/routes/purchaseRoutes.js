@@ -85,7 +85,7 @@ router.post('/', auth, async (req, res) => {
     // Find vehicle_id if not provided but number is present
     let vId = vehicle_id;
     if (!vId && vehicle_number) {
-      const vRes = await client.query('SELECT id FROM vehicles WHERE vehicle_number = $1 LIMIT 1', [vehicle_number]);
+      const vRes = await client.query('SELECT id FROM vehicles WHERE vehicle_number = $1 AND (is_deleted IS NOT TRUE) LIMIT 1', [vehicle_number]);
       if (vRes.rows.length > 0) vId = vRes.rows[0].id;
     }
 

@@ -11,7 +11,7 @@ router.get('/', auth, async (req, res) => {
     const { type, ownership_type } = req.query; // ownership_type = 'Personal' or 'Rent'
     let query = 'SELECT * FROM vehicles';
     let params = [];
-    let conditions = [];
+    let conditions = ['(is_deleted IS NOT TRUE)'];
 
     if (type) {
       params.push(type);
