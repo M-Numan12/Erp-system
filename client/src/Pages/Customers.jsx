@@ -252,12 +252,20 @@ export default function Customers({ type }) {
       const resData = await res.json();
       if (res.ok && resData.success) {
         setShowPaymentModal(false);
+        const previousBal = parseFloat(selectedCustomer.balance || 0);
+        const amt = parseFloat(paymentAmount);
+        const remBal = previousBal - amt;
+
         setReceiptData({
             id: resData.recordId || "N/A",
             customer_name: selectedCustomer.name,
-            amount: parseFloat(paymentAmount),
+            customer_phone: selectedCustomer.phone || "",
+            customer_address: selectedCustomer.address || "",
+            amount: amt,
             payment_type: finalPaymentType,
-            payment_date: new Date().toISOString()
+            payment_date: new Date().toISOString(),
+            previousBalance: previousBal,
+            newBalance: remBal
         });
         setShowReceipt(true);
         fetchRecords();
@@ -960,21 +968,21 @@ export default function Customers({ type }) {
       )}
       {/* Print Receipt Modal System-wide styled bill */}
       {showReceipt && receiptData && (
-          <div className="modal-overlay receipt-preview-overlay" style={{zIndex: 1000}} onClick={() => setShowReceipt(false)}>
-              <div className="modal" onClick={(e) => e.stopPropagation()} style={{maxWidth: '450px', borderRadius: '0', padding:'0', border:'none'}}>
-                  <div className="modal-header no-print" style={{padding:'15px', borderBottom:'1px solid #eee'}}>
+          <div className="modal-overlay receipt-preview-overlay no-print" style={{zIndex: 1000}} onClick={() => setShowReceipt(false)}>
+              <div className="modal" onClick={(e) => e.stopPropagation()} style={{maxWidth: '450px', borderRadius: '12px', padding:'20px', border:'none', background: '#ffffff'}}>
+                  <div className="modal-header no-print" style={{padding:'0 0 15px 0', borderBottom:'1px solid #eee', marginBottom: '15px'}}>
                       <h3>📋 Payment Voucher</h3>
                       <div style={{display:'flex', gap:'10px'}}>
-                        <button onClick={() => window.print()} style={{background:'#10b981', color:'white', border:'none', padding:'8px 15px', borderRadius:'4px', cursor:'pointer', fontWeight:600, display:'flex', alignItems:'center', gap:'5px'}}><Printer size={16}/> Print Bill</button>
-                        <button className="modal-close" onClick={() => setShowReceipt(false)}><X size={20} /></button>
+                        <button onClick={() => window.print()} style={{background:'#10b981', color:'white', border:'none', padding:'8px 15px', borderRadius:'6px', cursor:'pointer', fontWeight:600, display:'flex', alignItems:'center', gap:'5px'}}><Printer size={16}/> Print Bill</button>
+                        <button className="modal-close" onClick={() => setShowReceipt(false)} style={{background: 'transparent', border: 'none', cursor: 'pointer'}}><X size={20} /></button>
                       </div>
                   </div>
                   
-                  <div className="print-bill-box" style={{background:'white', padding:'25px', width:'100%', color:'black', fontFamily: 'monospace'}}>
-                        <div style={{textAlign:'center', borderBottom:'2px dashed #333', paddingBottom:'15px', marginBottom:'20px'}}>
+                  <div className="print-bill-box" style={{background:'white', padding:'0', width:'100%', color:'black', fontFamily: 'monospace'}}>
+                        <div style={{textAlign:'center'}}>
+                            <h2>DATA WALEY</h2>
                             {activeTab === 'Retail 2' ? (
                               <>
-                                <h2 style={{margin: '0', fontSize: '1.4rem', fontWeight: 'bold'}}>DATA WALEY</h2>
                                 <h3 style={{fontSize: '14px', fontWeight: 'normal', margin: '2px 0 8px 0'}}>RETAIL 2</h3>
                                 <div style={{fontSize: '11px', margin: '5px 0'}}>
                                   <p style={{margin: '2px 0'}}>Waqar Butt: 0311-4105840</p>
@@ -988,7 +996,6 @@ export default function Customers({ type }) {
                               </>
                             ) : (
                               <>
-                                <h2 style={{margin: '0', fontSize: '1.4rem', fontWeight: 'bold'}}>DATA WALEY</h2>
                                 <h3 style={{fontSize: '14px', fontWeight: 'normal', margin: '2px 0 8px 0'}}>CEMENT DEALER</h3>
                                 <div style={{fontSize: '11px', margin: '5px 0'}}>
                                   <p style={{margin: '2px 0'}}>Tariq Mehmood: 0300-4269347</p>
@@ -1001,36 +1008,53 @@ export default function Customers({ type }) {
                                 </p>
                               </>
                             )}
-                            <h3 style={{marginTop:'15px', background:'#333', color:'#fff', padding:'4px 0', fontSize:'0.9rem'}}>RECEIPT VOUCHER</h3>
                         </div>
                         
-                        <div style={{fontSize:'0.9rem', marginBottom:'20px', display:'flex', flexDirection:'column', gap:'6px'}}>
-                            <div style={{display:'flex', justifyContent:'space-between'}}><span>Reciept #:</span><strong>PYM-{receiptData.id}</strong></div>
-                            <div style={{display:'flex', justifyContent:'space-between'}}><span>Dated:</span><strong>{new Date(receiptData.payment_date).toLocaleDateString()}</strong></div>
-                            <div style={{display:'flex', justifyContent:'space-between'}}><span>Method:</span><strong>{receiptData.payment_type}</strong></div>
+                        <div style={{borderTop: '1.5px dashed #000', margin: '8px 0'}}></div>
+                        <h3 style={{textAlign: 'center', fontSize: '15px', margin: '8px 0', fontWeight: '900'}}>RECEIPT VOUCHER</h3>
+                        
+                        <div style={{margin: '10px 0', fontSize: '12px', display: 'flex', flexDirection: 'column', gap: '3px'}}>
+                            <div style={{display: 'flex'}}><span style={{width: '90px'}}>Receipt No</span> <span>: PYM-{receiptData.id}</span></div>
+                            <div style={{display: 'flex'}}><span style={{width: '90px'}}>Date</span> <span>: {new Date(receiptData.payment_date).toLocaleDateString()} {new Date(receiptData.payment_date).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span></div>
+                            <div style={{display: 'flex'}}><span style={{width: '90px'}}>Name</span> <span>: {receiptData.customer_name}</span></div>
+                            {receiptData.customer_phone && <div style={{display: 'flex'}}><span style={{width: '90px'}}>Phone</span> <span>: {receiptData.customer_phone}</span></div>}
+                            {receiptData.customer_address && <div style={{display: 'flex'}}><span style={{width: '90px'}}>Address</span> <span>: {receiptData.customer_address}</span></div>}
+                            <div style={{display: 'flex'}}><span style={{width: '90px'}}>Payment Type</span> <span>: {receiptData.payment_type}</span></div>
                         </div>
 
-                        <div style={{borderTop:'1px solid #333', borderBottom:'1px solid #333', padding:'12px 0', marginBottom:'20px'}}>
-                            <div style={{display:'flex', justifyContent:'space-between', marginBottom:'8px'}}>
-                                <span>Received From:</span><strong>{receiptData.customer_name}</strong>
-                            </div>
-                            <div style={{display:'flex', justifyContent:'space-between'}}>
-                                <span>Reason:</span><strong>Customer Account Payment</strong>
-                            </div>
+                        <div style={{borderTop: '1.5px dashed #000', margin: '8px 0'}}></div>
+
+                        <div style={{display: 'flex', justifyContent: 'space-between', fontSize: '13px', fontWeight: '900', margin: '5px 0'}}>
+                            <span>PAID NOW</span>
+                            <span>Rs. {receiptData.amount.toLocaleString()}/-</span>
                         </div>
 
-                        <div style={{textAlign:'right', padding:'10px 0', borderBottom:'2px dashed #333', marginBottom:'40px'}}>
-                            <span style={{fontSize:'1.1rem'}}>TOTAL AMOUNT</span>
-                            <h1 style={{margin:'5px 0 0 0', fontSize:'2rem', fontWeight:'bold'}}>Rs. {parseFloat(receiptData.amount).toLocaleString()}</h1>
+                        <div style={{borderTop: '1.5px dashed #000', margin: '8px 0'}}></div>
+
+                        <div style={{display: 'flex', justifyContent: 'space-between', fontSize: '12px', margin: '5px 0'}}>
+                            <span>PREVIOUS BAL</span>
+                            <span>Rs. {receiptData.previousBalance.toLocaleString()}/-</span>
+                        </div>
+                        <div style={{display: 'flex', justifyContent: 'space-between', fontSize: '14px', fontWeight: 'bold', margin: '5px 0'}}>
+                            <span>TOTAL BALANCE</span>
+                            <span>Rs. {receiptData.newBalance.toLocaleString()}/-</span>
                         </div>
 
-                        <div style={{display:'flex', justifyContent:'space-between', fontSize:'0.8rem'}}>
-                            <div style={{width:'45%', borderTop:'1px solid #000', textAlign:'center', paddingTop:'5px'}}>Customer Signature</div>
-                            <div style={{width:'45%', borderTop:'1px solid #000', textAlign:'center', paddingTop:'5px'}}>Admin Sign</div>
-                        </div>
+                        <div style={{borderTop: '1.5px dashed #000', margin: '8px 0'}}></div>
+                        
+                        <h3 style={{textAlign: 'center', fontSize: '15px', margin: '8px 0', fontWeight: '900'}}>
+                            {receiptData.newBalance > 0 ? 'PENDING' : 'CLEAR'}
+                        </h3>
 
-                        <div style={{marginTop:'30px', textAlign:'center', fontSize:'0.75rem', fontStyle:'italic', color:'#666'}}>
-                            Electronically generated on {new Date().toLocaleString()}
+                        <div style={{borderTop: '1.5px dashed #000', margin: '8px 0'}}></div>
+
+                        <div style={{textAlign: 'center', marginTop: '10px', fontSize: '11px'}}>
+                            <p style={{margin: '2px 0'}}>For Any Query:</p>
+                            <p style={{margin: '2px 0', fontWeight: 'bold'}}>{activeTab === 'Retail 2' ? '0311-4105840' : '0322-4295106'}</p>
+                            <div style={{borderTop: '1px dashed #000', margin: '8px 0'}}></div>
+                            <p style={{fontWeight: 'bold', fontSize: '10px', textTransform: 'uppercase', marginTop: '5px'}}>Thank you for coming</p>
+                            <p style={{fontWeight: 'bold', fontSize: '10px', textTransform: 'uppercase'}}>have a good day sir</p>
+                            <div style={{borderTop: '1px dashed #000', margin: '8px 0'}}></div>
                         </div>
                   </div>
               </div>
