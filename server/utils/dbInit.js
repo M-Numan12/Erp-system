@@ -66,6 +66,8 @@ async function syncDatabaseSchema() {
     `ALTER TABLE vehicles ADD COLUMN IF NOT EXISTS total_earnings DECIMAL(15, 2) DEFAULT 0;`,
     `ALTER TABLE vehicles ADD COLUMN IF NOT EXISTS user_id INTEGER;`,
     `ALTER TABLE vehicles ADD COLUMN IF NOT EXISTS module_type VARCHAR(50);`,
+    `ALTER TABLE vehicles ADD COLUMN IF NOT EXISTS is_deleted BOOLEAN DEFAULT FALSE;`,
+    `UPDATE vehicles SET is_deleted = FALSE WHERE is_deleted IS NULL;`,
 
     // --- 5. EXPENSES (Secondary Failure Mode) ---
     `ALTER TABLE expenses ADD COLUMN IF NOT EXISTS expense_type VARCHAR(50) DEFAULT 'Office';`,
