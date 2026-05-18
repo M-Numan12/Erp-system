@@ -968,7 +968,7 @@ export default function Customers({ type }) {
       )}
       {/* Print Receipt Modal System-wide styled bill */}
       {showReceipt && receiptData && (
-          <div className="modal-overlay receipt-preview-overlay no-print" style={{zIndex: 1000}} onClick={() => setShowReceipt(false)}>
+          <div className="modal-overlay receipt-preview-overlay" style={{zIndex: 1000}} onClick={() => setShowReceipt(false)}>
               <div className="modal" onClick={(e) => e.stopPropagation()} style={{maxWidth: '450px', borderRadius: '12px', padding:'20px', border:'none', background: '#ffffff'}}>
                   <div className="modal-header no-print" style={{padding:'0 0 15px 0', borderBottom:'1px solid #eee', marginBottom: '15px'}}>
                       <h3>📋 Payment Voucher</h3>
