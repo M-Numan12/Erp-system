@@ -106,7 +106,7 @@ export default function Accounts() {
     payment_type: "Cash"
   });
   const [showAdminBankModal, setShowAdminBankModal] = useState(false);
-  const [adminBankForm, setAdminBankForm] = useState({ bank_name: "", account_title: "", account_number: "" });
+  const [adminBankForm, setAdminBankForm] = useState({ bank_name: "", account_title: "", account_number: "", opening_balance: "" });
   const [showDeleteWarning, setShowDeleteWarning] = useState(false);
   const [deleteTargetId, setDeleteTargetId] = useState(null);
   const [showBankSelectorModal, setShowBankSelectorModal] = useState(false);
@@ -153,11 +153,11 @@ export default function Accounts() {
           "Content-Type": "application/json",
           "Authorization": `Bearer ${localStorage.getItem('token')}`
         },
-        body: JSON.stringify({ ...adminBankForm, opening_balance: 0, is_admin_recipient: true })
+        body: JSON.stringify({ ...adminBankForm, opening_balance: parseFloat(adminBankForm.opening_balance) || 0, is_admin_recipient: true })
       });
       if (res.ok) {
         setShowAdminBankModal(false);
-        setAdminBankForm({ bank_name: "", account_title: "", account_number: "" });
+        setAdminBankForm({ bank_name: "", account_title: "", account_number: "", opening_balance: "" });
         fetchAccounts();
       }
     } catch (err) {
@@ -1767,6 +1767,16 @@ export default function Accounts() {
                   <input type="text" required value={adminBankForm.account_number} placeholder="e.g. 0123456789"
                     className="p-inputtext p-component"
                     onChange={e => setAdminBankForm({ ...adminBankForm, account_number: e.target.value })} />
+                </div>
+              </div>
+
+              <div className="field mb-3">
+                <label className="block mb-2 font-bold">Opening Balance (Amount) *</label>
+                <div className="p-inputgroup">
+                  <span className="p-inputgroup-addon">Rs.</span>
+                  <input type="number" required value={adminBankForm.opening_balance} placeholder="0.00"
+                    className="p-inputtext p-component"
+                    onChange={e => setAdminBankForm({ ...adminBankForm, opening_balance: e.target.value })} />
                 </div>
               </div>
 
