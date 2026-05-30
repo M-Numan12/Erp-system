@@ -120,21 +120,14 @@ export default function Accounts() {
   });
 
   const getAdminBankBalance = (acc) => {
-    const isToday = (dateStr) => {
-      if (!dateStr) return false;
-      const d = new Date(dateStr);
-      const today = new Date();
-      return d.getDate() === today.getDate() &&
-             d.getMonth() === today.getMonth() &&
-             d.getFullYear() === today.getFullYear();
-    };
+    const opening = parseFloat(acc.opening_balance) || 0;
     const received = generalExpenses
-      .filter(e => isToday(e.created_at || e.expense_date) && (e.expense_type === 'Galla Closeout' || e.title === 'Galla Closeout' || e.description?.includes('Galla Closeout') || e.notes?.includes('Recipient Bank')) && e.notes?.includes(acc.bank_name) && e.notes?.includes(acc.account_number))
+      .filter(e => (e.expense_type === 'Galla Closeout' || e.title === 'Galla Closeout' || e.description?.includes('Galla Closeout') || e.notes?.includes('Recipient Bank')) && e.notes?.includes(acc.bank_name) && e.notes?.includes(acc.account_number))
       .reduce((sum, e) => sum + (parseFloat(e.amount) || 0), 0);
     const paid = generalExpenses
-      .filter(e => isToday(e.created_at || e.expense_date) && e.expense_type === 'Admin Payment' && e.notes?.includes(acc.bank_name) && e.notes?.includes(acc.account_number))
+      .filter(e => e.expense_type === 'Admin Payment' && e.notes?.includes(acc.bank_name) && e.notes?.includes(acc.account_number))
       .reduce((sum, e) => sum + (parseFloat(e.amount) || 0), 0);
-    return received - paid;
+    return opening + received - paid;
   };
 
   const getSourceBalance = (method) => {
