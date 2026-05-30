@@ -24,9 +24,15 @@ export default function Stock({ type }) {
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [showReceiveModal, setShowReceiveModal] = useState(false);
+  const [showPurchaseReturnModal, setShowPurchaseReturnModal] = useState(false);
   const [receiveForm, setReceiveForm] = useState({ 
     supplier_id: "", quantity: "", vehicle_number: "", vehicle_id: "", 
     rate: "", paid_amount: "0", delivery_charges: "0", fare_status: "Pending",
+    vehicle_type: "External" 
+  });
+  const [purchaseReturnForm, setPurchaseReturnForm] = useState({ 
+    supplier_id: "", quantity: "", vehicle_number: "", vehicle_id: "", 
+    rate: "", received_amount: "0", delivery_charges: "0", fare_status: "Pending",
     vehicle_type: "External" 
   });
   const [vehicles, setVehicles] = useState([]);
@@ -211,6 +217,46 @@ export default function Stock({ type }) {
           vehicle_type: "External" 
         });
         fetchData();
+      }
+    } catch (err) { console.error(err); }
+    setLoading(false);
+  };
+
+  const handlePurchaseReturn = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      const res = await fetch(`${API_BASE_URL}/purchases/return`, {
+        method: "POST",
+        headers: { 
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({
+          supplier_id: purchaseReturnForm.supplier_id,
+          product_id: selectedProduct.id,
+          vehicle_number: purchaseReturnForm.vehicle_number,
+          vehicle_id: purchaseReturnForm.vehicle_id,
+          quantity: purchaseReturnForm.quantity,
+          rate: purchaseReturnForm.rate,
+          received_amount: purchaseReturnForm.received_amount,
+          delivery_charges: purchaseReturnForm.delivery_charges,
+          fare_status: purchaseReturnForm.fare_status,
+          module_type: activeTab
+        })
+      });
+      if (res.ok) {
+        setShowPurchaseReturnModal(false);
+        setPurchaseReturnForm({ 
+          supplier_id: "", quantity: "", vehicle_number: "", vehicle_id: "", 
+          rate: "", received_amount: "0", delivery_charges: "0", fare_status: "Pending",
+          vehicle_type: "External" 
+        });
+        fetchData();
+        alert("Stock successfully returned to supplier!");
+      } else {
+        const data = await res.json();
+        alert(data.error || "Failed to process return");
       }
     } catch (err) { console.error(err); }
     setLoading(false);
@@ -484,6 +530,15 @@ export default function Stock({ type }) {
                         setReceiveForm({...receiveForm, rate: prod.cost_price || ""});
                         setShowReceiveModal(true); 
                       } 
+                    },
+                    {
+                      label: 'Return Stock',
+                      icon: 'pi pi-replay',
+                      command: () => {
+                        setSelectedProduct(prod);
+                        setPurchaseReturnForm({...purchaseReturnForm, rate: prod.cost_price || ""});
+                        setShowPurchaseReturnModal(true);
+                      }
                     }
                   ]}
                 />
@@ -687,6 +742,136 @@ export default function Stock({ type }) {
                 <button type="button" className="btn-secondary" onClick={() => setShowReceiveModal(false)}>Cancel</button>
                 <button type="submit" className="btn-primary" disabled={loading}>
                   {loading ? "Processing..." : "Complete Purchase"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Purchase Return Modal */}
+      {showPurchaseReturnModal && selectedProduct && (
+        <div className="modal-overlay" onClick={() => setShowPurchaseReturnModal(false)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '600px' }}>
+            <div className="modal-header">
+              <h3>Return Stock to Supplier</h3>
+              <button className="modal-close" onClick={() => setShowPurchaseReturnModal(false)}><X size={20} /></button>
+            </div>
+            <form onSubmit={handlePurchaseReturn} className="custom-form">
+              <div className="form-grid">
+                <div className="form-group" style={{gridColumn: '1 / -1'}}>
+                  <label>Supplier / Vendor *</label>
+                  <div className="input-wrapper">
+                    <User size={18} />
+                    <select required value={purchaseReturnForm.supplier_id} onChange={(e) => setPurchaseReturnForm({ ...purchaseReturnForm, supplier_id: e.target.value })}>
+                      <option value="">Select a Supplier</option>
+                      {suppliers.map(sup => (
+                        <option key={sup.id} value={sup.id}>{sup.name} {sup.company ? `(${sup.company})` : ''}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <div className="form-group">
+                  <label>Quantity to Return *</label>
+                  <div className="input-wrapper">
+                    <Database size={18} />
+                    <input type="number" required value={purchaseReturnForm.quantity} placeholder={`e.g. 100 ${selectedProduct.unit}`}
+                      onChange={(e) => setPurchaseReturnForm({ ...purchaseReturnForm, quantity: e.target.value })} />
+                  </div>
+                </div>
+
+                <div className="form-group">
+                  <label style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+                    Return Vehicle *
+                    <div className="type-toggle" style={{display: 'flex', fontSize: '0.7rem', gap: '4px', background: '#f1f5f9', padding: '2px', borderRadius: '6px'}}>
+                      <button type="button" onClick={() => setPurchaseReturnForm({...purchaseReturnForm, vehicle_type: 'External', vehicle_id: '', vehicle_number: ''})} 
+                        style={{border: 'none', cursor: 'pointer', background: purchaseReturnForm.vehicle_type === 'External' ? 'white' : 'transparent', padding: '2px 6px', borderRadius: '4px', color: '#475569', fontWeight: purchaseReturnForm.vehicle_type === 'External' ? '600' : '400', boxShadow: purchaseReturnForm.vehicle_type === 'External' ? '0 1px 2px rgba(0,0,0,0.1)' : 'none'}}>Supplier</button>
+                      <button type="button" onClick={() => setPurchaseReturnForm({...purchaseReturnForm, vehicle_type: 'Personal', vehicle_id: '', vehicle_number: ''})} 
+                        style={{border: 'none', cursor: 'pointer', background: purchaseReturnForm.vehicle_type === 'Personal' ? 'white' : 'transparent', padding: '2px 6px', borderRadius: '4px', color: '#475569', fontWeight: purchaseReturnForm.vehicle_type === 'Personal' ? '600' : '400', boxShadow: purchaseReturnForm.vehicle_type === 'Personal' ? '0 1px 2px rgba(0,0,0,0.1)' : 'none'}}>Personal</button>
+                    </div>
+                  </label>
+                  <div className="input-wrapper">
+                    <Truck size={18} />
+                    {purchaseReturnForm.vehicle_type === 'Personal' ? (
+                      <select required value={purchaseReturnForm.vehicle_id} 
+                        onChange={(e) => {
+                          const vId = e.target.value;
+                          const vObj = vehicles.find(v => String(v.id) === String(vId));
+                          setPurchaseReturnForm({ ...purchaseReturnForm, vehicle_id: vId, vehicle_number: vObj ? vObj.vehicle_number : '' });
+                        }}>
+                        <option value="">Select Transport Vehicle</option>
+                        {vehicles.filter(v => !v.is_deleted).map(v => (
+                          <option key={v.id} value={v.id}>{v.vehicle_number} ({v.driver_name})</option>
+                        ))}
+                      </select>
+                    ) : (
+                      <input type="text" required value={purchaseReturnForm.vehicle_number} placeholder="e.g. LET-123"
+                        onChange={(e) => setPurchaseReturnForm({ ...purchaseReturnForm, vehicle_number: e.target.value, vehicle_id: "" })} />
+                    )}
+                  </div>
+                </div>
+
+                <div className="form-group">
+                  <label>Fare (Karywa) *</label>
+                  <div className="input-wrapper">
+                    <CircleDollarSign size={18} />
+                    <input type="number" required value={purchaseReturnForm.delivery_charges} placeholder="0.00"
+                      onChange={(e) => setPurchaseReturnForm({ ...purchaseReturnForm, delivery_charges: e.target.value })} />
+                  </div>
+                </div>
+
+                <div className="form-group">
+                  <label>Fare Status</label>
+                  <div className="input-wrapper">
+                    <Tag size={18} />
+                    <select value={purchaseReturnForm.fare_status} onChange={(e) => setPurchaseReturnForm({ ...purchaseReturnForm, fare_status: e.target.value })}>
+                      <option value="Pending">Pending</option>
+                      <option value="Paid">Paid (Cash)</option>
+                      <option value="Free">Free</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="form-group">
+                  <label>Return Rate (per unit) *</label>
+                  <div className="input-wrapper">
+                    <CircleDollarSign size={18} />
+                    <input type="number" step="0.01" required value={purchaseReturnForm.rate} placeholder="0.00"
+                      onChange={(e) => setPurchaseReturnForm({ ...purchaseReturnForm, rate: e.target.value })} />
+                  </div>
+                </div>
+
+                <div className="form-group">
+                  <label>Total Return Value</label>
+                  <div className="input-wrapper" style={{background: '#f8fafc'}}>
+                    <CircleDollarSign size={18} color="#64748b" />
+                    <input type="text" disabled value={`Rs. ${((parseFloat(purchaseReturnForm.quantity) || 0) * (parseFloat(purchaseReturnForm.rate) || 0)).toLocaleString()}`} />
+                  </div>
+                </div>
+
+                <div className="form-group">
+                  <label>Cash Received (Optional)</label>
+                  <div className="input-wrapper">
+                    <TrendingUp size={18} />
+                    <input type="number" step="0.01" value={purchaseReturnForm.received_amount} placeholder="0.00"
+                      onChange={(e) => setPurchaseReturnForm({ ...purchaseReturnForm, received_amount: e.target.value })} />
+                  </div>
+                </div>
+
+                <div className="form-group">
+                  <label>Supplier Balance Deduction</label>
+                  <div className="input-wrapper" style={{background: '#ecfdf5'}}>
+                    <ArrowDownCircle size={18} color="#059669" />
+                    <input type="text" disabled value={`Rs. ${(((parseFloat(purchaseReturnForm.quantity) || 0) * (parseFloat(purchaseReturnForm.rate) || 0)) - (parseFloat(purchaseReturnForm.received_amount) || 0)).toLocaleString()}`} style={{color: '#059669', fontWeight: 'bold'}} />
+                  </div>
+                </div>
+              </div>
+
+              <div className="form-actions" style={{display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '20px'}}>
+                <button type="button" className="btn-secondary" onClick={() => setShowPurchaseReturnModal(false)}>Cancel</button>
+                <button type="submit" className="btn-primary" disabled={loading}>
+                  {loading ? "Processing..." : "Confirm Return"}
                 </button>
               </div>
             </form>

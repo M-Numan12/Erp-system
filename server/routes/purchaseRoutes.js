@@ -286,4 +286,82 @@ router.post('/update-ledger-entry', auth, async (req, res) => {
   }
 });
 
+// Process a Purchase Return
+router.post('/return', auth, async (req, res) => {
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const { 
+      supplier_id, product_id, vehicle_number, vehicle_id, quantity, rate, 
+      received_amount, module_type, delivery_charges, fare_status 
+    } = req.body;
+    
+    const qty = parseFloat(quantity) || 0;
+    const rt = parseFloat(rate) || 0;
+    const refund = parseFloat(received_amount) || 0;
+    const fare = parseFloat(delivery_charges) || 0;
+    
+    const returnTotal = qty * rt;
+    const balanceImpact = -(returnTotal - refund);
+    
+    const finalModule = isAdmin(req) ? (module_type || 'Wholesale') : (req.user.module_type || 'Retail 1');
+
+    let vId = vehicle_id;
+    if (!vId && vehicle_number) {
+      const vRes = await client.query('SELECT id FROM vehicles WHERE vehicle_number = $1 AND (is_deleted IS NOT TRUE) LIMIT 1', [vehicle_number]);
+      if (vRes.rows.length > 0) vId = vRes.rows[0].id;
+    }
+
+    const returnRes = await client.query(
+      `INSERT INTO purchases 
+      (supplier_id, product_id, vehicle_number, vehicle_id, quantity, rate, total_amount, paid_amount, balance_amount, delivery_charges, fare_payment_type, module_type, user_id) 
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) RETURNING *`,
+      [supplier_id, product_id, vehicle_number, vId || null, -qty, rt, -returnTotal, -refund, balanceImpact, fare, fare_status || 'Pending', finalModule, req.user.id]
+    );
+
+    await client.query(
+      `UPDATE products SET stock_quantity = stock_quantity - $1 WHERE id = $2`,
+      [qty, product_id]
+    );
+
+    await client.query(
+      `UPDATE suppliers SET balance = balance + $1 WHERE id = $2`,
+      [balanceImpact, supplier_id]
+    );
+
+    if ((vId || vehicle_number) && fare > 0 && fare_status !== 'Free') {
+      if (vId) {
+        await client.query(
+          `UPDATE vehicles SET total_earnings = total_earnings + $1 WHERE id = $2`,
+          [fare, vId]
+        );
+      }
+
+      await client.query(
+        `INSERT INTO expenses (description, expense_type, category, amount, expense_date, notes, user_id, module_type, payment_type) 
+         VALUES ($1, $2, $3, $4, CURRENT_DATE, $5, $6, $7, $8)`,
+        [
+          `Return Transport Fare: ${vehicle_number || 'Vehicle'}`,
+          'Supplier Vehicle', 
+          'Transport',
+          fare,
+          JSON.stringify({ vehicle_id: vId, vehicle_number }),
+          req.user.id,
+          finalModule,
+          fare_status === 'Paid' ? 'Cash' : 'Pending'
+        ]
+      );
+    }
+
+    await client.query('COMMIT');
+    res.json(returnRes.rows[0]);
+  } catch (err) {
+    await client.query('ROLLBACK');
+    console.error('Purchase Return Error:', err);
+    res.status(500).json({ error: err.message });
+  } finally {
+    client.release();
+  }
+});
+
 module.exports = router;
