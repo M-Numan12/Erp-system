@@ -518,8 +518,8 @@ export default function Salary({ type }) {
                   </td>
                   <td style={{ textAlign: 'center' }}>
                     <ActionMenu
-                      onEdit={null}
-                      onDelete={null}
+                      onEdit={() => openEdit(r)}
+                      onDelete={() => handleDelete(r.id)}
                       extraItems={[
                         { label: 'Give Advance (Employee ko Dena)', icon: 'pi pi-arrow-right', command: () => openPaymentModal(r, 'Advance Given') },
                         { label: 'Advance Return (Wapas Lena / Deduct)', icon: 'pi pi-arrow-left', command: () => openPaymentModal(r, 'Advance Returned') },
