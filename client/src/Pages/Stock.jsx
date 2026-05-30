@@ -174,7 +174,7 @@ export default function Stock({ type }) {
     if (amt > 0) {
       try {
         // Fetch live balances
-        const balRes = await fetch((API_BASE_URL + '/banks/balances'), {
+        const balRes = await fetch(`${API_BASE_URL}/banks/balances?type=${activeTab}`, {
           headers: { "Authorization": `Bearer ${localStorage.getItem('token')}` }
         });
         if (balRes.ok) {
@@ -667,11 +667,11 @@ export default function Stock({ type }) {
                       <select required value={receiveForm.vehicle_id} 
                         onChange={(e) => {
                           const vId = e.target.value;
-                          const vObj = vehicles.find(v => String(v.id) === String(vId));
+                          const vObj = vehicles.find(v => v && String(v.id) === String(vId));
                           setReceiveForm({ ...receiveForm, vehicle_id: vId, vehicle_number: vObj ? vObj.vehicle_number : '' });
                         }}>
                         <option value="">Select Transport Vehicle</option>
-                        {vehicles.filter(v => !v.is_deleted).map(v => (
+                        {vehicles.filter(v => v && !v.is_deleted).map(v => (
                           <option key={v.id} value={v.id}>{v.vehicle_number} ({v.driver_name})</option>
                         ))}
                       </select>
@@ -807,11 +807,11 @@ export default function Stock({ type }) {
                       <select required value={purchaseReturnForm.vehicle_id} 
                         onChange={(e) => {
                           const vId = e.target.value;
-                          const vObj = vehicles.find(v => String(v.id) === String(vId));
+                          const vObj = vehicles.find(v => v && String(v.id) === String(vId));
                           setPurchaseReturnForm({ ...purchaseReturnForm, vehicle_id: vId, vehicle_number: vObj ? vObj.vehicle_number : '' });
                         }}>
                         <option value="">Select Transport Vehicle</option>
-                        {vehicles.filter(v => !v.is_deleted).map(v => (
+                        {vehicles.filter(v => v && !v.is_deleted).map(v => (
                           <option key={v.id} value={v.id}>{v.vehicle_number} ({v.driver_name})</option>
                         ))}
                       </select>
@@ -986,7 +986,7 @@ export default function Stock({ type }) {
                       style={{width:'100%', padding:'10px', borderRadius:'8px', border:'1px solid #cbd5e1'}}
                     >
                       <option value="">-- No Vehicle --</option>
-                      {vehicles.filter(v => !v.is_deleted).map(v => (
+                      {vehicles.filter(v => v && !v.is_deleted).map(v => (
                         <option key={v.id} value={v.id}>{v.vehicle_number} ({v.driver_name})</option>
                       ))}
                     </select>

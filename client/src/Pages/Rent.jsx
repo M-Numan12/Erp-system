@@ -76,7 +76,7 @@ export default function Rent({ type }) {
       const amt = parseFloat(form.amount || 0);
 
       // Fetch live balances
-      const balRes = await fetch((API_BASE_URL + '/banks/balances'), {
+      const balRes = await fetch(`${API_BASE_URL}/banks/balances?type=${activeTab}`, {
         headers: { "Authorization": `Bearer ${localStorage.getItem('token')}` }
       });
       if (balRes.ok) {

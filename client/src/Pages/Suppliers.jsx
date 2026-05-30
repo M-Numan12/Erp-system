@@ -92,12 +92,34 @@ export default function Suppliers({ type }) {
     if (showPaymentModal) {
       const fetchLiveBalances = async () => {
         try {
-          const res = await fetch((API_BASE_URL + '/banks/balances'), {
+          const res = await fetch(`${API_BASE_URL}/banks/balances?type=${activeTab}`, {
             headers: { "Authorization": `Bearer ${localStorage.getItem('token')}` }
           });
           if (res.ok) {
             const data = await res.json();
             setLiveBalances(data);
+            
+            // Default selection based on positive available balance
+            if ((data["Cash"] || 0) > 0) {
+              setPaymentSource("Cash");
+              setSelectedBank("");
+            } else {
+              const positiveBanks = bankAccounts.filter(b => {
+                if (b.bank_name.toLowerCase().includes('cash')) return false;
+                const digits = b.account_number ? b.account_number.slice(-4) : '';
+                const key = `${b.bank_name} ${digits ? `(****${digits})` : ''}`;
+                return (data[key] || 0) > 0;
+              });
+              if (positiveBanks.length > 0) {
+                const b = positiveBanks[0];
+                const digits = b.account_number ? b.account_number.slice(-4) : '';
+                setPaymentSource("Bank");
+                setSelectedBank(`${b.bank_name} ${digits ? `(****${digits})` : ''}`);
+              } else {
+                setPaymentSource("Cash");
+                setSelectedBank("");
+              }
+            }
           }
         } catch (e) { console.error(e); }
       };
@@ -1008,8 +1030,16 @@ export default function Suppliers({ type }) {
                     if (e.target.value === "Cash") setSelectedBank("");
                   }}
                 >
-                  <option value="Cash">Main Cash (Counter)</option>
-                  <option value="Bank">Bank / Online Account</option>
+                  {(liveBalances["Cash"] > 0 || paymentSource === "Cash") && (
+                    <option value="Cash">Main Cash (Counter)</option>
+                  )}
+                  {(bankAccounts.some(b => {
+                      const digits = b.account_number ? b.account_number.slice(-4) : '';
+                      const key = `${b.bank_name} ${digits ? `(****${digits})` : ''}`;
+                      return (liveBalances[key] || 0) > 0;
+                    }) || paymentSource === "Bank") && (
+                    <option value="Bank">Bank / Online Account</option>
+                  )}
                 </select>
               </div>
 
@@ -1024,7 +1054,12 @@ export default function Suppliers({ type }) {
                     required
                   >
                     <option value="">-- Choose Account --</option>
-                    {bankAccounts.filter(b => !b.bank_name.toLowerCase().includes('cash')).map(b => {
+                    {bankAccounts.filter(b => {
+                      if (b.bank_name.toLowerCase().includes('cash')) return false;
+                      const digits = b.account_number ? b.account_number.slice(-4) : '';
+                      const key = `${b.bank_name} ${digits ? `(****${digits})` : ''}`;
+                      return (liveBalances[key] || 0) > 0 || selectedBank === key;
+                    }).map(b => {
                       const digits = b.account_number ? b.account_number.slice(-4) : '';
                       return <option key={b.id} value={`${b.bank_name} ${digits ? `(****${digits})` : ''}`}>{b.bank_name} - {b.account_number}</option>;
                     })}

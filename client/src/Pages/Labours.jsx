@@ -114,7 +114,7 @@ export default function Labours({ type }) {
       const [labRes, workRes, balRes, banksRes] = await Promise.all([
         fetch(`${API}?type=${activeTab}`, { headers }),
         fetch(`${API}/work-history?type=${activeTab}`, { headers }),
-        fetch((API_BASE_URL + "/banks/balances"), { headers }),
+        fetch(`${API_BASE_URL}/banks/balances?type=${activeTab}`, { headers }),
         fetch((API_BASE_URL + "/banks"), { headers })
       ]);
       const labData = await labRes.json();
@@ -128,7 +128,29 @@ export default function Labours({ type }) {
       setLabours(finalLabours);
       setWorkHistory(finalWork);
       setLiveBalances(balData || {});
-      setBanks(Array.isArray(banksData) ? banksData : []);
+      const finalBanks = Array.isArray(banksData) ? banksData : [];
+      setBanks(finalBanks);
+
+      // Default payForm.payment_type & globalPayForm.payment_type based on loaded balances
+      const balances = balData || {};
+      let firstOption = "Cash";
+      if ((balances["Cash"] || 0) > 0) {
+        firstOption = "Cash";
+      } else {
+        const positiveBanks = finalBanks.filter(b => {
+          if (b.bank_name.toLowerCase().includes('cash')) return false;
+          const digits = b.account_number ? b.account_number.slice(-4) : '';
+          const key = `${b.bank_name} ${digits ? `(****${digits})` : ''}`;
+          return (balances[key] || 0) > 0;
+        });
+        if (positiveBanks.length > 0) {
+          const b = positiveBanks[0];
+          const digits = b.account_number ? b.account_number.slice(-4) : '';
+          firstOption = `Bank - ${b.bank_name} ${digits ? `(****${digits})` : ''}`;
+        }
+      }
+      setPayForm(prev => ({ ...prev, payment_type: firstOption }));
+      setGlobalPayForm(prev => ({ ...prev, payment_type: firstOption }));
 
       localStorage.setItem(`cache_labours_${activeTab}`, JSON.stringify(finalLabours));
       localStorage.setItem(`cache_workhistory_${activeTab}`, JSON.stringify(finalWork));
@@ -794,8 +816,15 @@ export default function Labours({ type }) {
                      style={{width: '100%', padding: '12px 10px', borderRadius: '8px', border: 'none', outline: 'none', background: 'transparent'}}
                      required
                    >
-                     <option value="Cash">Cash Account (Main Counter)</option>
-                     {banks.filter(b => !b.bank_name.toLowerCase().includes('cash')).map(b => {
+                     {(liveBalances["Cash"] > 0 || payForm.payment_type === "Cash") && (
+                       <option value="Cash">Cash Account (Main Counter)</option>
+                     )}
+                     {banks.filter(b => {
+                       if (b.bank_name.toLowerCase().includes('cash')) return false;
+                       const digits = b.account_number ? b.account_number.slice(-4) : '';
+                       const key = `${b.bank_name} ${digits ? `(****${digits})` : ''}`;
+                       return (liveBalances[key] || 0) > 0 || payForm.payment_type === `Bank - ${key}`;
+                     }).map(b => {
                        const digits = b.account_number ? b.account_number.slice(-4) : '';
                        return <option key={b.id} value={`Bank - ${b.bank_name} ${digits ? `(****${digits})` : ''}`}>{b.bank_name} - {b.account_title}</option>;
                      })}
@@ -921,8 +950,15 @@ export default function Labours({ type }) {
                     style={{width: '100%', padding: '12px 10px', borderRadius: '8px', border: 'none', outline: 'none', background: 'transparent'}}
                     required
                   >
-                    <option value="Cash">Cash Account (Main Counter)</option>
-                    {banks.filter(b => !b.bank_name.toLowerCase().includes('cash')).map(b => {
+                    {(liveBalances["Cash"] > 0 || globalPayForm.payment_type === "Cash") && (
+                      <option value="Cash">Cash Account (Main Counter)</option>
+                    )}
+                    {banks.filter(b => {
+                      if (b.bank_name.toLowerCase().includes('cash')) return false;
+                      const digits = b.account_number ? b.account_number.slice(-4) : '';
+                      const key = `${b.bank_name} ${digits ? `(****${digits})` : ''}`;
+                      return (liveBalances[key] || 0) > 0 || globalPayForm.payment_type === `Bank - ${key}`;
+                    }).map(b => {
                       const digits = b.account_number ? b.account_number.slice(-4) : '';
                       return <option key={b.id} value={`Bank - ${b.bank_name} ${digits ? `(****${digits})` : ''}`}>{b.bank_name} - {b.account_title}</option>;
                     })}

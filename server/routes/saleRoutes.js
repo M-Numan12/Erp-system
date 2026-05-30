@@ -251,6 +251,8 @@ router.put('/:id', auth, async (req, res) => {
       payment_type, items, vehicle_id 
     } = req.body;
 
+    const vId = vehicle_id && vehicle_id !== '' ? vehicle_id : null;
+
     // 1. Revert OLD stock
     const oldItems = await client.query('SELECT product_id, qty FROM sale_items WHERE sale_id = $1', [req.params.id]);
     for (const item of oldItems.rows) {
@@ -273,7 +275,7 @@ router.put('/:id', auth, async (req, res) => {
         discount=$5, delivery_charges=$6, net_amount=$7, paid_amount=$8, 
         balance_amount=$9, payment_type=$10, vehicle_id=$11, items=$12
       WHERE id=$13`,
-      [customer_name, customer_phone, customer_address, total_amount, discount, delivery_charges, net_amount, paid_amount, balance_amount, payment_type, vehicle_id, JSON.stringify(items), req.params.id]
+      [customer_name, customer_phone, customer_address, total_amount, discount, delivery_charges, net_amount, paid_amount, balance_amount, payment_type, vId, JSON.stringify(items), req.params.id]
     );
 
     // 5. Insert NEW items and update stock

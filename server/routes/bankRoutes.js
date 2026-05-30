@@ -14,7 +14,7 @@ router.get('/balances', auth, async (req, res) => {
     const targetModule = req.query.type || req.user.module_type || 'Wholesale';
 
     // 1. Fetch bank accounts opening balances
-    let accountsQ = 'SELECT bank_name, opening_balance FROM bank_accounts';
+    let accountsQ = 'SELECT bank_name, account_number, opening_balance FROM bank_accounts';
     let params = [];
     if (!isAdminUser) {
       accountsQ += " WHERE user_id = $1 OR COALESCE(module_type, 'Wholesale') = $2";
@@ -29,50 +29,66 @@ router.get('/balances', auth, async (req, res) => {
     const balances = { 'Cash': 0 };
     accountsRes.rows.forEach(acc => {
       let name = acc.bank_name.replace(' Account', '');
-      if (name.toLowerCase() === 'cash') name = 'Cash';
+      if (name.toLowerCase() === 'cash') {
+        name = 'Cash';
+      } else {
+        const digits = acc.account_number ? acc.account_number.slice(-4) : '';
+        name = `${acc.bank_name} ${digits ? `(****${digits})` : ''}`;
+      }
       balances[name] = parseFloat(acc.opening_balance) || 0;
     });
+
+    const findBalanceKey = (methodName) => {
+      if (!methodName) return 'Cash';
+      let clean = methodName.replace('Bank - ', '').trim();
+      if (clean.toLowerCase() === 'cash' || clean === 'Cash Account') return 'Cash';
+      
+      const keys = Object.keys(balances);
+      const match = keys.find(k => {
+        if (k === 'Cash') return false;
+        const cleanK = k.toLowerCase();
+        const cleanM = clean.toLowerCase();
+        
+        const suffixK = cleanK.match(/\(\*\*\*\*(\d+)\)/);
+        const suffixM = cleanM.match(/\(\*\*\*\*(\d+)\)/);
+        if (suffixK && suffixM) {
+          return suffixK[1] === suffixM[1];
+        }
+        
+        return cleanK.includes(cleanM) || cleanM.includes(cleanK);
+      });
+      
+      return match || clean;
+    };
 
     // 2. Fetch sales
     let salesQ = "SELECT net_amount, paid_amount, payment_type FROM sales WHERE COALESCE(sale_type, 'Wholesale') = $1";
     const salesRes = await pool.query(salesQ, [targetModule]);
     salesRes.rows.forEach(s => {
-      let method = s.payment_type || 'Cash';
-      let cleanMethod = method.replace('Bank - ', '');
-      if (cleanMethod === 'Cash Account' || cleanMethod.toLowerCase() === 'cash') {
-        cleanMethod = 'Cash';
-      }
-      if (!balances[cleanMethod]) balances[cleanMethod] = 0;
-      balances[cleanMethod] += parseFloat(s.paid_amount) || 0;
+      let key = findBalanceKey(s.payment_type);
+      if (!balances[key]) balances[key] = 0;
+      balances[key] += parseFloat(s.paid_amount) || 0;
     });
 
     // 3. Fetch purchases & supplier payments
     let purchasesQ = "SELECT paid_amount, payment_type FROM purchases WHERE COALESCE(module_type, 'Wholesale') = $1";
     const purchasesRes = await pool.query(purchasesQ, [targetModule]);
     purchasesRes.rows.forEach(p => {
-      let method = p.payment_type || 'Cash';
-      let cleanMethod = method.replace('Bank - ', '');
-      if (cleanMethod === 'Cash Account' || cleanMethod.toLowerCase() === 'cash') {
-        cleanMethod = 'Cash';
-      }
-      if (!balances[cleanMethod]) balances[cleanMethod] = 0;
-      balances[cleanMethod] -= parseFloat(p.paid_amount) || 0;
+      let key = findBalanceKey(p.payment_type);
+      if (!balances[key]) balances[key] = 0;
+      balances[key] -= parseFloat(p.paid_amount) || 0;
     });
 
     // 4. Fetch expenses
     let expensesQ = "SELECT amount, payment_type, expense_type FROM expenses WHERE COALESCE(module_type, 'Wholesale') = $1";
     const expensesRes = await pool.query(expensesQ, [targetModule]);
     expensesRes.rows.forEach(e => {
-      let method = e.payment_type || 'Cash';
-      let cleanMethod = method.replace('Bank - ', '');
-      if (cleanMethod === 'Cash Account' || cleanMethod.toLowerCase() === 'cash') {
-        cleanMethod = 'Cash';
-      }
-      if (!balances[cleanMethod]) balances[cleanMethod] = 0;
+      let key = findBalanceKey(e.payment_type);
+      if (!balances[key]) balances[key] = 0;
       if (e.expense_type === 'Admin Payment') {
-        balances[cleanMethod] += parseFloat(e.amount) || 0;
+        balances[key] += parseFloat(e.amount) || 0;
       } else {
-        balances[cleanMethod] -= parseFloat(e.amount) || 0;
+        balances[key] -= parseFloat(e.amount) || 0;
       }
     });
 
@@ -80,13 +96,9 @@ router.get('/balances', auth, async (req, res) => {
     let salariesQ = "SELECT amount, payment_type FROM salary_payments WHERE COALESCE(module_type, 'Wholesale') = $1";
     const salariesRes = await pool.query(salariesQ, [targetModule]);
     salariesRes.rows.forEach(s => {
-      let method = s.payment_type || 'Cash';
-      let cleanMethod = method.replace('Bank - ', '');
-      if (cleanMethod === 'Cash Account' || cleanMethod.toLowerCase() === 'cash') {
-        cleanMethod = 'Cash';
-      }
-      if (!balances[cleanMethod]) balances[cleanMethod] = 0;
-      balances[cleanMethod] -= parseFloat(s.amount) || 0;
+      let key = findBalanceKey(s.payment_type);
+      if (!balances[key]) balances[key] = 0;
+      balances[key] -= parseFloat(s.amount) || 0;
     });
 
     // 6. Fetch rents
@@ -153,7 +165,7 @@ router.post('/', auth, async (req, res) => {
       }
     }
 
-    const finalOpeningBalance = isAdmin(req) ? (opening_balance || 0) : 0;
+    const finalOpeningBalance = opening_balance || 0;
 
     const result = await pool.query(
       'INSERT INTO bank_accounts (bank_name, account_title, account_number, opening_balance, user_id, module_type) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
@@ -177,8 +189,8 @@ router.put('/:id', auth, async (req, res) => {
       );
     } else {
       result = await pool.query(
-        'UPDATE bank_accounts SET bank_name=$1, account_title=$2, account_number=$3 WHERE id=$4 AND user_id=$5 RETURNING *',
-        [bank_name, account_title, account_number, req.params.id, req.user.id]
+        'UPDATE bank_accounts SET bank_name=$1, account_title=$2, account_number=$3, opening_balance=$4 WHERE id=$5 AND user_id=$6 RETURNING *',
+        [bank_name, account_title, account_number, opening_balance || 0, req.params.id, req.user.id]
       );
     }
     res.json(result.rows[0]);
@@ -207,83 +219,106 @@ router.get('/balance/:method', auth, async (req, res) => {
     const { method } = req.params;
     const { module_type } = req.query;
     const finalModule = module_type || req.user.module_type || 'Wholesale';
-    const searchPattern = method === 'Cash' ? 'Cash' : `%${method}%`;
     const userId = req.user.id;
     const isAdminUser = req.user.role === 'admin';
 
-    let salesQ = "SELECT SUM(paid_amount) FROM sales WHERE payment_type LIKE $1 AND sale_type = $2";
-    let salesParams = [searchPattern, finalModule];
+    // 1. Fetch bank accounts opening balances
+    let accountsQ = 'SELECT bank_name, account_number, opening_balance FROM bank_accounts';
+    let params = [];
     if (!isAdminUser) {
-      salesQ += " AND user_id = $3";
-      salesParams.push(userId);
-    }
-    const salesSum = await pool.query(salesQ, salesParams);
-
-    let expQ = "SELECT SUM(CASE WHEN expense_type = 'Admin Payment' THEN -amount ELSE amount END) FROM expenses WHERE payment_type LIKE $1 AND module_type = $2";
-    let expParams = [searchPattern, finalModule];
-    if (!isAdminUser) {
-      expQ += " AND user_id = $3";
-      expParams.push(userId);
-    }
-    const expSum = await pool.query(expQ, expParams);
-    
-    let supPaid = 0;
-    if (method === 'Cash') {
-      let supQ = "SELECT SUM(paid_amount) FROM purchases WHERE module_type = $1";
-      let supParams = [finalModule];
-      if (!isAdminUser) {
-        supQ += " AND user_id = $2";
-        supParams.push(userId);
-      }
-      const supSum = await pool.query(supQ, supParams);
-      supPaid = parseFloat(supSum.rows[0].sum || 0);
+      accountsQ += " WHERE user_id = $1 OR COALESCE(module_type, 'Wholesale') = $2";
+      params.push(userId, finalModule);
     } else {
-      let supQ = "SELECT SUM(delivery_charges) FROM purchases WHERE fare_payment_type LIKE $1 AND module_type = $2";
-      let supParams = [searchPattern, finalModule];
-      if (!isAdminUser) {
-        supQ += " AND user_id = $3";
-        supParams.push(userId);
+      accountsQ += " WHERE COALESCE(module_type, 'Wholesale') = $1 OR module_type = 'Admin Recipient'";
+      params.push(finalModule);
+    }
+    const accountsRes = await pool.query(accountsQ, params);
+    
+    const balances = { 'Cash': 0 };
+    accountsRes.rows.forEach(acc => {
+      let name = acc.bank_name.replace(' Account', '');
+      if (name.toLowerCase() === 'cash') {
+        name = 'Cash';
+      } else {
+        const digits = acc.account_number ? acc.account_number.slice(-4) : '';
+        name = `${acc.bank_name} ${digits ? `(****${digits})` : ''}`;
       }
-      const poolRes = await pool.query(supQ, supParams);
-      supPaid = parseFloat(poolRes.rows[0].sum || 0);
-    }
+      balances[name] = parseFloat(acc.opening_balance) || 0;
+    });
 
-    // 3b. Salary outflows
-    let salQ = "SELECT SUM(amount) FROM salary_payments WHERE payment_type LIKE $1 AND module_type = $2";
-    let salParams = [searchPattern, finalModule];
-    if (!isAdminUser) {
-      salQ += " AND user_id = $3";
-      salParams.push(userId);
-    }
-    const salSum = await pool.query(salQ, salParams);
-    const totalSalaryPaid = parseFloat(salSum.rows[0].sum || 0);
+    const findBalanceKey = (methodName) => {
+      if (!methodName) return 'Cash';
+      let clean = methodName.replace('Bank - ', '').trim();
+      if (clean.toLowerCase() === 'cash' || clean === 'Cash Account') return 'Cash';
+      
+      const keys = Object.keys(balances);
+      const match = keys.find(k => {
+        if (k === 'Cash') return false;
+        const cleanK = k.toLowerCase();
+        const cleanM = clean.toLowerCase();
+        
+        const suffixK = cleanK.match(/\(\*\*\*\*(\d+)\)/);
+        const suffixM = cleanM.match(/\(\*\*\*\*(\d+)\)/);
+        if (suffixK && suffixM) {
+          return suffixK[1] === suffixM[1];
+        }
+        
+        return cleanK.includes(cleanM) || cleanM.includes(cleanK);
+      });
+      
+      return match || clean;
+    };
 
-    
-    let openingBal = 0;
-    if (method === 'Cash') {
-       let bankQ = "SELECT SUM(opening_balance) FROM bank_accounts WHERE bank_name ILIKE '%Cash%'";
-       let bankParams = [];
-       if (!isAdminUser) {
-         bankQ += " AND user_id = $1";
-         bankParams.push(userId);
-       }
-       const bankRes = await pool.query(bankQ, bankParams);
-       openingBal = parseFloat(bankRes.rows[0].sum || 0);
-    } else {
-       let bankQ = "SELECT SUM(opening_balance) FROM bank_accounts WHERE bank_name = $1";
-       let bankParams = [method];
-       if (!isAdminUser) {
-         bankQ += " AND user_id = $2";
-         bankParams.push(userId);
-       }
-       const bankRes = await pool.query(bankQ, bankParams);
-       openingBal = parseFloat(bankRes.rows[0].sum || 0);
-    }
-    
-    const balance = (parseFloat(salesSum.rows[0].sum || 0) + openingBal) - 
-                    (parseFloat(expSum.rows[0].sum || 0) + supPaid + totalSalaryPaid);
+    // 2. Fetch sales
+    let salesQ = "SELECT net_amount, paid_amount, payment_type FROM sales WHERE COALESCE(sale_type, 'Wholesale') = $1";
+    const salesRes = await pool.query(salesQ, [finalModule]);
+    salesRes.rows.forEach(s => {
+      let key = findBalanceKey(s.payment_type);
+      if (!balances[key]) balances[key] = 0;
+      balances[key] += parseFloat(s.paid_amount) || 0;
+    });
 
-                    
+    // 3. Fetch purchases & supplier payments
+    let purchasesQ = "SELECT paid_amount, payment_type FROM purchases WHERE COALESCE(module_type, 'Wholesale') = $1";
+    const purchasesRes = await pool.query(purchasesQ, [finalModule]);
+    purchasesRes.rows.forEach(p => {
+      let key = findBalanceKey(p.payment_type);
+      if (!balances[key]) balances[key] = 0;
+      balances[key] -= parseFloat(p.paid_amount) || 0;
+    });
+
+    // 4. Fetch expenses
+    let expensesQ = "SELECT amount, payment_type, expense_type FROM expenses WHERE COALESCE(module_type, 'Wholesale') = $1";
+    const expensesRes = await pool.query(expensesQ, [finalModule]);
+    expensesRes.rows.forEach(e => {
+      let key = findBalanceKey(e.payment_type);
+      if (!balances[key]) balances[key] = 0;
+      if (e.expense_type === 'Admin Payment') {
+        balances[key] += parseFloat(e.amount) || 0;
+      } else {
+        balances[key] -= parseFloat(e.amount) || 0;
+      }
+    });
+
+    // 5. Fetch actual salaries paid from salary_payments
+    let salariesQ = "SELECT amount, payment_type FROM salary_payments WHERE COALESCE(module_type, 'Wholesale') = $1";
+    const salariesRes = await pool.query(salariesQ, [finalModule]);
+    salariesRes.rows.forEach(s => {
+      let key = findBalanceKey(s.payment_type);
+      if (!balances[key]) balances[key] = 0;
+      balances[key] -= parseFloat(s.amount) || 0;
+    });
+
+    // 6. Fetch rents
+    let rentsQ = "SELECT amount FROM rent WHERE COALESCE(module_type, 'Wholesale') = $1";
+    const rentsRes = await pool.query(rentsQ, [finalModule]);
+    rentsRes.rows.forEach(r => {
+      balances['Cash'] -= parseFloat(r.amount) || 0;
+    });
+
+    const targetKey = findBalanceKey(method);
+    const balance = balances[targetKey] || 0;
+
     res.json({ balance });
   } catch (err) {
     res.status(500).json({ error: err.message });

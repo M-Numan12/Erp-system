@@ -110,10 +110,51 @@ export default function Salary({ type }) {
     fetchInitialData();
   }, [activeTab]);
 
-  // Refetch balances whenever modal pops up
+  // Refetch balances whenever modal pops up and default selection to positive account
   useEffect(() => {
     if (showPayModal) {
-      fetchInitialData();
+      const fetchAndDefault = async () => {
+        try {
+          const headers = { "Authorization": `Bearer ${localStorage.getItem('token')}` };
+          const [banksRes, balRes] = await Promise.all([
+            fetch(`${API_BASE_URL}/banks`, { headers }),
+            fetch(`${API_BASE_URL}/banks/balances?type=${activeTab}`, { headers })
+          ]);
+          let loadedBanks = [];
+          let loadedBalances = {};
+          if (banksRes.ok) {
+            const d = await banksRes.json();
+            loadedBanks = Array.isArray(d) ? d : [];
+            setBanks(loadedBanks);
+          }
+          if (balRes.ok) {
+            loadedBalances = await balRes.json();
+            setLiveBalances(loadedBalances);
+          }
+          
+          // Only default for payouts
+          if (payForm.transaction_type !== 'Advance Returned') {
+            let firstOption = "Cash";
+            if ((loadedBalances["Cash"] || 0) > 0) {
+              firstOption = "Cash";
+            } else {
+              const positiveBanks = loadedBanks.filter(b => {
+                if (b.bank_name.toLowerCase().includes('cash')) return false;
+                const digits = b.account_number ? b.account_number.slice(-4) : '';
+                const key = `${b.bank_name} ${digits ? `(****${digits})` : ''}`;
+                return (loadedBalances[key] || 0) > 0;
+              });
+              if (positiveBanks.length > 0) {
+                const b = positiveBanks[0];
+                const digits = b.account_number ? b.account_number.slice(-4) : '';
+                firstOption = `Bank - ${b.bank_name} ${digits ? `(****${digits})` : ''}`;
+              }
+            }
+            setPayForm(prev => ({ ...prev, payment_type: firstOption }));
+          }
+        } catch (e) { console.error(e); }
+      };
+      fetchAndDefault();
     }
   }, [showPayModal]);
 
@@ -678,9 +719,15 @@ export default function Salary({ type }) {
                             style={{width:'100%', padding:'12px', borderRadius:'8px', border:'1px solid #cbd5e1'}}
                             required value={payForm.payment_type} onChange={(e) => setPayForm({...payForm, payment_type: e.target.value})}
                         >
-                            <option value="Cash">Cash Account</option>
+                            {(liveBalances["Cash"] > 0 || payForm.payment_type === "Cash" || payForm.transaction_type === 'Advance Returned') && (
+                                <option value="Cash">Cash Account</option>
+                            )}
                             {banks.map(b => {
                                 const digits = b.account_number ? b.account_number.slice(-4) : '';
+                                const key = `${b.bank_name} ${digits ? `(****${digits})` : ''}`;
+                                if (payForm.transaction_type !== 'Advance Returned' && (liveBalances[key] || 0) <= 0 && payForm.payment_type !== `Bank - ${key}`) {
+                                    return null;
+                                }
                                 return <option key={b.id} value={`Bank - ${b.bank_name} ${digits ? `(****${digits})` : ''}`}>{b.bank_name} ({b.account_title})</option>;
                             })}
                         </select>

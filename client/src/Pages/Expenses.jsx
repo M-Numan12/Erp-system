@@ -48,7 +48,7 @@ export default function Expenses({ type }) {
   const [dateFilter, setDateFilter] = useState("Today");
 
   useEffect(() => {
-    if (showModal) {
+    if (showModal || showPayModal) {
       const fetchLiveBalances = async () => {
         try {
           const res = await fetch(`${API_BASE_URL}/banks/balances?type=${activeTab}`, {
@@ -57,12 +57,54 @@ export default function Expenses({ type }) {
           if (res.ok) {
             const data = await res.json();
             setLiveBalances(data);
+            
+            // Dynamic positive balance defaulting for Add modal
+            if (showModal && !editId) {
+              if ((data["Cash"] || 0) > 0) {
+                setForm(prev => ({ ...prev, payment_source: "Cash", bank_name: "" }));
+              } else {
+                const positiveBanks = banks.filter(b => {
+                  if (b.bank_name.toLowerCase().includes('cash')) return false;
+                  const digits = b.account_number ? b.account_number.slice(-4) : '';
+                  const key = `${b.bank_name} ${digits ? `(****${digits})` : ''}`;
+                  return (data[key] || 0) > 0;
+                });
+                if (positiveBanks.length > 0) {
+                  const b = positiveBanks[0];
+                  const digits = b.account_number ? b.account_number.slice(-4) : '';
+                  setForm(prev => ({ ...prev, payment_source: "Bank", bank_name: `${b.bank_name} ${digits ? `(****${digits})` : ''}` }));
+                } else {
+                  setForm(prev => ({ ...prev, payment_source: "Cash", bank_name: "" }));
+                }
+              }
+            }
+            
+            // Dynamic positive balance defaulting for Pay Transport Fare modal
+            if (showPayModal) {
+              if ((data["Cash"] || 0) > 0) {
+                setPayForm(prev => ({ ...prev, source: "Cash", bank: "" }));
+              } else {
+                const positiveBanks = banks.filter(b => {
+                  if (b.bank_name.toLowerCase().includes('cash')) return false;
+                  const digits = b.account_number ? b.account_number.slice(-4) : '';
+                  const key = `${b.bank_name} ${digits ? `(****${digits})` : ''}`;
+                  return (data[key] || 0) > 0;
+                });
+                if (positiveBanks.length > 0) {
+                  const b = positiveBanks[0];
+                  const digits = b.account_number ? b.account_number.slice(-4) : '';
+                  setPayForm(prev => ({ ...prev, source: "Bank", bank: `${b.bank_name} ${digits ? `(****${digits})` : ''}` }));
+                } else {
+                  setPayForm(prev => ({ ...prev, source: "Cash", bank: "" }));
+                }
+              }
+            }
           }
         } catch (e) { console.error(e); }
       };
       fetchLiveBalances();
     }
-  }, [showModal]);
+  }, [showModal, showPayModal]);
 
   useEffect(() => {
     if (type) {
@@ -457,8 +499,16 @@ export default function Expenses({ type }) {
                       value={form.payment_source || 'Cash'} 
                       onChange={(e) => setForm({...form, payment_source: e.target.value, bank_name: e.target.value === 'Bank' ? (banks[0]?.bank_name || '') : ''})}
                     >
-                      <option value="Cash">Cash Payment</option>
-                      <option value="Bank">Bank Transfer</option>
+                      {(liveBalances["Cash"] > 0 || form.payment_source === "Cash") && (
+                        <option value="Cash">Cash Payment</option>
+                      )}
+                      {(banks.some(b => {
+                          const digits = b.account_number ? b.account_number.slice(-4) : '';
+                          const key = `${b.bank_name} ${digits ? `(****${digits})` : ''}`;
+                          return (liveBalances[key] || 0) > 0;
+                        }) || form.payment_source === "Bank") && (
+                        <option value="Bank">Bank Transfer</option>
+                      )}
                     </select>
                   </div>
                 </div>
@@ -480,7 +530,12 @@ export default function Expenses({ type }) {
                         onChange={(e) => setForm({...form, bank_name: e.target.value})}
                       >
                         <option value="">Choose Bank...</option>
-                        {banks.filter(b => !b.bank_name.toLowerCase().includes('cash')).map(b => {
+                        {banks.filter(b => {
+                          if (b.bank_name.toLowerCase().includes('cash')) return false;
+                          const digits = b.account_number ? b.account_number.slice(-4) : '';
+                          const key = `${b.bank_name} ${digits ? `(****${digits})` : ''}`;
+                          return (liveBalances[key] || 0) > 0 || form.bank_name === key;
+                        }).map(b => {
                           const digits = b.account_number ? b.account_number.slice(-4) : '';
                           return <option key={b.id} value={`${b.bank_name} ${digits ? `(****${digits})` : ''}`}>{b.bank_name} {digits ? `(****${digits})` : ''}</option>;
                         })}
@@ -543,8 +598,16 @@ export default function Expenses({ type }) {
                   style={{width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #cbd5e1', outline: 'none'}}
                   onChange={(e) => setPayForm({...payForm, source: e.target.value, bank: e.target.value === 'Bank' ? (banks[0]?.bank_name || '') : ''})}
                 >
-                  <option value="Cash">Main Cash (Counter)</option>
-                  <option value="Bank">Bank / Online Account</option>
+                  {(liveBalances["Cash"] > 0 || payForm.source === "Cash") && (
+                    <option value="Cash">Main Cash (Counter)</option>
+                  )}
+                  {(banks.some(b => {
+                      const digits = b.account_number ? b.account_number.slice(-4) : '';
+                      const key = `${b.bank_name} ${digits ? `(****${digits})` : ''}`;
+                      return (liveBalances[key] || 0) > 0;
+                    }) || payForm.source === "Bank") && (
+                    <option value="Bank">Bank / Online Account</option>
+                  )}
                 </select>
               </div>
 
@@ -558,7 +621,12 @@ export default function Expenses({ type }) {
                     required
                   >
                     <option value="">-- Choose Account --</option>
-                    {banks.filter(b => !b.bank_name.toLowerCase().includes('cash')).map(b => {
+                    {banks.filter(b => {
+                      if (b.bank_name.toLowerCase().includes('cash')) return false;
+                      const digits = b.account_number ? b.account_number.slice(-4) : '';
+                      const key = `${b.bank_name} ${digits ? `(****${digits})` : ''}`;
+                      return (liveBalances[key] || 0) > 0 || payForm.bank === key;
+                    }).map(b => {
                       const digits = b.account_number ? b.account_number.slice(-4) : '';
                       return <option key={b.id} value={`${b.bank_name} ${digits ? `(****${digits})` : ''}`}>{b.bank_name} - {b.account_number}</option>;
                     })}
