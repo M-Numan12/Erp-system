@@ -757,6 +757,16 @@ export default function Stock({ type }) {
               <h3>Return Stock to Supplier</h3>
               <button className="modal-close" onClick={() => setShowPurchaseReturnModal(false)}><X size={20} /></button>
             </div>
+            <div style={{ padding: '12px 24px', background: '#eff6ff', borderBottom: '1px solid #bfdbfe', display: 'flex', gap: '24px' }}>
+               <div>
+                 <span style={{ fontSize: '0.8rem', color: '#1e40af', fontWeight: 600, display: 'block', textTransform: 'uppercase' }}>Available Stock</span>
+                 <strong style={{ fontSize: '1.15rem', color: '#1e3a8a' }}>{selectedProduct.stock_quantity || 0} {selectedProduct.unit}</strong>
+               </div>
+               <div>
+                 <span style={{ fontSize: '0.8rem', color: '#1e40af', fontWeight: 600, display: 'block', textTransform: 'uppercase' }}>Purchase Cost Rate</span>
+                 <strong style={{ fontSize: '1.15rem', color: '#1e3a8a' }}>Rs. {parseFloat(selectedProduct.cost_price || 0).toLocaleString()}</strong>
+               </div>
+            </div>
             <form onSubmit={handlePurchaseReturn} className="custom-form">
               <div className="form-grid">
                 <div className="form-group" style={{gridColumn: '1 / -1'}}>
