@@ -15,28 +15,17 @@ router.post('/delete-retail2', auth, async (req, res) => {
   const MODULE = 'Retail 2';
 
   try {
-    // 1. Delete sale_items linked to Retail 2 sales (via user_id of retail2 users)
+    // 1. Delete sale_items and sales using sale_type column
     try {
-      // First find all Retail 2 user ids
-      const retail2Users = await pool.query(`SELECT id FROM users WHERE module_type = $1`, [MODULE]);
-      const userIds = retail2Users.rows.map(r => r.id);
+      const saleIdsRes = await pool.query(`SELECT id FROM sales WHERE sale_type = $1`, [MODULE]);
+      const saleIds = saleIdsRes.rows.map(r => r.id);
+      if (saleIds.length > 0) {
+        const si = await pool.query(`DELETE FROM sale_items WHERE sale_id = ANY($1)`, [saleIds]);
+        results.sale_items = si.rowCount;
+      } else results.sale_items = 0;
 
-      if (userIds.length > 0) {
-        // Delete sale_items for those users' sales
-        const salesRes = await pool.query(`SELECT id FROM sales WHERE user_id = ANY($1)`, [userIds]);
-        const saleIds = salesRes.rows.map(r => r.id);
-        if (saleIds.length > 0) {
-          const si = await pool.query(`DELETE FROM sale_items WHERE sale_id = ANY($1)`, [saleIds]);
-          results.sale_items = si.rowCount;
-        } else results.sale_items = 0;
-
-        // Delete sales
-        const s = await pool.query(`DELETE FROM sales WHERE user_id = ANY($1)`, [userIds]);
-        results.sales = s.rowCount;
-      } else {
-        results.sale_items = 0;
-        results.sales = 0;
-      }
+      const s = await pool.query(`DELETE FROM sales WHERE sale_type = $1`, [MODULE]);
+      results.sales = s.rowCount;
     } catch (e) { results.sales_error = e.message; }
 
     // 2. Tables with module_type column
