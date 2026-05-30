@@ -156,7 +156,7 @@ export default function Billing({ type }) {
     setProducts(Array.isArray(prods) ? prods : []);
     setSales(Array.isArray(sls) ? sls : []);
     setVehicles(Array.isArray(vehs) ? vehs : []);
-    setBankAccounts(Array.isArray(banks) ? banks.filter(b => b.module_type !== 'Admin Recipient') : []);
+    setBankAccounts(Array.isArray(banks) ? banks.filter(b => b.module_type !== 'Admin Recipient' && (b.module_type || 'Wholesale') === activeTab) : []);
     setCustomers(Array.isArray(custs) ? custs : []);
     if (Array.isArray(labours)) {
       setLabourGroups([...new Set(labours.map(l => l.group_name))]);
@@ -185,7 +185,7 @@ export default function Billing({ type }) {
       if (cachedCusts) setCustomers(JSON.parse(cachedCusts));
       if (cachedVehs) setVehicles(JSON.parse(cachedVehs));
       if (cachedSales) setSales(JSON.parse(cachedSales));
-      if (cachedBanks) setBankAccounts(JSON.parse(cachedBanks).filter(b => b.module_type !== 'Admin Recipient'));
+      if (cachedBanks) setBankAccounts(JSON.parse(cachedBanks).filter(b => b.module_type !== 'Admin Recipient' && (b.module_type || 'Wholesale') === activeTab));
     } catch (e) { console.error('Cache read fail', e); }
 
     fetchData(); 
@@ -837,7 +837,10 @@ export default function Billing({ type }) {
                     ]} onChange={(e) => setPaymentType(e.value)} className="flex-1" />
                   </div>
                   {paymentType === 'Bank' && (
-                    <Dropdown value={selectedBank} options={bankAccounts.filter(b => !b.bank_name.toLowerCase().includes('cash')).map(b => {
+                    <Dropdown value={selectedBank} options={bankAccounts.filter(b => {
+                      const name = b.bank_name.toLowerCase().trim();
+                      return name !== 'cash' && name !== 'cash account';
+                    }).map(b => {
                       const digits = b.account_number ? b.account_number.slice(-4) : '';
                       return {
                         label: `${b.bank_name} ${b.account_title ? `- ${b.account_title}` : ''} ${digits ? `(****${digits})` : ''}`,

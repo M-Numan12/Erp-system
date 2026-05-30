@@ -816,14 +816,11 @@ export default function Labours({ type }) {
                      style={{width: '100%', padding: '12px 10px', borderRadius: '8px', border: 'none', outline: 'none', background: 'transparent'}}
                      required
                    >
-                     {(liveBalances["Cash"] > 0 || payForm.payment_type === "Cash") && (
-                       <option value="Cash">Cash Account (Main Counter)</option>
-                     )}
+                     <option value="Cash">Cash Account (Main Counter)</option>
                      {banks.filter(b => {
-                       if (b.bank_name.toLowerCase().includes('cash')) return false;
-                       const digits = b.account_number ? b.account_number.slice(-4) : '';
-                       const key = `${b.bank_name} ${digits ? `(****${digits})` : ''}`;
-                       return (liveBalances[key] || 0) > 0 || payForm.payment_type === `Bank - ${key}`;
+                       const name = b.bank_name.toLowerCase().trim();
+                       if (name === 'cash' || name === 'cash account') return false;
+                       return (b.module_type || 'Wholesale') === activeTab;
                      }).map(b => {
                        const digits = b.account_number ? b.account_number.slice(-4) : '';
                        return <option key={b.id} value={`Bank - ${b.bank_name} ${digits ? `(****${digits})` : ''}`}>{b.bank_name} - {b.account_title}</option>;
@@ -950,14 +947,11 @@ export default function Labours({ type }) {
                     style={{width: '100%', padding: '12px 10px', borderRadius: '8px', border: 'none', outline: 'none', background: 'transparent'}}
                     required
                   >
-                    {(liveBalances["Cash"] > 0 || globalPayForm.payment_type === "Cash") && (
-                      <option value="Cash">Cash Account (Main Counter)</option>
-                    )}
+                    <option value="Cash">Cash Account (Main Counter)</option>
                     {banks.filter(b => {
-                      if (b.bank_name.toLowerCase().includes('cash')) return false;
-                      const digits = b.account_number ? b.account_number.slice(-4) : '';
-                      const key = `${b.bank_name} ${digits ? `(****${digits})` : ''}`;
-                      return (liveBalances[key] || 0) > 0 || globalPayForm.payment_type === `Bank - ${key}`;
+                      const name = b.bank_name.toLowerCase().trim();
+                      if (name === 'cash' || name === 'cash account') return false;
+                      return (b.module_type || 'Wholesale') === activeTab;
                     }).map(b => {
                       const digits = b.account_number ? b.account_number.slice(-4) : '';
                       return <option key={b.id} value={`Bank - ${b.bank_name} ${digits ? `(****${digits})` : ''}`}>{b.bank_name} - {b.account_title}</option>;

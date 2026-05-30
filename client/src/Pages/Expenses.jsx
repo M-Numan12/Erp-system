@@ -499,14 +499,11 @@ export default function Expenses({ type }) {
                       value={form.payment_source || 'Cash'} 
                       onChange={(e) => setForm({...form, payment_source: e.target.value, bank_name: e.target.value === 'Bank' ? (banks[0]?.bank_name || '') : ''})}
                     >
-                      {(liveBalances["Cash"] > 0 || form.payment_source === "Cash") && (
-                        <option value="Cash">Cash Payment</option>
-                      )}
-                      {(banks.some(b => {
-                          const digits = b.account_number ? b.account_number.slice(-4) : '';
-                          const key = `${b.bank_name} ${digits ? `(****${digits})` : ''}`;
-                          return (liveBalances[key] || 0) > 0;
-                        }) || form.payment_source === "Bank") && (
+                      <option value="Cash">Cash Payment</option>
+                      {banks.some(b => {
+                        if (b.bank_name.toLowerCase().includes('cash')) return false;
+                        return (b.module_type || 'Wholesale') === activeTab;
+                      }) && (
                         <option value="Bank">Bank Transfer</option>
                       )}
                     </select>
@@ -531,10 +528,9 @@ export default function Expenses({ type }) {
                       >
                         <option value="">Choose Bank...</option>
                         {banks.filter(b => {
-                          if (b.bank_name.toLowerCase().includes('cash')) return false;
-                          const digits = b.account_number ? b.account_number.slice(-4) : '';
-                          const key = `${b.bank_name} ${digits ? `(****${digits})` : ''}`;
-                          return (liveBalances[key] || 0) > 0 || form.bank_name === key;
+                          const name = b.bank_name.toLowerCase().trim();
+                          if (name === 'cash' || name === 'cash account') return false;
+                          return (b.module_type || 'Wholesale') === activeTab;
                         }).map(b => {
                           const digits = b.account_number ? b.account_number.slice(-4) : '';
                           return <option key={b.id} value={`${b.bank_name} ${digits ? `(****${digits})` : ''}`}>{b.bank_name} {digits ? `(****${digits})` : ''}</option>;
@@ -598,14 +594,11 @@ export default function Expenses({ type }) {
                   style={{width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #cbd5e1', outline: 'none'}}
                   onChange={(e) => setPayForm({...payForm, source: e.target.value, bank: e.target.value === 'Bank' ? (banks[0]?.bank_name || '') : ''})}
                 >
-                  {(liveBalances["Cash"] > 0 || payForm.source === "Cash") && (
-                    <option value="Cash">Main Cash (Counter)</option>
-                  )}
-                  {(banks.some(b => {
-                      const digits = b.account_number ? b.account_number.slice(-4) : '';
-                      const key = `${b.bank_name} ${digits ? `(****${digits})` : ''}`;
-                      return (liveBalances[key] || 0) > 0;
-                    }) || payForm.source === "Bank") && (
+                  <option value="Cash">Main Cash (Counter)</option>
+                  {banks.some(b => {
+                    if (b.bank_name.toLowerCase().includes('cash')) return false;
+                    return (b.module_type || 'Wholesale') === activeTab;
+                  }) && (
                     <option value="Bank">Bank / Online Account</option>
                   )}
                 </select>
@@ -622,10 +615,9 @@ export default function Expenses({ type }) {
                   >
                     <option value="">-- Choose Account --</option>
                     {banks.filter(b => {
-                      if (b.bank_name.toLowerCase().includes('cash')) return false;
-                      const digits = b.account_number ? b.account_number.slice(-4) : '';
-                      const key = `${b.bank_name} ${digits ? `(****${digits})` : ''}`;
-                      return (liveBalances[key] || 0) > 0 || payForm.bank === key;
+                      const name = b.bank_name.toLowerCase().trim();
+                      if (name === 'cash' || name === 'cash account') return false;
+                      return (b.module_type || 'Wholesale') === activeTab;
                     }).map(b => {
                       const digits = b.account_number ? b.account_number.slice(-4) : '';
                       return <option key={b.id} value={`${b.bank_name} ${digits ? `(****${digits})` : ''}`}>{b.bank_name} - {b.account_number}</option>;

@@ -1030,14 +1030,11 @@ export default function Suppliers({ type }) {
                     if (e.target.value === "Cash") setSelectedBank("");
                   }}
                 >
-                  {(liveBalances["Cash"] > 0 || paymentSource === "Cash") && (
-                    <option value="Cash">Main Cash (Counter)</option>
-                  )}
-                  {(bankAccounts.some(b => {
-                      const digits = b.account_number ? b.account_number.slice(-4) : '';
-                      const key = `${b.bank_name} ${digits ? `(****${digits})` : ''}`;
-                      return (liveBalances[key] || 0) > 0;
-                    }) || paymentSource === "Bank") && (
+                  <option value="Cash">Main Cash (Counter)</option>
+                  {bankAccounts.some(b => {
+                    if (b.bank_name.toLowerCase().includes('cash')) return false;
+                    return (b.module_type || 'Wholesale') === activeTab;
+                  }) && (
                     <option value="Bank">Bank / Online Account</option>
                   )}
                 </select>
@@ -1055,10 +1052,9 @@ export default function Suppliers({ type }) {
                   >
                     <option value="">-- Choose Account --</option>
                     {bankAccounts.filter(b => {
-                      if (b.bank_name.toLowerCase().includes('cash')) return false;
-                      const digits = b.account_number ? b.account_number.slice(-4) : '';
-                      const key = `${b.bank_name} ${digits ? `(****${digits})` : ''}`;
-                      return (liveBalances[key] || 0) > 0 || selectedBank === key;
+                      const name = b.bank_name.toLowerCase().trim();
+                      if (name === 'cash' || name === 'cash account') return false;
+                      return (b.module_type || 'Wholesale') === activeTab;
                     }).map(b => {
                       const digits = b.account_number ? b.account_number.slice(-4) : '';
                       return <option key={b.id} value={`${b.bank_name} ${digits ? `(****${digits})` : ''}`}>{b.bank_name} - {b.account_number}</option>;

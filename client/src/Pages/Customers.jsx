@@ -939,7 +939,10 @@ export default function Customers({ type }) {
                     required
                   >
                     <option value="">-- Select Admin Bank --</option>
-                    {bankAccounts.filter(b => !b.bank_name.toLowerCase().includes('cash')).map(b => {
+                    {bankAccounts.filter(b => {
+                      const name = b.bank_name.toLowerCase().trim();
+                      return name !== 'cash' && name !== 'cash account' && (b.module_type || 'Wholesale') === activeTab;
+                    }).map(b => {
                       const digits = b.account_number ? b.account_number.slice(-4) : '';
                       return <option key={b.id} value={`${b.bank_name} ${digits ? `(****${digits})` : ''}`}>{b.bank_name} {digits ? `(****${digits})` : ''}</option>;
                     })}

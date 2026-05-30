@@ -719,15 +719,13 @@ export default function Salary({ type }) {
                             style={{width:'100%', padding:'12px', borderRadius:'8px', border:'1px solid #cbd5e1'}}
                             required value={payForm.payment_type} onChange={(e) => setPayForm({...payForm, payment_type: e.target.value})}
                         >
-                            {(liveBalances["Cash"] > 0 || payForm.payment_type === "Cash" || payForm.transaction_type === 'Advance Returned') && (
-                                <option value="Cash">Cash Account</option>
-                            )}
-                            {banks.map(b => {
+                            <option value="Cash">Cash Account</option>
+                            {banks.filter(b => {
+                                const name = b.bank_name.toLowerCase().trim();
+                                if (name === 'cash' || name === 'cash account') return false;
+                                return (b.module_type || 'Wholesale') === activeTab;
+                            }).map(b => {
                                 const digits = b.account_number ? b.account_number.slice(-4) : '';
-                                const key = `${b.bank_name} ${digits ? `(****${digits})` : ''}`;
-                                if (payForm.transaction_type !== 'Advance Returned' && (liveBalances[key] || 0) <= 0 && payForm.payment_type !== `Bank - ${key}`) {
-                                    return null;
-                                }
                                 return <option key={b.id} value={`Bank - ${b.bank_name} ${digits ? `(****${digits})` : ''}`}>{b.bank_name} ({b.account_title})</option>;
                             })}
                         </select>
