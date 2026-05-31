@@ -77,11 +77,6 @@ function App() {
           e.target.value = val.replace(/^0+/, '');
           const event = new Event('input', { bubbles: true });
           e.target.dispatchEvent(event);
-        } else if (val === '0' && e.target.type === 'number') {
-          // If the value is strictly "0" in a number field, clear it immediately
-          e.target.value = '';
-          const event = new Event('input', { bubbles: true });
-          e.target.dispatchEvent(event);
         }
       }
     };
