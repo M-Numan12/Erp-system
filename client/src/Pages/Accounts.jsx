@@ -181,6 +181,74 @@ export default function Accounts() {
     }));
   };
 
+  // State for Transfer Funds
+  const [showTransferModal, setShowTransferModal] = useState(false);
+  const [transferForm, setTransferForm] = useState({
+    source_account: "Cash",
+    destination_account: "",
+    amount: "",
+    notes: ""
+  });
+
+  const handleOpenTransfer = () => {
+    setTransferForm({
+      source_account: "Cash",
+      destination_account: "",
+      amount: "",
+      notes: ""
+    });
+    setShowTransferModal(true);
+  };
+
+  const handleTransferSubmit = async (e) => {
+    e.preventDefault();
+    const amt = parseFloat(transferForm.amount) || 0;
+    if (amt <= 0) return alert("Please enter a valid transfer amount!");
+    if (transferForm.source_account === transferForm.destination_account) {
+      return alert("Source and Destination accounts cannot be the same!");
+    }
+    
+    // Check if enough balance exists
+    const sourceBal = getSourceBalance(transferForm.source_account);
+    if (amt > sourceBal) {
+      return alert(`Insufficient funds in ${transferForm.source_account}! Available: Rs. ${sourceBal.toLocaleString()}`);
+    }
+
+    setLoading(true);
+    try {
+      const res = await fetch((API_BASE_URL + '/banks/transfer'), {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({
+          source_account: transferForm.source_account,
+          destination_account: transferForm.destination_account,
+          amount: amt,
+          notes: transferForm.notes,
+          module_type: user?.role === 'admin' ? activeTab : (user?.module_type || 'Wholesale')
+        })
+      });
+
+      if (res.ok) {
+        setShowTransferModal(false);
+        fetchAccounts();
+        fetchSales();
+        fetchSupplierPayments();
+        fetchOthers();
+        alert("Funds transferred successfully!");
+      } else {
+        const errorData = await res.json();
+        alert(errorData.error || "Transfer failed!");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Transfer failed!");
+    }
+    setLoading(false);
+  };
+
 
   const handleCloseoutFieldChange = (field, val) => {
     const sourceBalance = getSourceBalance(closeoutForm.payment_type);
@@ -525,8 +593,8 @@ export default function Accounts() {
       ...filteredSupplierPayments.filter(p => parseFloat(p.delivery_charges) > 0).map(p => ({
         ...p, isExpense: true, isTransportFare: true, amount: p.delivery_charges, payment_type: p.fare_payment_type || 'Cash'
       })),
-      ...filteredGeneralExpenses.filter(e => e.expense_type !== 'Galla Closeout' && e.expense_type !== 'Admin Payment').map(e => ({ ...e, isExpense: true })),
-      ...filteredGeneralExpenses.filter(e => e.expense_type === 'Admin Payment').map(e => ({ ...e, isIncome: true, payment_type: e.payment_type })),
+      ...filteredGeneralExpenses.filter(e => e.expense_type !== 'Galla Closeout' && e.expense_type !== 'Admin Payment' && e.expense_type !== 'Transfer In').map(e => ({ ...e, isExpense: true })),
+      ...filteredGeneralExpenses.filter(e => e.expense_type === 'Admin Payment' || e.expense_type === 'Transfer In').map(e => ({ ...e, isIncome: true, payment_type: e.payment_type })),
       ...filteredSalaries.map(s => ({ ...s, isExpense: true, payment_type: 'Cash' })),
       ...filteredRents.map(r => ({ ...r, isExpense: true, payment_type: 'Cash' })),
       ...filteredOtherExpenses.map(o => ({ ...o, isExpense: true, payment_type: o.payment_method }))
@@ -609,19 +677,19 @@ export default function Accounts() {
         created_at: p.created_at || p.purchase_date, isTransportFare: true
       })),
       ...filteredGeneralExpenses.map(e => {
-        if (e.expense_type === 'Admin Payment') {
+        if (e.expense_type === 'Admin Payment' || e.expense_type === 'Transfer In') {
           return {
             ...e,
             isExpense: false,
             isIncome: true,
-            customer_name: e.description || `Received Admin Payment`,
+            customer_name: e.description || `Received Transfer`,
             created_at: e.created_at || e.expense_date
           };
         }
         return {
           ...e,
           isExpense: true,
-          customer_name: `General Expense: ${e.title || e.description || 'Office Expense'}`,
+          customer_name: e.expense_type === 'Transfer Out' ? (e.description || 'Sent Transfer') : `General Expense: ${e.title || e.description || 'Office Expense'}`,
           created_at: e.created_at || e.expense_date
         };
       }),
@@ -946,6 +1014,7 @@ export default function Accounts() {
         )}
 
         <div className="module-actions" style={{display: 'flex', gap: '10px'}}>
+          <Button label="Transfer Funds" icon="pi pi-directions" onClick={handleOpenTransfer} className="p-button-secondary" style={{borderRadius: '12px', background: '#475569', borderColor: '#475569'}} />
           <Button label="Galla Closeout" icon="pi pi-lock" onClick={handleOpenCloseout} className="p-button-warning" style={{borderRadius: '12px'}} />
           {user?.role === 'admin' && (
             <Button label="Send Admin Payment" icon="pi pi-download" onClick={() => {
@@ -1469,6 +1538,106 @@ export default function Accounts() {
               <div className="flex justify-content-end gap-2">
                 <Button type="button" label="Cancel" icon="pi pi-times" onClick={() => {setShowModal(false); setEditId(null);}} className="p-button-text" />
                 <Button type="submit" label={loading ? "Saving..." : (editId ? "Update Account" : "Add Bank")} icon="pi pi-check" loading={loading} />
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {showTransferModal && (
+        <div className="modal-overlay" onClick={() => setShowTransferModal(false)}>
+          <div className="modal" onClick={e => e.stopPropagation()} style={{maxWidth: '450px', borderRadius: '16px'}}>
+            <div className="modal-header">
+              <h3>💸 Transfer Funds (Internal)</h3>
+              <button className="modal-close" onClick={() => setShowTransferModal(false)}><X size={20} /></button>
+            </div>
+            <form onSubmit={handleTransferSubmit} className="custom-form p-fluid">
+              <div className="field mb-3">
+                <label className="block mb-2 font-bold" style={{color: '#1e293b'}}>Source Account (From) *</label>
+                <select 
+                  required 
+                  value={transferForm.source_account} 
+                  className="p-inputtext p-component"
+                  style={{width: '100%', borderRadius: '8px', padding: '10px'}}
+                  onChange={e => setTransferForm({ ...transferForm, source_account: e.target.value })}
+                >
+                  <option value="Cash">Cash Account (Rs. {totalCash.toLocaleString()})</option>
+                  {displayAccounts.filter(acc => acc.module_type !== 'Admin Recipient').map(acc => {
+                    if (acc.bank_name.toLowerCase() === 'cash' || acc.bank_name.toLowerCase() === 'cash account') return null;
+                    const bal = paymentSummary[acc.id] || 0;
+                    return (
+                      <option key={acc.id} value={acc.bank_name}>
+                        {acc.bank_name} - {acc.account_title || 'Bank'} (Rs. {bal.toLocaleString()})
+                      </option>
+                    );
+                  })}
+                </select>
+              </div>
+
+              <div style={{
+                background: '#eff6ff',
+                padding: '12px',
+                borderRadius: '12px',
+                border: '1px solid #bfdbfe',
+                color: '#1e40af',
+                marginBottom: '15px',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center'
+              }}>
+                <div>
+                  <p style={{margin: 0, fontSize: '0.8rem', fontWeight: 600, textTransform: 'uppercase'}}>Available Source Balance</p>
+                  <h3 style={{margin: '3px 0 0 0', fontSize: '1.3rem', fontWeight: 800}}>
+                    Rs. {getSourceBalance(transferForm.source_account).toLocaleString()}
+                  </h3>
+                </div>
+                <div style={{fontSize: '1.5rem'}}>💰</div>
+              </div>
+
+              <div className="field mb-3">
+                <label className="block mb-2 font-bold" style={{color: '#1e293b'}}>Destination Account (To) *</label>
+                <select 
+                  required 
+                  value={transferForm.destination_account} 
+                  className="p-inputtext p-component"
+                  style={{width: '100%', borderRadius: '8px', padding: '10px'}}
+                  onChange={e => setTransferForm({ ...transferForm, destination_account: e.target.value })}
+                >
+                  <option value="">-- Select Receiving Account --</option>
+                  <option value="Cash">Cash Account (Rs. {totalCash.toLocaleString()})</option>
+                  {displayAccounts.filter(acc => acc.module_type !== 'Admin Recipient').map(acc => {
+                    if (acc.bank_name.toLowerCase() === 'cash' || acc.bank_name.toLowerCase() === 'cash account') return null;
+                    const bal = paymentSummary[acc.id] || 0;
+                    return (
+                      <option key={acc.id} value={acc.bank_name}>
+                        {acc.bank_name} - {acc.account_title || 'Bank'} (Rs. {bal.toLocaleString()})
+                      </option>
+                    );
+                  })}
+                </select>
+              </div>
+
+              <div className="field mb-3">
+                <label className="block mb-2 font-bold" style={{color: '#1e293b'}}>Transfer Amount *</label>
+                <div className="p-inputgroup">
+                  <span className="p-inputgroup-addon">Rs.</span>
+                  <input type="number" required min="1" value={transferForm.amount} placeholder="0.00"
+                    className="p-inputtext p-component"
+                    onChange={e => setTransferForm({ ...transferForm, amount: e.target.value })} />
+                </div>
+              </div>
+
+              <div className="field mb-4">
+                <label className="block mb-2 font-bold" style={{color: '#1e293b'}}>Note / Reference</label>
+                <input type="text" value={transferForm.notes} placeholder="e.g. Deposited Cash to Bank"
+                  className="p-inputtext p-component"
+                  style={{padding: '10px', borderRadius: '8px'}}
+                  onChange={e => setTransferForm({ ...transferForm, notes: e.target.value })} />
+              </div>
+
+              <div className="flex justify-content-end gap-2">
+                <Button type="button" label="Cancel" icon="pi pi-times" onClick={() => setShowTransferModal(false)} className="p-button-text" />
+                <Button type="submit" label={loading ? "Transferring..." : "Confirm Transfer"} icon="pi pi-check" loading={loading} style={{background: '#10b981', borderColor: '#10b981'}} />
               </div>
             </form>
           </div>

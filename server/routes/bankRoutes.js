@@ -85,7 +85,7 @@ router.get('/balances', auth, async (req, res) => {
     expensesRes.rows.forEach(e => {
       let key = findBalanceKey(e.payment_type);
       if (!balances[key]) balances[key] = 0;
-      if (e.expense_type === 'Admin Payment') {
+      if (e.expense_type === 'Admin Payment' || e.expense_type === 'Transfer In') {
         balances[key] += parseFloat(e.amount) || 0;
       } else {
         balances[key] -= parseFloat(e.amount) || 0;
@@ -293,7 +293,7 @@ router.get('/balance/:method', auth, async (req, res) => {
     expensesRes.rows.forEach(e => {
       let key = findBalanceKey(e.payment_type);
       if (!balances[key]) balances[key] = 0;
-      if (e.expense_type === 'Admin Payment') {
+      if (e.expense_type === 'Admin Payment' || e.expense_type === 'Transfer In') {
         balances[key] += parseFloat(e.amount) || 0;
       } else {
         balances[key] -= parseFloat(e.amount) || 0;
@@ -379,6 +379,61 @@ router.post('/admin-payment', auth, async (req, res) => {
     res.json({ message: 'Admin payment sent/received successfully!', record: result.rows[0] });
   } catch (err) {
     res.status(500).json({ error: err.message });
+  }
+});
+
+// Post Internal Funds Transfer (Bank to Bank / Cash to Bank / Bank to Cash)
+router.post('/transfer', auth, async (req, res) => {
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const { source_account, destination_account, amount, notes, module_type } = req.body;
+    const finalModule = module_type || req.user.module_type || 'Retail 1';
+    const userId = req.user.id;
+    const transferAmount = parseFloat(amount) || 0;
+
+    if (transferAmount <= 0) throw new Error('Transfer amount must be greater than zero');
+    if (source_account === destination_account) throw new Error('Source and Destination accounts cannot be the same');
+
+    // 1. Insert Transfer Out (Deduction from Source)
+    await client.query(
+      `INSERT INTO expenses (description, expense_type, category, amount, payment_type, expense_date, notes, user_id, module_type) 
+       VALUES ($1, $2, $3, $4, $5, CURRENT_DATE, $6, $7, $8)`,
+      [
+        `Transfer to ${destination_account}`,
+        'Transfer Out',
+        'Transfer',
+        transferAmount,
+        source_account,
+        notes || `Internal transfer.`,
+        userId,
+        finalModule
+      ]
+    );
+
+    // 2. Insert Transfer In (Addition to Destination)
+    await client.query(
+      `INSERT INTO expenses (description, expense_type, category, amount, payment_type, expense_date, notes, user_id, module_type) 
+       VALUES ($1, $2, $3, $4, $5, CURRENT_DATE, $6, $7, $8)`,
+      [
+        `Transfer from ${source_account}`,
+        'Transfer In',
+        'Transfer',
+        transferAmount,
+        destination_account,
+        notes || `Internal transfer.`,
+        userId,
+        finalModule
+      ]
+    );
+
+    await client.query('COMMIT');
+    res.json({ success: true, message: 'Transfer completed successfully!' });
+  } catch (err) {
+    await client.query('ROLLBACK');
+    res.status(500).json({ error: err.message });
+  } finally {
+    client.release();
   }
 });
 
