@@ -798,7 +798,7 @@ export default function Accounts() {
       const payType = (s.payment_type || 'Cash').replace('Bank - ', '');
       const cleanPT = payType.toLowerCase().trim();
       if (isCash) {
-         return cleanPT === 'cash' || cleanPT === 'cash account';
+         return cleanPT.includes('cash') || cleanPT === 'cash account';
       } else {
          const accDig = acc.account_number ? acc.account_number.slice(-4) : '';
          if (accDig && cleanPT.includes(accDig)) return true;

@@ -225,7 +225,7 @@ router.post('/payment', auth, async (req, res) => {
       `INSERT INTO sales 
       (customer_id, customer_name, total_amount, net_amount, paid_amount, balance_amount, payment_type, sale_type, user_id) 
       VALUES ($1, $2, 0, 0, $3, $4, $5, $6, $7) RETURNING id`,
-      [customer_id, custName, amount, -amount, payment_reference || payment_type || 'Cash', module_type, req.user.id]
+      [customer_id, custName, amount, -amount, payment_reference ? `${payment_type || 'Cash'} (${payment_reference})` : (payment_type || 'Cash'), module_type, req.user.id]
     );
 
     await client.query('COMMIT');

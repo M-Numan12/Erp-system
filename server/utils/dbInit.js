@@ -116,7 +116,10 @@ async function syncDatabaseSchema() {
     `CREATE INDEX IF NOT EXISTS idx_customers_name ON customers(name);`,
     
     // --- 10. REPAIR NEGATIVE ADVANCE SALARIES ---
-    `UPDATE salary SET advance_salary = ABS(advance_salary) WHERE advance_salary < 0;`
+    `UPDATE salary SET advance_salary = ABS(advance_salary) WHERE advance_salary < 0;`,
+
+    // --- 11. REPAIR CUSTOMER PAYMENTS RECONCILIATION FOR CASH ACCOUNT ---
+    `UPDATE sales SET payment_type = 'Cash (dukan pe)' WHERE payment_type = 'dukan pe';`
   ];
 
   let totalExecuted = 0;
