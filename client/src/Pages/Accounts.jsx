@@ -546,7 +546,7 @@ export default function Accounts() {
       const method = s.payment_type || 'Cash';
       let cleanMethod = method.replace('Bank - ', '').trim();
       
-      const isCash = cleanMethod.toLowerCase() === 'cash' || cleanMethod === 'Cash Account';
+      const isCash = cleanMethod.toLowerCase().includes('cash') || cleanMethod === 'Cash Account';
       let targetKey = 'UNMATCHED_GHOST';
       
       if (isCash) {
@@ -655,7 +655,7 @@ export default function Accounts() {
         if (!selectedLedgerAccount) return false;
         
         let method = (s.payment_type || 'Cash').replace('Bank - ', '');
-        if (method === 'Cash Account' || method.toLowerCase() === 'cash') {
+        if (method === 'Cash Account' || method.toLowerCase().includes('cash')) {
           method = 'Cash';
         }
         
