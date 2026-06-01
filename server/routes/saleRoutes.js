@@ -137,6 +137,15 @@ router.post('/', auth, async (req, res) => {
       );
     }
 
+    // Fetch updated customer balance live inside the transaction
+    let customerBalance = 0;
+    if (finalCustomerId) {
+      const custRes = await client.query('SELECT balance FROM customers WHERE id = $1', [finalCustomerId]);
+      if (custRes.rows.length > 0) {
+        customerBalance = parseFloat(custRes.rows[0].balance || 0);
+      }
+    }
+
     await client.query('COMMIT');
 
     // Trigger WhatsApp notification asynchronously in the background so it is 100% instant!
@@ -151,11 +160,12 @@ router.post('/', auth, async (req, res) => {
       delivery_charges,
       net_amount,
       paid_amount,
-      balance_amount
+      balance_amount,
+      customer_balance: customerBalance
     };
     sendWhatsAppBill(fullSale, items).catch(err => console.error('WhatsApp failed:', err));
 
-    res.json({ success: true, saleId });
+    res.json({ success: true, saleId, customer_balance: customerBalance });
   } catch (err) {
     await client.query('ROLLBACK');
     console.error('Sale Error:', err);
@@ -296,8 +306,17 @@ router.put('/:id', auth, async (req, res) => {
       await client.query('UPDATE customers SET balance = balance + $1 WHERE id = $2', [balance_amount, oldSale.rows[0].customer_id]);
     }
 
+    // Fetch updated customer balance live inside transaction
+    let customerBalance = 0;
+    if (oldSale.rows[0].customer_id) {
+      const custRes = await client.query('SELECT balance FROM customers WHERE id = $1', [oldSale.rows[0].customer_id]);
+      if (custRes.rows.length > 0) {
+        customerBalance = parseFloat(custRes.rows[0].balance || 0);
+      }
+    }
+
     await client.query('COMMIT');
-    res.json({ success: true });
+    res.json({ success: true, customer_balance: customerBalance });
   } catch (err) {
     await client.query('ROLLBACK');
     res.status(500).json({ error: err.message });

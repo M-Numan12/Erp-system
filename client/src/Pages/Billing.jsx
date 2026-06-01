@@ -471,8 +471,8 @@ export default function Billing({ type }) {
           } catch (e) { console.error("Labour logging failed:", e); }
         }
         
-        const prevBal = selectedCustomer ? parseFloat(selectedCustomer.balance) : 0;
-        const finalBal = prevBal + balance;
+        const finalBal = result.customer_balance !== undefined ? parseFloat(result.customer_balance) : (selectedCustomer ? parseFloat(selectedCustomer.balance) + balance : balance);
+        const prevBal = finalBal - balance;
         
         const vhObj = vehicles.find(v => v && String(v.id) === String(saleData.vehicle_id));
         
@@ -1057,8 +1057,15 @@ export default function Billing({ type }) {
                         delivery: s.delivery_charges,
                         totalAmount: s.net_amount,
                         paidAmount: s.paid_amount,
-                        previousBalance: 0,
-                        newBalance: s.balance_amount,
+                        previousBalance: (() => {
+                          const matchedCust = customers.find(c => c.id === s.customer_id);
+                          const finalBal = matchedCust ? parseFloat(matchedCust.balance || 0) : parseFloat(s.balance_amount || 0);
+                          return finalBal - parseFloat(s.balance_amount || 0);
+                        })(),
+                        newBalance: (() => {
+                          const matchedCust = customers.find(c => c.id === s.customer_id);
+                          return matchedCust ? parseFloat(matchedCust.balance || 0) : parseFloat(s.balance_amount || 0);
+                        })(),
                         paymentMethod: s.payment_type,
                         bankAccount: s.payment_type.includes('Bank') ? s.payment_type.replace('Bank - ', '') : null,
                         saleType: s.sale_type,
@@ -1205,11 +1212,11 @@ export default function Billing({ type }) {
           
           <div className="total-row" style={{fontSize: '12px'}}>
             <span>PREVIOUS BAL</span>
-            <span>{receiptData.previousBalance}/-</span>
+            <span>Rs. {parseFloat(receiptData.previousBalance || 0).toLocaleString()}/-</span>
           </div>
           <div className="total-row" style={{fontSize: '14px', fontWeight: 'bold'}}>
             <span>TOTAL BALANCE</span>
-            <span>{receiptData.newBalance}/-</span>
+            <span>Rs. {parseFloat(receiptData.newBalance || 0).toLocaleString()}/-</span>
           </div>
           <div className="dashed-line"></div>
           

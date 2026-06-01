@@ -109,7 +109,8 @@ async function sendWhatsAppBill(sale, items) {
     `-----------------------------------------\n` +
     `🔥 *Net Payable:* Rs. ${parseFloat(sale.net_amount).toLocaleString()}\n` +
     `💵 *Paid Amount:* Rs. ${parseFloat(sale.paid_amount).toLocaleString()}\n` +
-    `💰 *Remaining Balance:* Rs. ${parseFloat(sale.balance_amount).toLocaleString()}\n\n` +
+    `💰 *Remaining Bill Balance:* Rs. ${parseFloat(sale.balance_amount).toLocaleString()}\n` +
+    `👤 *Total Outstanding Balance:* Rs. ${parseFloat(sale.customer_balance || 0).toLocaleString()}\n\n` +
     `Thank you for your business! 🙏`;
 
   // 1. Send to Customer if valid phone is provided
