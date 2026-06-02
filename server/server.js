@@ -22,7 +22,7 @@ app.use('/api/salary', require('./routes/salaryRoutes'));
 app.use('/api/sales', require('./routes/saleRoutes'));
 app.use('/api/rent', require('./routes/rentRoutes'));
 app.use('/api/investments', require('./routes/investmentRoutes'));
-app.use('/api/other-expenses', require('./routes/otherExpensesRoutes'));
+app.use('/api/staff', require('./routes/staffRoutes'));
 app.use('/api/profit', require('./routes/profitRoutes'));
 app.use('/api/purchases', require('./routes/purchaseRoutes'));
 app.use('/api/banks', require('./routes/bankRoutes'));

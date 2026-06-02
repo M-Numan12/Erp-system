@@ -43,7 +43,7 @@ const Sidebar = ({ isOpen, onClose }) => {
     { id: 'profit', name: 'Profit & Loss', path: '/profit', icon: <LineChart size={20} /> },
     { id: 'rent', name: 'Rent Tracking', path: '/rent', icon: <Home size={20} /> },
     { id: 'investment', name: 'Investments', path: '/investment', icon: <TrendingUp size={20} /> },
-    { id: 'other-expenses', name: 'Other Expenses', path: '/other-expenses', icon: <MoreHorizontal size={20} /> },
+    { id: 'staff', name: 'Staff Ledger', path: '/staff', icon: <MoreHorizontal size={20} /> },
     { id: 'accounts', name: 'Bank Accounts', path: '/accounts', icon: <Wallet size={20} /> },
     { id: 'users', name: 'Admin Control', path: '/users', icon: <ShieldAlert size={20} /> }
   ];
