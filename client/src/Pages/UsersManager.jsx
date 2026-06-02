@@ -20,7 +20,7 @@ const availableModules = [
   { id: 'accounts', label: 'Accounts' },
   { id: 'rent', label: 'Rent' },
   { id: 'investment', label: 'Investment' },
-  { id: 'other_expenses', label: 'Other Expenses' },
+  { id: 'staff', label: 'Staff Ledger' },
   { id: 'labours', label: 'Labour Tracking' }
 ];
 
