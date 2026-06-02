@@ -318,12 +318,7 @@ export default function Suppliers({ type }) {
     e.preventDefault();
     const currentBalance = parseFloat(selectedSupplier.balance || 0);
     const amt = parseFloat(paymentForm.amount || 0);
-    
-    // Only restrict if there is a positive balance (money we owe them)
-    if (currentBalance > 0 && amt > currentBalance) {
-      alert(`Invalid Payment: You cannot pay more than the outstanding balance (Rs. ${currentBalance})!`);
-      return;
-    }
+
     setLoading(true);
     
     let finalPaymentType = selectedBank ? `Bank - ${selectedBank}` : 'Cash';
