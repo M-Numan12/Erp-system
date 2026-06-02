@@ -216,6 +216,37 @@ export default function Customers({ type }) {
     setShowPaymentModal(true);
   };
 
+  const [undoLoading, setUndoLoading] = useState(false);
+
+  const handleUndoPayment = async (paymentId) => {
+    if (!paymentId) return;
+    if (!window.confirm('Are you sure you want to undo this payment? This will revert the customer balance.')) return;
+    setUndoLoading(true);
+    try {
+      const res = await fetch(`${API_BASE_URL}/sales/payment/undo`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({ payment_id: paymentId })
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        alert('Payment undone successfully');
+        // Refresh ledger and records
+        fetchRecords();
+        openLedger(selectedCustomer);
+      } else {
+        alert('Failed to undo payment: ' + (data.error || 'Unknown error'));
+      }
+    } catch (err) {
+      console.error('Undo payment failed', err);
+      alert('Error undoing payment');
+    }
+    setUndoLoading(false);
+  };
+
   const handlePayment = async (e) => {
     e.preventDefault();
     if (!paymentAmount || isNaN(paymentAmount) || Number(paymentAmount) <= 0) return alert("Enter a valid amount");
@@ -780,6 +811,21 @@ export default function Customers({ type }) {
                       body={row => row.isOpening ? null : (row.vehicle_number ? <span style={{fontWeight: 500, color: '#475569'}}>{row.vehicle_number}</span> : <span style={{color:'#cbd5e1'}}>—</span>)} 
                       style={{ width: '120px' }}
                     />
+                    {user?.role === 'admin' && (
+                      <Column
+                        header="Actions"
+                        body={row => {
+                          if (row.isOpening) return null;
+                          const isPayment = parseFloat(row.total_amount) === 0 && parseFloat(row.paid_amount) > 0;
+                          return isPayment ? (
+                            <button className="btn-secondary" style={{padding: '4px 8px', fontSize: '0.75rem'}} onClick={() => handleUndoPayment(row.id)} disabled={undoLoading}>
+                              Undo
+                            </button>
+                          ) : null;
+                        }}
+                        style={{ width: '80px', textAlign: 'center' }}
+                      />
+                    )}
                     <Column 
                       header="Qty" 
                       body={row => {

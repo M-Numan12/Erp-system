@@ -240,6 +240,54 @@ router.post('/payment', auth, async (req, res) => {
 
     await client.query('COMMIT');
 
+  // Undo Payment Endpoint
+  router.post('/payment/undo', auth, async (req, res) => {
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+      const { payment_id } = req.body;
+      if (!payment_id) throw new Error('payment_id is required');
+
+      // Fetch payment record
+      const saleRes = await client.query('SELECT * FROM sales WHERE id = $1', [payment_id]);
+      if (saleRes.rows.length === 0) throw new Error('Payment record not found');
+      const sale = saleRes.rows[0];
+      const { customer_id, paid_amount, payment_type, payment_reference } = sale;
+
+      // Revert customer balance
+      await client.query('UPDATE customers SET balance = balance + $1 WHERE id = $2', [paid_amount, customer_id]);
+
+      // Delete the payment record
+      await client.query('DELETE FROM sales WHERE id = $1', [payment_id]);
+
+      await client.query('COMMIT');
+
+      // Send WhatsApp notifications about reversal
+      // Fetch customer phone
+      const custRes = await pool.query('SELECT phone FROM customers WHERE id = $1', [customer_id]);
+      const custPhone = custRes.rows[0]?.phone;
+      const message = `⚠️ *PAYMENT REVERSED*\n` +
+        `-----------------------------\n` +
+        `🧾 Customer ID: ${customer_id}\n` +
+        `💰 Amount: Rs. ${parseFloat(paid_amount).toLocaleString()}\n` +
+        `📄 Reference: ${payment_reference || 'N/A'}\n` +
+        `🕒 Date: ${new Date().toLocaleString()}\n` +
+        `-----------------------------`;
+      if (custPhone) await sendWhatsAppMessage(custPhone, message);
+      const adminPhone = process.env.ADMIN_PHONE || '923004269347';
+      const adminMsg = `🚨 *ADMIN COPY: PAYMENT REVERSED*\n\n${message}`;
+      await sendWhatsAppMessage(adminPhone, adminMsg);
+
+      res.json({ success: true, message: 'Payment undone and notifications sent' });
+    } catch (err) {
+      await client.query('ROLLBACK');
+      console.error('Undo Payment Error:', err);
+      res.status(500).json({ error: err.message });
+    } finally {
+      client.release();
+    }
+  });
+
       // After successful payment, send WhatsApp notifications
       // Fetch customer phone number
       const custPhoneRes = await pool.query('SELECT phone FROM customers WHERE id = $1', [customer_id]);
