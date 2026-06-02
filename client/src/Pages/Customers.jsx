@@ -24,6 +24,7 @@ const emptyForm = {
 
 export default function Customers({ type }) {
   const { user } = useContext(AuthContext);
+
   const [activeTab, setActiveTab] = useState(type || (user?.role === 'admin' ? "" : user?.module_type || "Wholesale"));
 
   useEffect(() => {
@@ -70,6 +71,8 @@ export default function Customers({ type }) {
   const [paymentType, setPaymentType] = useState("Cash");
   const [bankAccounts, setBankAccounts] = useState([]);
   const [selectedBank, setSelectedBank] = useState("");
+  // Loading state for undo payment action (admin only)
+  const [undoLoading, setUndoLoading] = useState(false);
 
   
   // Receipt Generator 
@@ -217,7 +220,7 @@ export default function Customers({ type }) {
     setShowPaymentModal(true);
   };
 
-  const [undoLoading, setUndoLoading] = useState(false);
+
 
   const handleUndoPayment = async (paymentId) => {
     if (!paymentId) return;
@@ -372,6 +375,36 @@ export default function Customers({ type }) {
       headers: { "Authorization": `Bearer ${localStorage.getItem('token')}` }
     });
     fetchRecords();
+
+  // Function to undo a payment (admin only)
+  const handleUndoPayment = async (paymentId) => {
+    if (!paymentId) return;
+    if (!window.confirm('Are you sure you want to undo this payment? This will revert the customer balance.')) return;
+    setUndoLoading(true);
+    try {
+      const res = await fetch(`${API_BASE_URL}/sales/payment/undo`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+        },
+        body: JSON.stringify({ payment_id: paymentId }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        alert('Payment undone successfully');
+        fetchRecords();
+        if (selectedCustomer) openLedger(selectedCustomer);
+      } else {
+        alert(data.error || 'Undo payment failed');
+      }
+    } catch (err) {
+      console.error('Undo payment error:', err);
+      alert('An error occurred while undoing payment');
+    } finally {
+      setUndoLoading(false);
+    }
+  };
   };
 
   const filtered = records.filter((r) => 
