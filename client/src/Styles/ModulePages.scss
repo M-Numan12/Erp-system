@@ -2581,8 +2581,9 @@
   background: #0f172a;
   padding: 10px 24px;
   position: sticky;
-  top: 0;
-  z-index: 100;
+  right: 0;
+  bottom: 0;
+
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 
   .hub-info {
@@ -4471,14 +4472,19 @@ form {
 
 /* ── Admin Selection Screen (plain) ───────────────────── */
 .admin-selection-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
-  justify-content: flex-start;
-  background: #ffffff; /* plain white */
-  padding: 30px;
-  margin: 0 auto;
-  max-width: 800px;
+  align-items: center;
+  justify-content: center;
+  background: #ffffff;
+  padding: 2rem;
+  box-sizing: border-box;
+  overflow: hidden;
 }
 
 .admin-selection-container h2 {
