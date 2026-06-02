@@ -241,13 +241,10 @@ export default function Customers({ type }) {
         // Refresh ledger and records
         fetchRecords();
         openLedger(selectedCustomer);
-      } else {
-        alert('Failed to undo payment: ' + (data.error || 'Unknown error'));
-      }
-    } catch (err) {
-      console.error('Undo payment failed', err);
-      alert('Error undoing payment');
-    }
+          }
+  } catch (err) {
+    console.error('Undo payment failed', err);
+  }
     setUndoLoading(false);
   };
 
