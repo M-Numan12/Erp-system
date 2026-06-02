@@ -70,6 +70,8 @@ export default function Customers({ type }) {
   const [paymentType, setPaymentType] = useState("Cash");
   const [bankAccounts, setBankAccounts] = useState([]);
   const [selectedBank, setSelectedBank] = useState("");
+  // Loading state for undo payment action (admin only)
+  const [undoLoading, setUndoLoading] = useState(false);
   
   // Receipt Generator 
   const [showReceipt, setShowReceipt] = useState(false);
@@ -338,6 +340,35 @@ export default function Customers({ type }) {
       }
     } catch (err) {
       console.error("Failed to update item", err);
+    }
+  };
+
+  // Function to undo a payment (admin only)
+  const handleUndoPayment = async (paymentId) => {
+    setUndoLoading(true);
+    try {
+      const res = await fetch(`${API_BASE_URL}/sales/payment/undo`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+        },
+        body: JSON.stringify({ payment_id: paymentId }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        alert('Payment undone successfully');
+        // Refresh data displays
+        fetchRecords();
+        if (selectedCustomer) openLedger(selectedCustomer);
+      } else {
+        alert(data.error || 'Undo payment failed');
+      }
+    } catch (err) {
+      console.error('Undo payment error:', err);
+      alert('An error occurred while undoing payment');
+    } finally {
+      setUndoLoading(false);
     }
   };
 
