@@ -305,13 +305,15 @@ export default function Customers({ type }) {
           openLedger(selectedCustomer); // refresh ledger
         }
       } else {
-        alert("Payment failed!");
+        alert(resData.message || "Payment failed!");
       }
 
     } catch (err) {
       console.error("Payment failed", err);
+      alert("Network error. Please try again.");
+    } finally {
+        setLoading(false);
     }
-    setLoading(false);
   };
 
   const handleItemUpdate = async (saleId, itemId, newQty, newRate) => {
