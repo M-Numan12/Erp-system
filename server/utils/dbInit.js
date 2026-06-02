@@ -125,7 +125,32 @@ async function syncDatabaseSchema() {
     `ALTER TABLE sales ALTER COLUMN payment_type TYPE TEXT;`,
     `ALTER TABLE purchases ALTER COLUMN payment_type TYPE TEXT;`,
     `ALTER TABLE salary_payments ALTER COLUMN payment_type TYPE TEXT;`,
-    `ALTER TABLE expenses ALTER COLUMN payment_type TYPE TEXT;`
+    `ALTER TABLE expenses ALTER COLUMN payment_type TYPE TEXT;`,
+    // --- 13. STAFF LEDGER TABLES ---
+    `CREATE TABLE IF NOT EXISTS staff (
+      id SERIAL PRIMARY KEY,
+      name VARCHAR(255) NOT NULL,
+      phone VARCHAR(100),
+      address TEXT,
+      opening_balance DECIMAL(12, 2) DEFAULT 0,
+      current_balance DECIMAL(12, 2) DEFAULT 0,
+      user_id INT,
+      module_type VARCHAR(100),
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );`,
+    `CREATE TABLE IF NOT EXISTS staff_ledger (
+      id SERIAL PRIMARY KEY,
+      staff_id INT REFERENCES staff(id) ON DELETE CASCADE,
+      date DATE DEFAULT CURRENT_DATE,
+      description TEXT NOT NULL,
+      debit DECIMAL(12, 2) DEFAULT 0,
+      credit DECIMAL(12, 2) DEFAULT 0,
+      balance DECIMAL(12, 2) NOT NULL,
+      payment_method VARCHAR(100),
+      user_id INT,
+      module_type VARCHAR(100),
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );`
   ];
 
   let totalExecuted = 0;

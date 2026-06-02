@@ -1,5 +1,5 @@
 // DYNAMIC API PATCH
-const API_BASE_URL = process.env.REACT_APP_API_URL ? `${process.env.REACT_APP_API_URL}/api` : 'http://localhost:5000/api';
+const API_BASE_URL = process.env.REACT_APP_API_URL ? `${process.env.REACT_APP_API_URL}/api` : 'https://erp-backend-3rf8.onrender.com/api';
 
 import React, { useState, useEffect, useContext } from "react";
 import { 
