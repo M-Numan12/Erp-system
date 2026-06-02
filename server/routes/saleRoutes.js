@@ -239,6 +239,29 @@ router.post('/payment', auth, async (req, res) => {
     );
 
     await client.query('COMMIT');
+
+      // After successful payment, send WhatsApp notifications
+      // Fetch customer phone number
+      const custPhoneRes = await pool.query('SELECT phone FROM customers WHERE id = $1', [customer_id]);
+      const custPhone = custPhoneRes.rows[0]?.phone;
+      const paymentMessage = `💰 *PAYMENT RECEIPT*\n` +
+        `-----------------------------------------\n` +
+        `🧾 *Customer:* ${custName}\n` +
+        `📞 *Phone:* ${custPhone || 'N/A'}\n` +
+        `💵 *Amount Received:* Rs. ${parseFloat(amount).toLocaleString()}\n` +
+        `🆔 *Reference:* ${payment_reference || 'N/A'}\n` +
+        `💳 *Payment Type:* ${payment_type || 'Cash'}\n` +
+        `🗓️ *Date:* ${new Date().toLocaleString()}\n` +
+        `-----------------------------------------`;
+      // Send to customer if phone available
+      if (custPhone) {
+        await sendWhatsAppMessage(custPhone, paymentMessage);
+      }
+      // Send copy to admin
+      const adminPhone = process.env.ADMIN_PHONE || '923004269347';
+      const adminMessage = `🚨 *ADMIN COPY: PAYMENT RECEIPT*\n\n${paymentMessage}`;
+      await sendWhatsAppMessage(adminPhone, adminMessage);
+
     res.json({ success: true, recordId: insertRes.rows[0].id });
 
   } catch (err) {
