@@ -119,7 +119,13 @@ async function syncDatabaseSchema() {
     `UPDATE salary SET advance_salary = ABS(advance_salary) WHERE advance_salary < 0;`,
 
     // --- 11. REPAIR CUSTOMER PAYMENTS RECONCILIATION FOR CASH ACCOUNT ---
-    `UPDATE sales SET payment_type = 'Cash (dukan pe)' WHERE payment_type = 'dukan pe';`
+    `UPDATE sales SET payment_type = 'Cash (dukan pe)' WHERE payment_type = 'dukan pe';`,
+
+    // --- 12. UNLIMITED PAYMENT REFERENCE CHARACTER SIZE ---
+    `ALTER TABLE sales ALTER COLUMN payment_type TYPE TEXT;`,
+    `ALTER TABLE purchases ALTER COLUMN payment_type TYPE TEXT;`,
+    `ALTER TABLE salary_payments ALTER COLUMN payment_type TYPE TEXT;`,
+    `ALTER TABLE expenses ALTER COLUMN payment_type TYPE TEXT;`
   ];
 
   let totalExecuted = 0;

@@ -305,7 +305,7 @@ export default function Customers({ type }) {
           openLedger(selectedCustomer); // refresh ledger
         }
       } else {
-        alert(resData.message || "Payment failed!");
+        alert(resData.error || resData.message || "Payment failed!");
       }
 
     } catch (err) {
