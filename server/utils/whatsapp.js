@@ -18,9 +18,15 @@ async function sendWhatsAppMessage(to, body) {
   }
   // Sanitize phone number (remove spaces, plus, dashes)
   let cleanPhone = String(to).replace(/[^0-9]/g, '');
-  if (cleanPhone.startsWith('0')) {
+  if (cleanPhone.startsWith('0092')) {
+    // If it starts with 0092, strip the leading 00
+    cleanPhone = cleanPhone.substring(2);
+  } else if (cleanPhone.startsWith('0')) {
     // Convert local Pakistan number to international (replace leading 0 with 92)
     cleanPhone = '92' + cleanPhone.substring(1);
+  } else if (cleanPhone.length === 10 && cleanPhone.startsWith('3')) {
+    // Convert 10-digit local number (e.g. 3264899299) to international by prepending 92
+    cleanPhone = '92' + cleanPhone;
   }
 
   // OPTION A: Twilio (No personal phone needed, sends from Twilio's system number)
