@@ -1363,59 +1363,110 @@ export default function Accounts() {
           <div className="thermal-receipt" style={{padding: '0 10px', color: '#000', fontFamily: 'monospace'}}>
             <div style={{textAlign: 'center', marginBottom: '10px'}}>
               <h2 style={{margin: '0', fontSize: '22px'}}>DATA WALEY</h2>
-              <h3 style={{margin: '2px 0', fontSize: '14px', fontWeight: 'normal'}}>CEMENT DEALER</h3>
-              <p style={{margin: '0', fontSize: '12px'}}>12- Kachehri Main Larhoor Road, Daska</p>
-              <p style={{margin: '0', fontSize: '12px'}}>Contact: 0300-0000000</p>
+              {selectedBill?.sale_type === 'Retail 2' || selectedBill?.module_type === 'Retail 2' ? (
+                <>
+                  <h3 style={{margin: '2px 0', fontSize: '14px', fontWeight: 'normal'}}>RETAIL 2</h3>
+                  <p style={{margin: '2px 0 0 0', fontSize: '11px'}}>Waqar Butt: 0311-4105840</p>
+                  <p style={{margin: '2px 0 0 0', fontSize: '11px'}}>Mhd Aiss: 0335-1430216</p>
+                  <p style={{margin: '2px 0 0 0', fontSize: '11px'}}>Saifullah: 0333-4714628</p>
+                  <p style={{margin: '4px 0 0 0', fontSize: '11px', lineHeight: '1.3'}}>
+                    Ada Treadywali Stop Main Jaranwala Road,<br/>
+                    District Sheikupura.
+                  </p>
+                </>
+              ) : (
+                <>
+                  <h3 style={{margin: '2px 0', fontSize: '14px', fontWeight: 'normal'}}>CEMENT DEALER</h3>
+                  <p style={{margin: '2px 0 0 0', fontSize: '11px'}}>Tariq Mehmood: 0300-4269347</p>
+                  <p style={{margin: '2px 0 0 0', fontSize: '11px'}}>Mian Shehroz: 0335-4294300</p>
+                  <p style={{margin: '2px 0 0 0', fontSize: '11px'}}>Ziaullah: 0322-4295106</p>
+                  <p style={{margin: '4px 0 0 0', fontSize: '11px', lineHeight: '1.3'}}>
+                    12-KM Main Lahore Sheikhupura Road,<br/>
+                    Ada Kot Abdul Malik.
+                  </p>
+                </>
+              )}
             </div>
             
-            <div style={{borderBottom: '1px dashed #000', margin: '10px 0'}}></div>
-            <h3 style={{textAlign: 'center', margin: '5px 0', fontSize: '16px'}}>SALE INVOICE</h3>
-            
-            <div style={{fontSize: '13px', lineHeight: '1.4'}}>
-              <div style={{display: 'flex', justifyContent: 'space-between'}}><span>Bill No</span> <span>: {selectedBill.id}</span></div>
-              <div style={{display: 'flex', justifyContent: 'space-between'}}><span>Date</span> <span>: {new Date(selectedBill.created_at).toLocaleDateString()}</span></div>
-              <div style={{display: 'flex', justifyContent: 'space-between'}}><span>Customer</span> <span>: {selectedBill.customer_name}</span></div>
-              {selectedBill.customer_phone && <div style={{display: 'flex', justifyContent: 'space-between'}}><span>Phone</span> <span>: {selectedBill.customer_phone}</span></div>}
-              <div style={{display: 'flex', justifyContent: 'space-between'}}><span>Payment</span> <span>: {selectedBill.payment_type}</span></div>
-            </div>
-            
-            <div style={{borderBottom: '1px dashed #000', margin: '10px 0'}}></div>
-            
-            <table style={{width: '100%', fontSize: '13px', borderCollapse: 'collapse'}}>
-              <thead>
-                <tr style={{textAlign: 'left'}}>
-                  <th style={{paddingBottom: '5px'}}>DESC</th>
-                  <th style={{paddingBottom: '5px', textAlign: 'center'}}>QTY</th>
-                  <th style={{paddingBottom: '5px', textAlign: 'right'}}>AMT</th>
-                </tr>
-              </thead>
-              <tbody>
-                {Array.isArray(selectedBill.items) && selectedBill.items.map((item, idx) => (
-                  <tr key={idx}>
-                    <td style={{padding: '4px 0'}}>{item.name}</td>
-                    <td style={{textAlign: 'center'}}>{item.quantity}</td>
-                    <td style={{textAlign: 'right'}}>{(item.price * item.quantity).toLocaleString()}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            
-            <div style={{borderBottom: '1px dashed #000', margin: '10px 0'}}></div>
-            
-            <div style={{fontSize: '14px', fontWeight: 'bold'}}>
-              <div style={{display: 'flex', justifyContent: 'space-between', marginBottom: '4px'}}>
-                <span>BILL TOTAL</span>
-                <span>Rs. {parseFloat(selectedBill.net_amount).toLocaleString()}</span>
-              </div>
-              <div style={{display: 'flex', justifyContent: 'space-between', marginBottom: '4px'}}>
-                <span>PAID NOW</span>
-                <span>Rs. {parseFloat(selectedBill.paid_amount).toLocaleString()}</span>
-              </div>
-              <div style={{display: 'flex', justifyContent: 'space-between'}}>
-                <span>REMAINING</span>
-                <span>Rs. {parseFloat(selectedBill.balance_amount).toLocaleString()}</span>
-              </div>
-            </div>
+            {selectedBill && (selectedBill.net_amount !== undefined || Array.isArray(selectedBill.items)) ? (
+              <>
+                <div style={{borderBottom: '1px dashed #000', margin: '10px 0'}}></div>
+                <h3 style={{textAlign: 'center', margin: '5px 0', fontSize: '16px'}}>SALE INVOICE</h3>
+                
+                <div style={{fontSize: '13px', lineHeight: '1.4'}}>
+                  <div style={{display: 'flex', justifyContent: 'space-between'}}><span>Bill No</span> <span>: {selectedBill.id}</span></div>
+                  <div style={{display: 'flex', justifyContent: 'space-between'}}><span>Date</span> <span>: {new Date(selectedBill.created_at || selectedBill.date).toLocaleDateString()}</span></div>
+                  <div style={{display: 'flex', justifyContent: 'space-between'}}><span>Customer</span> <span>: {selectedBill.customer_name}</span></div>
+                  {selectedBill.customer_phone && <div style={{display: 'flex', justifyContent: 'space-between'}}><span>Phone</span> <span>: {selectedBill.customer_phone}</span></div>}
+                  <div style={{display: 'flex', justifyContent: 'space-between'}}><span>Payment</span> <span>: {selectedBill.payment_type}</span></div>
+                </div>
+                
+                <div style={{borderBottom: '1px dashed #000', margin: '10px 0'}}></div>
+                
+                <table style={{width: '100%', fontSize: '13px', borderCollapse: 'collapse'}}>
+                  <thead>
+                    <tr style={{textAlign: 'left'}}>
+                      <th style={{paddingBottom: '5px'}}>DESC</th>
+                      <th style={{paddingBottom: '5px', textAlign: 'center'}}>QTY</th>
+                      <th style={{paddingBottom: '5px', textAlign: 'right'}}>AMT</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {Array.isArray(selectedBill.items) && selectedBill.items.map((item, idx) => (
+                      <tr key={idx}>
+                        <td style={{padding: '4px 0'}}>{item.name}</td>
+                        <td style={{textAlign: 'center'}}>{item.quantity}</td>
+                        <td style={{textAlign: 'right'}}>{(item.price * item.quantity).toLocaleString()}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                
+                <div style={{borderBottom: '1px dashed #000', margin: '10px 0'}}></div>
+                
+                <div style={{fontSize: '14px', fontWeight: 'bold'}}>
+                  <div style={{display: 'flex', justifyContent: 'space-between', marginBottom: '4px'}}>
+                    <span>BILL TOTAL</span>
+                    <span>Rs. {parseFloat(selectedBill.net_amount || 0).toLocaleString()}</span>
+                  </div>
+                  <div style={{display: 'flex', justifyContent: 'space-between', marginBottom: '4px'}}>
+                    <span>PAID NOW</span>
+                    <span>Rs. {parseFloat(selectedBill.paid_amount || 0).toLocaleString()}</span>
+                  </div>
+                  <div style={{display: 'flex', justifyContent: 'space-between'}}>
+                    <span>REMAINING</span>
+                    <span>Rs. {parseFloat(selectedBill.balance_amount || 0).toLocaleString()}</span>
+                  </div>
+                </div>
+              </>
+            ) : (
+              <>
+                <div style={{borderBottom: '1px dashed #000', margin: '10px 0'}}></div>
+                <h3 style={{textAlign: 'center', margin: '5px 0', fontSize: '16px'}}>TRANSACTION SLIP</h3>
+                
+                <div style={{fontSize: '13px', lineHeight: '1.4'}}>
+                  <div style={{display: 'flex', justifyContent: 'space-between'}}><span>Slip No</span> <span>: #{selectedBill?.id || 'N/A'}</span></div>
+                  <div style={{display: 'flex', justifyContent: 'space-between'}}><span>Date</span> <span>: {new Date(selectedBill?.created_at || selectedBill?.purchase_date || selectedBill?.date).toLocaleDateString()}</span></div>
+                  <div style={{display: 'flex', justifyContent: 'space-between'}}><span>Description</span> <span>: {selectedBill?.customer_name || 'N/A'}</span></div>
+                  <div style={{display: 'flex', justifyContent: 'space-between'}}><span>Payment Method</span> <span>: {selectedBill?.payment_type || selectedBill?.payment_method || 'Cash'}</span></div>
+                </div>
+                
+                <div style={{borderBottom: '1px dashed #000', margin: '10px 0'}}></div>
+                
+                <div style={{fontSize: '14px', fontWeight: 'bold', margin: '15px 0'}}>
+                  <div style={{display: 'flex', justifyContent: 'space-between'}}>
+                    <span>TOTAL AMOUNT</span>
+                    <span>Rs. {parseFloat(selectedBill?.amount || selectedBill?.paid_amount || 0).toLocaleString()}</span>
+                  </div>
+                </div>
+                
+                {(selectedBill?.notes || selectedBill?.description) && (
+                  <div style={{fontSize: '12px', background: '#f8fafc', padding: '8px', borderRadius: '4px', border: '1px solid #e2e8f0', marginTop: '10px'}}>
+                    <strong>Note:</strong> {selectedBill.notes || selectedBill.description}
+                  </div>
+                )}
+              </>
+            )}
             
             <div style={{borderBottom: '1px dashed #000', margin: '10px 0'}}></div>
             
