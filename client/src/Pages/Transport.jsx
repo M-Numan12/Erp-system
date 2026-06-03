@@ -250,6 +250,25 @@ export default function Transport({ type }) {
     });
   }, [ledgerData, ledgerFilter, ledgerFrom, ledgerTo]);
 
+  const filteredEarnings = useMemo(() => {
+    if (ledgerFilter === 'all') {
+      return parseFloat(selectedVehicle?.total_earnings || 0);
+    }
+    return filteredLedgerData.reduce((sum, r) => {
+      const type = r.trip_type || '';
+      const amt = parseFloat(r.amount || 0);
+      if (type.includes('Inward') || type.includes('Outward')) {
+        return sum + amt;
+      } else {
+        return sum - amt;
+      }
+    }, 0);
+  }, [filteredLedgerData, ledgerFilter, selectedVehicle?.total_earnings]);
+
+  const displayedTrips = useMemo(() => {
+    return filteredLedgerData.filter(row => row.trip_type === 'Inward (Stock)');
+  }, [filteredLedgerData]);
+
   const handleDelete = async (id) => {
     try {
       await api.delete(`/transport/${id}`);
@@ -535,7 +554,7 @@ export default function Transport({ type }) {
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredLedgerData.map((row, idx) => (
+                  {displayedTrips.map((row, idx) => (
                     <tr key={idx}>
                       <td style={{border: '1px solid #cbd5e1', padding: '8px'}}>{row.date ? new Date(row.date).toLocaleDateString() : 'N/A'}</td>
                       <td style={{border: '1px solid #cbd5e1', padding: '8px'}}>{row.party_name || 'N/A'}</td>
@@ -548,7 +567,7 @@ export default function Transport({ type }) {
                    <tr style={{fontWeight: 700}}>
                      <td colSpan="2" style={{border: '1px solid #cbd5e1', padding: '8px', textAlign: 'right'}}>Total Earnings (Filtered):</td>
                      <td colSpan="2" style={{border: '1px solid #cbd5e1', padding: '8px', color: '#15803d'}}>
-                        Rs. {filteredLedgerData.reduce((sum, r) => sum + parseFloat(r.amount || 0), 0).toLocaleString()}
+                        Rs. {filteredEarnings.toLocaleString()}
                      </td>
                    </tr>
                 </tfoot>
@@ -559,12 +578,12 @@ export default function Transport({ type }) {
               <div className="ledger-mini-stats" style={{ display: 'flex', gap: '20px', padding: '0 20px', marginBottom: '20px' }}>
                 <div style={{ flex: 1, padding: '15px', background: '#f8fafc', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
                   <div style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>Records</div>
-                  <div style={{ fontSize: '1.25rem', color: '#0f172a', fontWeight: 700 }}>{filteredLedgerData.length} Trips</div>
+                  <div style={{ fontSize: '1.25rem', color: '#0f172a', fontWeight: 700 }}>{displayedTrips.length} Trips</div>
                 </div>
                 <div style={{ flex: 1, padding: '15px', background: '#f0fdf4', borderRadius: '12px', border: '1px solid #bbf7d0' }}>
                   <div style={{ fontSize: '0.8rem', color: '#166534', fontWeight: 600, textTransform: 'uppercase' }}>Filtered Earnings</div>
                   <div style={{ fontSize: '1.25rem', color: '#15803d', fontWeight: 700 }}>
-                    Rs. {filteredLedgerData.reduce((sum, r) => sum + parseFloat(r.amount || 0), 0).toLocaleString()}
+                    Rs. {filteredEarnings.toLocaleString()}
                   </div>
                 </div>
               </div>
@@ -581,10 +600,10 @@ export default function Transport({ type }) {
                     </tr>
                   </thead>
                   <tbody className="list-body">
-                    {(!Array.isArray(filteredLedgerData) || filteredLedgerData.length === 0) ? (
+                    {(!Array.isArray(displayedTrips) || displayedTrips.length === 0) ? (
                       <tr><td colSpan="5" style={{padding: '20px', textAlign: 'center', color: '#64748b'}}>No records found for this vehicle.</td></tr>
                     ) : (
-                      filteredLedgerData.map((row, idx) => (
+                      displayedTrips.map((row, idx) => (
                         <tr key={idx}>
                           <td>{row.date ? new Date(row.date).toLocaleDateString() : 'N/A'}</td>
                           <td>
