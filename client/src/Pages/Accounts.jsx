@@ -131,7 +131,14 @@ export default function Accounts() {
   };
 
   const getSourceBalance = (method) => {
+    if (!method) return 0;
     if (method.toLowerCase() === 'cash') return totalCash;
+    const match = filteredAccounts.find(b => {
+      const bName = (b.bank_name || '').toLowerCase();
+      const mName = method.toLowerCase();
+      return bName.includes(mName) || mName.includes(bName);
+    });
+    if (match) return paymentSummary[match.id] || 0;
     const summaryKey = Object.keys(paymentSummary).find(k => k.toLowerCase() === method.toLowerCase());
     return summaryKey ? paymentSummary[summaryKey] : 0;
   };
@@ -1670,8 +1677,7 @@ export default function Accounts() {
                     {displayAccounts.filter(acc => acc.module_type !== 'Admin Recipient').map(acc => {
                       const cleanName = acc.bank_name.replace(' Account', '');
                       if (cleanName.toLowerCase() === 'cash') return null;
-                      const summaryKey = Object.keys(paymentSummary).find(k => k.toLowerCase() === cleanName.toLowerCase() || k.toLowerCase() === acc.bank_name.toLowerCase());
-                      const bal = summaryKey ? paymentSummary[summaryKey] : 0;
+                      const bal = paymentSummary[acc.id] || 0;
                       return (
                         <option key={acc.id} value={acc.bank_name}>
                           {acc.bank_name} - {acc.account_title || 'Bank'} (Rs. {bal.toLocaleString()})
@@ -1855,8 +1861,7 @@ export default function Accounts() {
                     {displayAccounts.filter(acc => acc.module_type !== 'Admin Recipient').map(acc => {
                       const cleanName = acc.bank_name.replace(' Account', '');
                       if (cleanName.toLowerCase() === 'cash') return null;
-                      const summaryKey = Object.keys(paymentSummary).find(k => k.toLowerCase() === cleanName.toLowerCase() || k.toLowerCase() === acc.bank_name.toLowerCase());
-                      const bal = summaryKey ? paymentSummary[summaryKey] : 0;
+                      const bal = paymentSummary[acc.id] || 0;
                       return (
                         <option key={acc.id} value={acc.bank_name}>
                           {acc.bank_name} - {acc.account_title || 'Bank'} (Rs. {bal.toLocaleString()})
