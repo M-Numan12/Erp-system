@@ -225,7 +225,7 @@ export default function Billing({ type }) {
       if (item.id === id) {
         const currentQty = parseFloat(item.qty) || 0;
         const newQty = Math.max(0.01, parseFloat((currentQty + delta).toFixed(2)));
-        return { ...item, qty: newQty, subtotal: newQty * item.price };
+        return { ...item, qty: newQty, subtotal: newQty * parseFloat(item.price || 0) };
       }
       return item;
     }));
@@ -243,7 +243,7 @@ export default function Billing({ type }) {
           storedQty = value;
         }
         
-        return { ...item, qty: storedQty, subtotal: subtotalQty * item.price };
+        return { ...item, qty: storedQty, subtotal: subtotalQty * parseFloat(item.price || 0) };
       }
       return item;
     }));
@@ -253,7 +253,25 @@ export default function Billing({ type }) {
     setCart(cart.map(item => {
       if (item.id === id) {
         const p = parseFloat(newPrice) || 0;
-        return { ...item, price: p, subtotal: item.qty * p };
+        return { ...item, price: p, subtotal: parseFloat(item.qty || 0) * p };
+      }
+      return item;
+    }));
+  };
+
+  const setPriceDirect = (id, value) => {
+    setCart(cart.map(item => {
+      if (item.id === id) {
+        const parsed = parseFloat(value);
+        const finalVal = isNaN(parsed) ? '' : Math.max(0, parsed);
+        const subtotalPrice = finalVal === '' ? 0 : finalVal;
+        
+        let storedPrice = finalVal;
+        if (typeof value === 'string' && (value.endsWith('.') || value.includes('.'))) {
+          storedPrice = value;
+        }
+        
+        return { ...item, price: storedPrice, subtotal: parseFloat(item.qty || 0) * subtotalPrice };
       }
       return item;
     }));
@@ -440,7 +458,12 @@ export default function Billing({ type }) {
         balance_amount: balance,
         payment_type: finalPaymentType,
         sale_type: activeTab,
-        items: cart,
+        items: cart.map(item => ({
+          ...item,
+          price: parseFloat(item.price) || 0,
+          qty: parseFloat(item.qty) || 0,
+          subtotal: parseFloat(item.subtotal) || 0
+        })),
         labour_group: selectedLabourGroup
       };
 
@@ -491,7 +514,12 @@ export default function Billing({ type }) {
           vehicleType: saleData.vehicle_type || '',
           vehicleId: vhObj ? vhObj.vehicle_number : (saleData.vehicle_id || ''),
           selectedLabourGroup: selectedLabourGroup,
-          items: [...cart],
+          items: cart.map(item => ({
+            ...item,
+            price: parseFloat(item.price) || 0,
+            qty: parseFloat(item.qty) || 0,
+            subtotal: parseFloat(item.subtotal) || 0
+          })),
           subtotal: subtotal,
           discount: parseFloat(discount || 0),
           delivery: parseFloat(delivery || 0),
@@ -748,7 +776,7 @@ export default function Billing({ type }) {
                   if (priceStr.length > 8) priceFontSize = "0.55rem";
                   else if (priceStr.length > 5) priceFontSize = "0.7rem";
 
-                  const subtotalStr = `Rs. ${(item.price * item.qty).toLocaleString()}`;
+                   const subtotalStr = `Rs. ${(parseFloat(item.price || 0) * parseFloat(item.qty || 0)).toLocaleString()}`;
                   let subtotalFontSize = "0.85rem";
                   if (subtotalStr.length > 15) subtotalFontSize = "0.55rem";
                   else if (subtotalStr.length > 10) subtotalFontSize = "0.7rem";
@@ -762,11 +790,13 @@ export default function Billing({ type }) {
                       <div className="item-bottom">
                         <div className="p-inputgroup" style={{flex: '1', minWidth: '85px', maxWidth: '130px'}}>
                           <span className="p-inputgroup-addon" style={{fontWeight: '800', color: '#3b82f6', background: '#eff6ff', fontSize: '0.75rem', padding: '0 4px'}}>Rs</span>
-                          <InputText type="text" inputMode="numeric" pattern="[0-9]*"
+                          <InputText type="text" inputMode="decimal"
                                     value={item.price} 
                                     onChange={(e) => {
-                                      const val = e.target.value.replace(/\D/g, "");
-                                      updatePrice(item.id, val ? parseInt(val) : 0);
+                                      const val = e.target.value.replace(/[^0-9.]/g, "");
+                                      const parts = val.split('.');
+                                      const cleanVal = parts.length > 2 ? parts[0] + '.' + parts.slice(1).join('') : val;
+                                      setPriceDirect(item.id, cleanVal);
                                     }} 
                                     className="p-inputtext-sm font-bold text-center" style={{width: '100%', fontSize: priceFontSize}} />
                         </div>
