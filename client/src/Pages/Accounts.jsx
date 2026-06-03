@@ -251,6 +251,11 @@ export default function Accounts() {
 
 
   const handleCloseoutFieldChange = (field, val) => {
+    if (field === 'notes') {
+      setCloseoutForm(prev => ({ ...prev, notes: val }));
+      return;
+    }
+
     const sourceBalance = getSourceBalance(closeoutForm.payment_type);
     // Strip leading zeroes from the string (e.g. "04" -> "4", "044" -> "44")
     let cleanVal = String(val).replace(/^0+(?=\d)/, '');
@@ -272,8 +277,6 @@ export default function Accounts() {
     } else if (field === 'amount_kept_as_opening') {
       const sent = Math.max(0, sourceBalance - value);
       setCloseoutForm(prev => ({ ...prev, amount_kept_as_opening: cleanVal, amount_sent_to_admin: sent === 0 ? "" : sent }));
-    } else {
-      setCloseoutForm(prev => ({ ...prev, [field]: cleanVal }));
     }
   };
 
