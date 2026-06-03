@@ -126,6 +126,13 @@ async function syncDatabaseSchema() {
     `ALTER TABLE purchases ALTER COLUMN payment_type TYPE TEXT;`,
     `ALTER TABLE salary_payments ALTER COLUMN payment_type TYPE TEXT;`,
     `ALTER TABLE expenses ALTER COLUMN payment_type TYPE TEXT;`,
+    `ALTER TABLE purchases ALTER COLUMN fare_payment_type TYPE TEXT;`,
+    `ALTER TABLE other_expenses ALTER COLUMN payment_type TYPE TEXT;`,
+    `ALTER TABLE other_expenses ALTER COLUMN payment_method TYPE TEXT;`,
+    `ALTER TABLE rent ALTER COLUMN payment_type TYPE TEXT;`,
+    `ALTER TABLE salary ALTER COLUMN payment_type TYPE TEXT;`,
+    `ALTER TABLE investments ALTER COLUMN payment_type TYPE TEXT;`,
+    `ALTER TABLE staff_ledger ALTER COLUMN payment_method TYPE TEXT;`,`,
     // --- 13. STAFF LEDGER TABLES ---
     `CREATE TABLE IF NOT EXISTS staff (
       id SERIAL PRIMARY KEY,
