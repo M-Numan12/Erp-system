@@ -224,7 +224,7 @@ export default function Billing({ type }) {
     setCart(cart.map(item => {
       if (item.id === id) {
         const currentQty = parseFloat(item.qty) || 0;
-        const newQty = Math.max(1, currentQty + delta);
+        const newQty = Math.max(0.01, parseFloat((currentQty + delta).toFixed(2)));
         return { ...item, qty: newQty, subtotal: newQty * item.price };
       }
       return item;
@@ -237,7 +237,13 @@ export default function Billing({ type }) {
         const parsed = parseFloat(value);
         const finalVal = isNaN(parsed) ? '' : Math.max(0, parsed);
         const subtotalQty = finalVal === '' ? 0 : finalVal;
-        return { ...item, qty: finalVal, subtotal: subtotalQty * item.price };
+        
+        let storedQty = finalVal;
+        if (typeof value === 'string' && (value.endsWith('.') || value.includes('.'))) {
+          storedQty = value;
+        }
+        
+        return { ...item, qty: storedQty, subtotal: subtotalQty * item.price };
       }
       return item;
     }));
@@ -766,11 +772,13 @@ export default function Billing({ type }) {
                         </div>
                         <div className="qty-ctrl">
                            <button className="cart-qty-btn" onClick={() => updateQty(item.id, -1)}>−</button>
-                           <InputText type="text" inputMode="numeric" pattern="[0-9]*"
+                           <InputText type="text" inputMode="decimal"
                                      value={item.qty} 
                                      onChange={(e) => {
-                                       const val = e.target.value.replace(/\D/g, "");
-                                       setQtyDirect(item.id, val ? parseInt(val) : 0);
+                                       const val = e.target.value.replace(/[^0-9.]/g, "");
+                                       const parts = val.split('.');
+                                       const cleanVal = parts.length > 2 ? parts[0] + '.' + parts.slice(1).join('') : val;
+                                       setQtyDirect(item.id, cleanVal);
                                      }} 
                                      className="p-inputtext-sm text-center font-bold" 
                                      style={{width: `${Math.max(30, (qtyStr.length * 7) + 15)}px`, border: 'none', background: 'transparent', padding: '0', fontSize: qtyFontSize, transition: 'width 0.2s'}} />
