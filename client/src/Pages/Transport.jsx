@@ -554,7 +554,7 @@ export default function Transport({ type }) {
                   </tr>
                 </thead>
                 <tbody>
-                  {displayedTrips.map((row, idx) => (
+                  {filteredLedgerData.map((row, idx) => (
                     <tr key={idx}>
                       <td style={{border: '1px solid #cbd5e1', padding: '8px'}}>{row.date ? new Date(row.date).toLocaleDateString() : 'N/A'}</td>
                       <td style={{border: '1px solid #cbd5e1', padding: '8px'}}>{row.party_name || 'N/A'}</td>
@@ -600,10 +600,10 @@ export default function Transport({ type }) {
                     </tr>
                   </thead>
                   <tbody className="list-body">
-                    {(!Array.isArray(displayedTrips) || displayedTrips.length === 0) ? (
+                    {(!Array.isArray(filteredLedgerData) || filteredLedgerData.length === 0) ? (
                       <tr><td colSpan="5" style={{padding: '20px', textAlign: 'center', color: '#64748b'}}>No records found for this vehicle.</td></tr>
                     ) : (
-                      displayedTrips.map((row, idx) => (
+                      filteredLedgerData.map((row, idx) => (
                         <tr key={idx}>
                           <td>{row.date ? new Date(row.date).toLocaleDateString() : 'N/A'}</td>
                           <td>
