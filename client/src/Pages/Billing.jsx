@@ -77,6 +77,8 @@ export default function Billing({ type }) {
   const [transportType, setTransportType] = useState('');
   const [selectedVehicleIds, setSelectedVehicleIds] = useState([]);
   const [viewSale, setViewSale] = useState(null);
+  const [showCustomerSection, setShowCustomerSection] = useState(true);
+  const [showTransportSection, setShowTransportSection] = useState(true);
   const [receiptData, setReceiptData] = useState(null);
   const [editId, setEditId] = useState(null);
   const [showLedgerModal, setShowLedgerModal] = useState(false);
@@ -713,54 +715,70 @@ export default function Billing({ type }) {
             {/* Fixed Customer & Transport Details Area */}
             <div className="sidebar-customer-transport p-fluid">
               <div className="input-box">
-                <label><User size={14}/> Customer Details</label>
-                <div className="flex flex-column gap-2 mb-2">
-                  <div className="p-inputgroup">
-                    <span className="p-inputgroup-addon"><User size={16} /></span>
-                    <InputText placeholder="Customer Name" value={customerName} onChange={(e) => handleCustomerChange(e.target.value)} list="customers-list" />
-                    <datalist id="customers-list">
-                      {customers.map(c => <option key={c.id} value={c.name}>{c.phone}</option>)}
-                    </datalist>
-                  </div>
-                  <div className="p-inputgroup">
-                    <span className="p-inputgroup-addon"><Phone size={16} /></span>
-                    <InputText placeholder="Phone Number" value={customerPhone} onChange={(e) => setCustomerPhone(e.target.value)} />
-                  </div>
-                  <div className="p-inputgroup">
-                    <span className="p-inputgroup-addon"><MapPin size={16} /></span>
-                    <InputText placeholder="Address" value={customerAddress} onChange={(e) => setCustomerAddress(e.target.value)} />
-                  </div>
+                <div className="flex justify-content-between align-items-center" onClick={() => setShowCustomerSection(!showCustomerSection)} style={{ cursor: 'pointer', paddingBottom: showCustomerSection ? '6px' : '0' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', margin: 0, fontWeight: 700 }}>
+                    <User size={14}/> Customer Details
+                  </label>
+                  <Button icon={showCustomerSection ? "pi pi-chevron-up" : "pi pi-chevron-down"} className="p-button-text p-button-rounded p-button-sm" style={{ padding: '0', width: '24px', height: '24px', color: '#64748b' }} onClick={(e) => { e.stopPropagation(); setShowCustomerSection(!showCustomerSection); }} />
                 </div>
-                {selectedCustomer && (
-                  <div className="p-message p-message-info p-2 mt-1" style={{fontSize: '0.75rem'}}>
-                    Previous Balance: Rs. {parseFloat(selectedCustomer.balance).toLocaleString()} {parseFloat(selectedCustomer.balance) > 0 ? '(Pending)' : '(Clear)'}
-                  </div>
+                {showCustomerSection && (
+                  <>
+                    <div className="flex flex-column gap-2 mb-2">
+                      <div className="p-inputgroup">
+                        <span className="p-inputgroup-addon"><User size={16} /></span>
+                        <InputText placeholder="Customer Name" value={customerName} onChange={(e) => handleCustomerChange(e.target.value)} list="customers-list" />
+                        <datalist id="customers-list">
+                          {customers.map(c => <option key={c.id} value={c.name}>{c.phone}</option>)}
+                        </datalist>
+                      </div>
+                      <div className="p-inputgroup">
+                        <span className="p-inputgroup-addon"><Phone size={16} /></span>
+                        <InputText placeholder="Phone Number" value={customerPhone} onChange={(e) => setCustomerPhone(e.target.value)} />
+                      </div>
+                      <div className="p-inputgroup">
+                        <span className="p-inputgroup-addon"><MapPin size={16} /></span>
+                        <InputText placeholder="Address" value={customerAddress} onChange={(e) => setCustomerAddress(e.target.value)} />
+                      </div>
+                    </div>
+                    {selectedCustomer && (
+                      <div className="p-message p-message-info p-2 mt-1" style={{fontSize: '0.75rem'}}>
+                        Previous Balance: Rs. {parseFloat(selectedCustomer.balance).toLocaleString()} {parseFloat(selectedCustomer.balance) > 0 ? '(Pending)' : '(Clear)'}
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
 
               <div className="input-box mt-1">
-                <label><Truck size={14}/> Transport Vehicle</label>
-                <div className="flex flex-column gap-2 mb-2">
-                  <Dropdown value={transportType} options={[
-                    {label: 'No Transport', value: ''},
-                    {label: 'Personal', value: 'Personal'},
-                    {label: 'Rent', value: 'Rent'}
-                  ]} onChange={(e) => { setTransportType(e.value); setSelectedVehicleIds([]); }} placeholder="Transport Type" className="w-full" />
-                  
-                  {transportType && (
-                    <MultiSelect 
-                      value={selectedVehicleIds} 
-                      options={vehicles.filter(v => v && !v.is_deleted && (v.ownership_type || '').toString().toLowerCase().trim() === transportType.toLowerCase().trim()).map(v => ({
-                        label: `${v.vehicle_number} (${v.driver_name})`,
-                        value: v.id
-                      }))} 
-                      onChange={(e) => setSelectedVehicleIds(e.value)} 
-                      placeholder="Select Vehicles" 
-                      maxSelectedLabels={3} 
-                      className="w-full" 
-                    />
-                  )}
+                <div className="flex justify-content-between align-items-center" onClick={() => setShowTransportSection(!showTransportSection)} style={{ cursor: 'pointer', paddingBottom: showTransportSection ? '6px' : '0' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', margin: 0, fontWeight: 700 }}>
+                    <Truck size={14}/> Transport Vehicle
+                  </label>
+                  <Button icon={showTransportSection ? "pi pi-chevron-up" : "pi pi-chevron-down"} className="p-button-text p-button-rounded p-button-sm" style={{ padding: '0', width: '24px', height: '24px', color: '#64748b' }} onClick={(e) => { e.stopPropagation(); setShowTransportSection(!showTransportSection); }} />
                 </div>
+                {showTransportSection && (
+                  <div className="flex flex-column gap-2 mb-2">
+                    <Dropdown value={transportType} options={[
+                      {label: 'No Transport', value: ''},
+                      {label: 'Personal', value: 'Personal'},
+                      {label: 'Rent', value: 'Rent'}
+                    ]} onChange={(e) => { setTransportType(e.value); setSelectedVehicleIds([]); }} placeholder="Transport Type" className="w-full" />
+                    
+                    {transportType && (
+                      <MultiSelect 
+                        value={selectedVehicleIds} 
+                        options={vehicles.filter(v => v && !v.is_deleted && (v.ownership_type || '').toString().toLowerCase().trim() === transportType.toLowerCase().trim()).map(v => ({
+                          label: `${v.vehicle_number} (${v.driver_name})`,
+                          value: v.id
+                        }))} 
+                        onChange={(e) => setSelectedVehicleIds(e.value)} 
+                        placeholder="Select Vehicles" 
+                        maxSelectedLabels={3} 
+                        className="w-full" 
+                      />
+                    )}
+                  </div>
+                )}
               </div>
             </div>
 
