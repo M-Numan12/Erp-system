@@ -89,9 +89,9 @@ router.post('/', auth, async (req, res) => {
 
     const saleResult = await client.query(
       `INSERT INTO sales 
-      (customer_id, customer_name, customer_phone, customer_address, total_amount, discount, delivery_charges, net_amount, paid_amount, balance_amount, payment_type, sale_type, user_id, vehicle_id, vehicle_id2, vehicle_number, vehicle_number2, vehicle_ids, items, status, labour_group) 
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21) RETURNING id`,
-      [finalCustomerId, customer_name, customer_phone || '', req.body.customer_address || '', total_amount, discount, delivery_charges, net_amount, paid_amount, balance_amount, payment_type, finalModule, req.user.id, vId, vId2, vNumber1, vNumber2, vehicleIdsJSON, JSON.stringify(items), 'Completed', labour_group || null]
+      (customer_id, customer_name, customer_phone, customer_address, total_amount, discount, delivery_charges, net_amount, paid_amount, balance_amount, payment_type, sale_type, user_id, vehicle_id, vehicle_id2, vehicle_number, vehicle_number2, vehicle_ids, items, status, labour_group, vehicle_type) 
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22) RETURNING id`,
+      [finalCustomerId, customer_name, customer_phone || '', req.body.customer_address || '', total_amount, discount, delivery_charges, net_amount, paid_amount, balance_amount, payment_type, finalModule, req.user.id, vId, vId2, vNumber1, vNumber2, vehicleIdsJSON, JSON.stringify(items), 'Completed', labour_group || null, vehicle_type || null]
     );
     const saleId = saleResult.rows[0].id;
 
@@ -359,7 +359,7 @@ router.put('/:id', auth, async (req, res) => {
     const { 
       customer_name, customer_phone, customer_address, total_amount, discount, 
       delivery_charges, net_amount, paid_amount, balance_amount, 
-      payment_type, items, vehicle_id 
+      payment_type, items, vehicle_id, vehicle_type 
     } = req.body;
 
     let vehicleIds = [];
@@ -389,10 +389,35 @@ router.put('/:id', auth, async (req, res) => {
       await client.query('UPDATE products SET stock_quantity = stock_quantity + $1 WHERE id = $2', [item.qty, item.product_id]);
     }
 
-    // 2. Revert OLD customer balance
-    const oldSale = await client.query('SELECT customer_id, balance_amount FROM sales WHERE id = $1', [req.params.id]);
-    if (oldSale.rows[0].customer_id && oldSale.rows[0].balance_amount !== 0) {
-      await client.query('UPDATE customers SET balance = balance - $1 WHERE id = $2', [oldSale.rows[0].balance_amount, oldSale.rows[0].customer_id]);
+    // 2. Revert OLD customer balance and vehicle earnings
+    const oldSaleRes = await client.query('SELECT customer_id, balance_amount, vehicle_id, vehicle_id2, vehicle_ids, delivery_charges, vehicle_type FROM sales WHERE id = $1', [req.params.id]);
+    const oldSale = oldSaleRes.rows[0];
+    if (oldSale && oldSale.customer_id && oldSale.balance_amount !== 0) {
+      await client.query('UPDATE customers SET balance = balance - $1 WHERE id = $2', [oldSale.balance_amount, oldSale.customer_id]);
+    }
+    
+    // Revert vehicle earnings of old vehicles
+    if (oldSale && oldSale.vehicle_type && oldSale.vehicle_type !== '') {
+      let oldVehicleIds = [];
+      if (oldSale.vehicle_ids) {
+        try {
+          oldVehicleIds = typeof oldSale.vehicle_ids === 'string' ? JSON.parse(oldSale.vehicle_ids) : oldSale.vehicle_ids;
+        } catch (e) {}
+      } else if (oldSale.vehicle_id) {
+        oldVehicleIds = [oldSale.vehicle_id];
+      }
+      oldVehicleIds = oldVehicleIds.filter(id => !isNaN(id) && id > 0);
+      
+      if (oldVehicleIds.length > 0) {
+        const oldFareAmount = parseFloat(oldSale.delivery_charges) || 0;
+        const oldFarePerVehicle = oldFareAmount / oldVehicleIds.length;
+        for (const id of oldVehicleIds) {
+          await client.query(
+            `UPDATE vehicles SET total_earnings = total_earnings - $1 WHERE id = $2`,
+            [oldFarePerVehicle, id]
+          );
+        }
+      }
     }
 
     // 3. Delete old items
@@ -404,9 +429,10 @@ router.put('/:id', auth, async (req, res) => {
         customer_name=$1, customer_phone=$2, customer_address=$3, total_amount=$4, 
         discount=$5, delivery_charges=$6, net_amount=$7, paid_amount=$8, 
         balance_amount=$9, payment_type=$10, vehicle_id=$11, vehicle_id2=$12,
-        vehicle_number=$13, vehicle_number2=$14, vehicle_ids=$15, items=$16
-      WHERE id=$17`,
-      [customer_name, customer_phone, customer_address, total_amount, discount, delivery_charges, net_amount, paid_amount, balance_amount, payment_type, vId, vId2, vNumber1, vNumber2, vehicleIdsJSON, JSON.stringify(items), req.params.id]
+        vehicle_number=$13, vehicle_number2=$14, vehicle_ids=$15, items=$16,
+        vehicle_type=$17
+      WHERE id=$18`,
+      [customer_name, customer_phone, customer_address, total_amount, discount, delivery_charges, net_amount, paid_amount, balance_amount, payment_type, vId, vId2, vNumber1, vNumber2, vehicleIdsJSON, JSON.stringify(items), vehicle_type || null, req.params.id]
     );
 
     // 5. Insert NEW items and update stock
@@ -423,14 +449,26 @@ router.put('/:id', auth, async (req, res) => {
     }
 
     // 6. Update NEW customer balance
-    if (oldSale.rows[0].customer_id && balance_amount !== 0) {
-      await client.query('UPDATE customers SET balance = balance + $1 WHERE id = $2', [balance_amount, oldSale.rows[0].customer_id]);
+    if (oldSale && oldSale.customer_id && balance_amount !== 0) {
+      await client.query('UPDATE customers SET balance = balance + $1 WHERE id = $2', [balance_amount, oldSale.customer_id]);
+    }
+
+    // 6.5 Update NEW vehicle earnings
+    if (vehicle_type && vehicleIds.length > 0) {
+      const fareAmount = parseFloat(delivery_charges) || 0;
+      const farePerVehicle = fareAmount / vehicleIds.length;
+      for (const id of vehicleIds) {
+        await client.query(
+          `UPDATE vehicles SET total_earnings = total_earnings + $1 WHERE id = $2`,
+          [farePerVehicle, id]
+        );
+      }
     }
 
     // Fetch updated customer balance live inside transaction
     let customerBalance = 0;
-    if (oldSale.rows[0].customer_id) {
-      const custRes = await client.query('SELECT balance FROM customers WHERE id = $1', [oldSale.rows[0].customer_id]);
+    if (oldSale && oldSale.customer_id) {
+      const custRes = await client.query('SELECT balance FROM customers WHERE id = $1', [oldSale.customer_id]);
       if (custRes.rows.length > 0) {
         customerBalance = parseFloat(custRes.rows[0].balance || 0);
       }
@@ -458,10 +496,37 @@ router.delete('/:id', auth, async (req, res) => {
       await client.query('UPDATE products SET stock_quantity = stock_quantity + $1 WHERE id = $2', [item.qty, item.product_id]);
     }
 
-    // Revert customer balance
-    const oldSale = await client.query('SELECT customer_id, balance_amount FROM sales WHERE id = $1', [req.params.id]);
-    if (oldSale.rows[0].customer_id && oldSale.rows[0].balance_amount !== 0) {
-      await client.query('UPDATE customers SET balance = balance - $1 WHERE id = $2', [oldSale.rows[0].balance_amount, oldSale.rows[0].customer_id]);
+    // Revert customer balance and vehicle earnings
+    const oldSaleRes = await client.query('SELECT customer_id, balance_amount, vehicle_id, vehicle_id2, vehicle_ids, delivery_charges, vehicle_type FROM sales WHERE id = $1', [req.params.id]);
+    const oldSale = oldSaleRes.rows[0];
+    if (oldSale) {
+      if (oldSale.customer_id && oldSale.balance_amount !== 0) {
+        await client.query('UPDATE customers SET balance = balance - $1 WHERE id = $2', [oldSale.balance_amount, oldSale.customer_id]);
+      }
+      
+      // Revert vehicle earnings
+      if (oldSale.vehicle_type && oldSale.vehicle_type !== '') {
+        let oldVehicleIds = [];
+        if (oldSale.vehicle_ids) {
+          try {
+            oldVehicleIds = typeof oldSale.vehicle_ids === 'string' ? JSON.parse(oldSale.vehicle_ids) : oldSale.vehicle_ids;
+          } catch (e) {}
+        } else if (oldSale.vehicle_id) {
+          oldVehicleIds = [oldSale.vehicle_id];
+        }
+        oldVehicleIds = oldVehicleIds.filter(id => !isNaN(id) && id > 0);
+        
+        if (oldVehicleIds.length > 0) {
+          const oldFareAmount = parseFloat(oldSale.delivery_charges) || 0;
+          const oldFarePerVehicle = oldFareAmount / oldVehicleIds.length;
+          for (const id of oldVehicleIds) {
+            await client.query(
+              `UPDATE vehicles SET total_earnings = total_earnings - $1 WHERE id = $2`,
+              [oldFarePerVehicle, id]
+            );
+          }
+        }
+      }
     }
 
     await client.query('DELETE FROM sale_items WHERE sale_id = $1', [req.params.id]);
