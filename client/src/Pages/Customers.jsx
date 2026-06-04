@@ -817,7 +817,7 @@ export default function Customers({ type }) {
                     <Column 
                       header="S.No" 
                       body={(row, options) => row.isOpening ? '—' : options.rowIndex} 
-                      style={{ width: '60px', textAlign: 'center' }} 
+                      style={{ width: '50px', textAlign: 'center' }} 
                     />
                     <Column 
                       header="Date" 
@@ -830,12 +830,12 @@ export default function Customers({ type }) {
                           </div>
                         );
                       }} 
-                      style={{ width: '110px' }} 
+                      style={{ width: '100px' }} 
                     />
                     <Column 
                       header="Bill No." 
                       body={row => row.isOpening ? '—' : <span style={{fontWeight:600, color:'#64748b'}}>#SAL-{row.id}</span>}
-                      style={{ width: '95px' }} 
+                      style={{ width: '85px' }} 
                     />
                     <Column 
                       header="Product Name" 
@@ -847,19 +847,35 @@ export default function Customers({ type }) {
                           return (
                             <div style={{display:'flex', flexDirection:'column', gap:'4px'}}>
                               {items.map((item, idx) => (
-                                <div key={idx} style={{fontWeight:600, color:'#1e293b', height:'24px', display:'flex', alignItems:'center'}}>{item.brand || ''} {item.name}</div>
+                                <div 
+                                  key={idx} 
+                                  style={{
+                                    fontWeight: 600, 
+                                    color: '#1e293b', 
+                                    height: '24px', 
+                                    display: 'flex', 
+                                    alignItems: 'center',
+                                    whiteSpace: 'nowrap',
+                                    overflow: 'hidden',
+                                    textOverflow: 'ellipsis'
+                                  }}
+                                  title={`${item.brand || ''} ${item.name}`}
+                                >
+                                  {item.brand || ''} {item.name}
+                                </div>
                               ))}
                               {parseFloat(row.delivery_charges || 0) > 0 && (
-                                <div style={{fontWeight:700, color:'#3b82f6', height:'24px', display:'flex', alignItems:'center'}}>Delivery</div>
+                                <div style={{fontWeight:700, color:'#3b82f6', height:'24px', display:'flex', alignItems:'center', whiteSpace: 'nowrap'}}>Delivery</div>
                               )}
                               {parseFloat(row.discount || 0) > 0 && (
-                                <div style={{fontWeight:700, color:'#ef4444', height:'24px', display:'flex', alignItems:'center'}}>Discount</div>
+                                <div style={{fontWeight:700, color:'#ef4444', height:'24px', display:'flex', alignItems:'center', whiteSpace: 'nowrap'}}>Discount</div>
                               )}
                             </div>
                           );
                         }
-                        return <strong style={{color:'#10b981', fontSize:'0.85rem'}}><CreditCard size={13} style={{display:'inline', verticalAlign:'middle', marginRight:'4px'}}/>Payment Received ({row.payment_type || 'Cash'})</strong>;
+                        return <strong style={{color:'#10b981', fontSize:'0.85rem', whiteSpace: 'nowrap'}}><CreditCard size={13} style={{display:'inline', verticalAlign:'middle', marginRight:'4px'}}/>Payment Received ({row.payment_type || 'Cash'})</strong>;
                       }} 
+                      style={{ minWidth: '180px' }}
                     />
                     <Column 
                       header="Vehicle Number" 
@@ -875,7 +891,7 @@ export default function Customers({ type }) {
                         }
                         return <span style={{color:'#cbd5e1'}}>—</span>;
                       }} 
-                      style={{ width: '120px' }}
+                      style={{ width: '110px' }}
                     />
                     {user?.role === 'admin' && (
                       <Column
@@ -889,7 +905,7 @@ export default function Customers({ type }) {
                             </button>
                           ) : null;
                         }}
-                        style={{ width: '80px', textAlign: 'center' }}
+                        style={{ width: '70px', textAlign: 'center' }}
                       />
                     )}
                     <Column 
@@ -929,7 +945,7 @@ export default function Customers({ type }) {
                         }
                         return <span style={{color:'#cbd5e1'}}>—</span>;
                       }} 
-                      style={{ width: '90px' }}
+                      style={{ width: '70px' }}
                     />
                     <Column 
                       header="Rate" 
@@ -970,21 +986,21 @@ export default function Customers({ type }) {
                       }}
                       footer="Period Totals:"
                       footerStyle={{ textAlign: 'right', fontWeight: 'bold', color: '#475569' }}
-                      style={{ width: '95px' }}
+                      style={{ width: '75px' }}
                     />
                     <Column 
                       header="Debit (+)" 
                       body={row => (!row.isOpening && parseFloat(row.net_amount) > 0) ? <span style={{fontWeight: '600', color: '#ef4444'}}>Rs. {parseFloat(row.net_amount).toLocaleString()}</span> : <span style={{color:'#cbd5e1'}}>—</span>}
                       footer={`Rs. ${sortedLedgerData.reduce((sum, r) => sum + parseFloat(r.net_amount || 0), 0).toLocaleString()}`}
                       footerStyle={{ textAlign: 'right', fontWeight: '700', color: '#ef4444' }}
-                      style={{ textAlign: 'right', width: '120px' }}
+                      style={{ textAlign: 'right', width: '95px' }}
                     />
                     <Column 
                       header="Credit (-)" 
                       body={row => (!row.isOpening && parseFloat(row.paid_amount) > 0) ? <span style={{fontWeight: '600', color: '#16a34a'}}>Rs. {parseFloat(row.paid_amount).toLocaleString()}</span> : <span style={{color:'#cbd5e1'}}>—</span>}
                       footer={`Rs. ${sortedLedgerData.reduce((sum, r) => sum + parseFloat(r.paid_amount || 0), 0).toLocaleString()}`}
                       footerStyle={{ textAlign: 'right', fontWeight: '700', color: '#16a34a' }}
-                      style={{ textAlign: 'right', width: '120px' }}
+                      style={{ textAlign: 'right', width: '95px' }}
                     />
                     <Column 
                       header="Balance" 
@@ -1006,7 +1022,7 @@ export default function Customers({ type }) {
                         </div>
                       }
                       footerStyle={{ textAlign: 'right' }}
-                      style={{ textAlign: 'right', width: '150px' }}
+                      style={{ textAlign: 'right', width: '120px' }}
                     />
                   </DataTable>
                 </div>
