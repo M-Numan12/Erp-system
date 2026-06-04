@@ -90,6 +90,7 @@ async function syncDatabaseSchema() {
     `ALTER TABLE sales ADD COLUMN IF NOT EXISTS vehicle_number VARCHAR(100);`,
     `ALTER TABLE sales ADD COLUMN IF NOT EXISTS vehicle_id2 INTEGER;`,
     `ALTER TABLE sales ADD COLUMN IF NOT EXISTS vehicle_number2 VARCHAR(100);`,
+    `ALTER TABLE sales ADD COLUMN IF NOT EXISTS vehicle_ids JSONB;`,
     `ALTER TABLE sales ADD COLUMN IF NOT EXISTS user_id INTEGER;`,
     `ALTER TABLE sales ADD COLUMN IF NOT EXISTS sale_type VARCHAR(50) DEFAULT 'Retail';`,
 

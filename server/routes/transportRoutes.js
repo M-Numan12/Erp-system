@@ -82,11 +82,36 @@ router.get('/ledger/:id', auth, async (req, res) => {
     
     // 1. Trips from Sales (Outward / Returns)
     const salesTrips = await pool.query(
-      `SELECT id, customer_name as party_name, delivery_charges as amount, created_at as date, 
+      `SELECT id, customer_name as party_name, delivery_charges, vehicle_id, vehicle_id2, vehicle_ids, created_at as date, 
               CASE WHEN status = 'Returned' THEN 'Inward (Return)' ELSE 'Outward (Sale)' END as trip_type, 
               payment_type
-       FROM sales WHERE vehicle_id = $1`, [vId]
+       FROM sales 
+       WHERE vehicle_id = $1 OR vehicle_id2 = $1 OR (vehicle_ids IS NOT NULL AND vehicle_ids @> $2::jsonb)`, 
+      [vId, JSON.stringify([parseInt(vId)])]
     );
+
+    const formattedSalesTrips = salesTrips.rows.map(row => {
+      let amount = parseFloat(row.delivery_charges || 0);
+      if (row.vehicle_ids) {
+        let ids = [];
+        try {
+          ids = typeof row.vehicle_ids === 'string' ? JSON.parse(row.vehicle_ids) : row.vehicle_ids;
+        } catch(e){}
+        if (Array.isArray(ids) && ids.length > 0) {
+          amount = amount / ids.length;
+        }
+      } else if (row.vehicle_id && row.vehicle_id2) {
+        amount = amount / 2.0;
+      }
+      return {
+        id: row.id,
+        party_name: row.party_name,
+        amount: amount,
+        date: row.date,
+        trip_type: row.trip_type,
+        payment_type: row.payment_type
+      };
+    });
 
     // 2. Trips from Purchases (Inward Stock)
     const purchaseTrips = await pool.query(
@@ -104,7 +129,7 @@ router.get('/ledger/:id', auth, async (req, res) => {
        FROM expenses WHERE vehicle_id = $1`, [vId]
     );
 
-    const combined = [...salesTrips.rows, ...purchaseTrips.rows, ...payments.rows].sort((a, b) => new Date(b.date) - new Date(a.date));
+    const combined = [...formattedSalesTrips, ...purchaseTrips.rows, ...payments.rows].sort((a, b) => new Date(b.date) - new Date(a.date));
     res.json(combined);
   } catch (err) { res.status(500).json({ error: err.message }); }
 });

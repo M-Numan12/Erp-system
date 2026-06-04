@@ -66,25 +66,32 @@ router.post('/', auth, async (req, res) => {
     }
 
     // 1. Insert into sales table
-    const vId = vehicle_id && vehicle_id !== '' ? vehicle_id : null;
-    const vId2 = req.body.vehicle_id2 && req.body.vehicle_id2 !== '' ? req.body.vehicle_id2 : null;
+    let vehicleIds = [];
+    if (req.body.vehicle_ids) {
+      vehicleIds = Array.isArray(req.body.vehicle_ids) ? req.body.vehicle_ids.map(Number) : [Number(req.body.vehicle_ids)];
+    } else if (vehicle_id && vehicle_id !== '') {
+      vehicleIds = [Number(vehicle_id)];
+    }
+    vehicleIds = vehicleIds.filter(id => !isNaN(id) && id > 0);
+
+    let vehicleNumbers = [];
+    if (vehicleIds.length > 0) {
+      const placeholders = vehicleIds.map((_, i) => `$${i + 1}`).join(', ');
+      const vRes = await client.query(`SELECT vehicle_number FROM vehicles WHERE id IN (${placeholders})`, vehicleIds);
+      vehicleNumbers = vRes.rows.map(r => r.vehicle_number);
+    }
     
-    let vNumber1 = null;
-    let vNumber2 = null;
-    if (vId) {
-      const v1Res = await client.query('SELECT vehicle_number FROM vehicles WHERE id=$1', [vId]);
-      vNumber1 = v1Res.rows[0]?.vehicle_number || null;
-    }
-    if (vId2) {
-      const v2Res = await client.query('SELECT vehicle_number FROM vehicles WHERE id=$1', [vId2]);
-      vNumber2 = v2Res.rows[0]?.vehicle_number || null;
-    }
+    const vNumber1 = vehicleNumbers.join(', ') || null;
+    const vId = vehicleIds[0] || null;
+    const vId2 = vehicleIds[1] || null;
+    const vNumber2 = vehicleNumbers[1] || null;
+    const vehicleIdsJSON = vehicleIds.length > 0 ? JSON.stringify(vehicleIds) : null;
 
     const saleResult = await client.query(
       `INSERT INTO sales 
-      (customer_id, customer_name, customer_phone, customer_address, total_amount, discount, delivery_charges, net_amount, paid_amount, balance_amount, payment_type, sale_type, user_id, vehicle_id, vehicle_id2, vehicle_number, vehicle_number2, items, status, labour_group) 
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20) RETURNING id`,
-      [finalCustomerId, customer_name, customer_phone || '', req.body.customer_address || '', total_amount, discount, delivery_charges, net_amount, paid_amount, balance_amount, payment_type, finalModule, req.user.id, vId, vId2, vNumber1, vNumber2, JSON.stringify(items), 'Completed', labour_group || null]
+      (customer_id, customer_name, customer_phone, customer_address, total_amount, discount, delivery_charges, net_amount, paid_amount, balance_amount, payment_type, sale_type, user_id, vehicle_id, vehicle_id2, vehicle_number, vehicle_number2, vehicle_ids, items, status, labour_group) 
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21) RETURNING id`,
+      [finalCustomerId, customer_name, customer_phone || '', req.body.customer_address || '', total_amount, discount, delivery_charges, net_amount, paid_amount, balance_amount, payment_type, finalModule, req.user.id, vId, vId2, vNumber1, vNumber2, vehicleIdsJSON, JSON.stringify(items), 'Completed', labour_group || null]
     );
     const saleId = saleResult.rows[0].id;
 
@@ -142,22 +149,14 @@ router.post('/', auth, async (req, res) => {
     }
 
     // 4. Automatic Transport Earnings Update if vehicle is selected
-    if (vehicle_type && vId) {
+    // 4. Automatic Transport Earnings Update if vehicle is selected
+    if (vehicle_type && vehicleIds.length > 0) {
       const fareAmount = parseFloat(delivery_charges) || 0;
-      if (vId2) {
-        const halfFare = fareAmount / 2.0;
+      const farePerVehicle = fareAmount / vehicleIds.length;
+      for (const id of vehicleIds) {
         await client.query(
           `UPDATE vehicles SET total_earnings = total_earnings + $1 WHERE id = $2`,
-          [halfFare, vId]
-        );
-        await client.query(
-          `UPDATE vehicles SET total_earnings = total_earnings + $1 WHERE id = $2`,
-          [halfFare, vId2]
-        );
-      } else {
-        await client.query(
-          `UPDATE vehicles SET total_earnings = total_earnings + $1 WHERE id = $2`,
-          [fareAmount, vId]
+          [farePerVehicle, id]
         );
       }
     }
@@ -363,19 +362,26 @@ router.put('/:id', auth, async (req, res) => {
       payment_type, items, vehicle_id 
     } = req.body;
 
-    const vId = vehicle_id && vehicle_id !== '' ? vehicle_id : null;
-    const vId2 = req.body.vehicle_id2 && req.body.vehicle_id2 !== '' ? req.body.vehicle_id2 : null;
+    let vehicleIds = [];
+    if (req.body.vehicle_ids) {
+      vehicleIds = Array.isArray(req.body.vehicle_ids) ? req.body.vehicle_ids.map(Number) : [Number(req.body.vehicle_ids)];
+    } else if (vehicle_id && vehicle_id !== '') {
+      vehicleIds = [Number(vehicle_id)];
+    }
+    vehicleIds = vehicleIds.filter(id => !isNaN(id) && id > 0);
+
+    let vehicleNumbers = [];
+    if (vehicleIds.length > 0) {
+      const placeholders = vehicleIds.map((_, i) => `$${i + 1}`).join(', ');
+      const vRes = await client.query(`SELECT vehicle_number FROM vehicles WHERE id IN (${placeholders})`, vehicleIds);
+      vehicleNumbers = vRes.rows.map(r => r.vehicle_number);
+    }
     
-    let vNumber1 = null;
-    let vNumber2 = null;
-    if (vId) {
-      const v1Res = await client.query('SELECT vehicle_number FROM vehicles WHERE id=$1', [vId]);
-      vNumber1 = v1Res.rows[0]?.vehicle_number || null;
-    }
-    if (vId2) {
-      const v2Res = await client.query('SELECT vehicle_number FROM vehicles WHERE id=$1', [vId2]);
-      vNumber2 = v2Res.rows[0]?.vehicle_number || null;
-    }
+    const vNumber1 = vehicleNumbers.join(', ') || null;
+    const vId = vehicleIds[0] || null;
+    const vId2 = vehicleIds[1] || null;
+    const vNumber2 = vehicleNumbers[1] || null;
+    const vehicleIdsJSON = vehicleIds.length > 0 ? JSON.stringify(vehicleIds) : null;
 
     // 1. Revert OLD stock
     const oldItems = await client.query('SELECT product_id, qty FROM sale_items WHERE sale_id = $1', [req.params.id]);
@@ -398,9 +404,9 @@ router.put('/:id', auth, async (req, res) => {
         customer_name=$1, customer_phone=$2, customer_address=$3, total_amount=$4, 
         discount=$5, delivery_charges=$6, net_amount=$7, paid_amount=$8, 
         balance_amount=$9, payment_type=$10, vehicle_id=$11, vehicle_id2=$12,
-        vehicle_number=$13, vehicle_number2=$14, items=$15
-      WHERE id=$16`,
-      [customer_name, customer_phone, customer_address, total_amount, discount, delivery_charges, net_amount, paid_amount, balance_amount, payment_type, vId, vId2, vNumber1, vNumber2, JSON.stringify(items), req.params.id]
+        vehicle_number=$13, vehicle_number2=$14, vehicle_ids=$15, items=$16
+      WHERE id=$17`,
+      [customer_name, customer_phone, customer_address, total_amount, discount, delivery_charges, net_amount, paid_amount, balance_amount, payment_type, vId, vId2, vNumber1, vNumber2, vehicleIdsJSON, JSON.stringify(items), req.params.id]
     );
 
     // 5. Insert NEW items and update stock
@@ -616,26 +622,34 @@ router.post('/return', auth, async (req, res) => {
     }
 
     // Fetch vehicle numbers for return
-    let vNumber1 = null;
-    let vNumber2 = null;
-    const vId = vehicle_id && vehicle_id !== '' ? vehicle_id : null;
-    const vId2 = req.body.vehicle_id2 && req.body.vehicle_id2 !== '' ? req.body.vehicle_id2 : null;
-    if (vId) {
-      const v1Res = await client.query('SELECT vehicle_number FROM vehicles WHERE id=$1', [vId]);
-      vNumber1 = v1Res.rows[0]?.vehicle_number || null;
+    let vehicleIds = [];
+    if (req.body.vehicle_ids) {
+      vehicleIds = Array.isArray(req.body.vehicle_ids) ? req.body.vehicle_ids.map(Number) : [Number(req.body.vehicle_ids)];
+    } else if (vehicle_id && vehicle_id !== '') {
+      vehicleIds = [Number(vehicle_id)];
     }
-    if (vId2) {
-      const v2Res = await client.query('SELECT vehicle_number FROM vehicles WHERE id=$1', [vId2]);
-      vNumber2 = v2Res.rows[0]?.vehicle_number || null;
+    vehicleIds = vehicleIds.filter(id => !isNaN(id) && id > 0);
+
+    let vehicleNumbers = [];
+    if (vehicleIds.length > 0) {
+      const placeholders = vehicleIds.map((_, i) => `$${i + 1}`).join(', ');
+      const vRes = await client.query(`SELECT vehicle_number FROM vehicles WHERE id IN (${placeholders})`, vehicleIds);
+      vehicleNumbers = vRes.rows.map(r => r.vehicle_number);
     }
+    
+    const vNumber1 = vehicleNumbers.join(', ') || null;
+    const vId = vehicleIds[0] || null;
+    const vId2 = vehicleIds[1] || null;
+    const vNumber2 = vehicleNumbers[1] || null;
+    const vehicleIdsJSON = vehicleIds.length > 0 ? JSON.stringify(vehicleIds) : null;
 
     // 3. Create a NEW Sale record for the return (Separate Bill)
     const returnBillResult = await client.query(
       `INSERT INTO sales (
         sale_type, customer_id, customer_name, customer_phone, 
         net_amount, paid_amount, balance_amount, status, 
-        payment_type, user_id, items, vehicle_id, vehicle_id2, vehicle_number, vehicle_number2, delivery_charges, created_at
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, CURRENT_TIMESTAMP) RETURNING id`,
+        payment_type, user_id, items, vehicle_id, vehicle_id2, vehicle_number, vehicle_number2, vehicle_ids, delivery_charges, created_at
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, CURRENT_TIMESTAMP) RETURNING id`,
       [
         sale.sale_type,
         sale.customer_id,
@@ -652,28 +666,20 @@ router.post('/return', auth, async (req, res) => {
         vId2,
         vNumber1,
         vNumber2,
+        vehicleIdsJSON,
         delivery_charges || 0
       ]
     );
     const newReturnId = returnBillResult.rows[0].id;
 
     // 3.5 Automatic Transport Earnings Update
-    if (vId && (parseFloat(delivery_charges) || 0) > 0) {
+    if (vehicleIds.length > 0 && (parseFloat(delivery_charges) || 0) > 0) {
       const fareAmount = parseFloat(delivery_charges) || 0;
-      if (vId2) {
-        const halfFare = fareAmount / 2.0;
+      const farePerVehicle = fareAmount / vehicleIds.length;
+      for (const id of vehicleIds) {
         await client.query(
           `UPDATE vehicles SET total_earnings = total_earnings + $1 WHERE id = $2`,
-          [halfFare, vId]
-        );
-        await client.query(
-          `UPDATE vehicles SET total_earnings = total_earnings + $1 WHERE id = $2`,
-          [halfFare, vId2]
-        );
-      } else {
-        await client.query(
-          `UPDATE vehicles SET total_earnings = total_earnings + $1 WHERE id = $2`,
-          [fareAmount, vId]
+          [farePerVehicle, id]
         );
       }
     }

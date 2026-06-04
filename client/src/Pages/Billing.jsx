@@ -15,6 +15,7 @@ import { Dropdown } from 'primereact/dropdown';
 import { AutoComplete } from 'primereact/autocomplete';
 import { DataTable } from 'primereact/datatable';
 import { Column } from 'primereact/column';
+import { MultiSelect } from 'primereact/multiselect';
 import ActionMenu from '../components/ActionMenu';
 import { AuthContext } from "../context/AuthContext";
 import "../Styles/ModulePages.scss";
@@ -74,8 +75,7 @@ export default function Billing({ type }) {
   const [customerPhone, setCustomerPhone] = useState('');
   const [customerAddress, setCustomerAddress] = useState('');
   const [transportType, setTransportType] = useState('');
-  const [selectedVehicleId, setSelectedVehicleId] = useState('');
-  const [selectedVehicleId2, setSelectedVehicleId2] = useState('');
+  const [selectedVehicleIds, setSelectedVehicleIds] = useState([]);
   const [viewSale, setViewSale] = useState(null);
   const [receiptData, setReceiptData] = useState(null);
   const [editId, setEditId] = useState(null);
@@ -293,8 +293,7 @@ export default function Billing({ type }) {
       paymentType,
       selectedBank,
       transportType,
-      selectedVehicleId,
-      selectedVehicleId2,
+      selectedVehicleIds,
       selectedCustomer
     };
     setHeldBills([...heldBills, billToHold]);
@@ -307,8 +306,7 @@ export default function Billing({ type }) {
     setDelivery(0);
     setPaidAmount(0);
     setTransportType('');
-    setSelectedVehicleId('');
-    setSelectedVehicleId2('');
+    setSelectedVehicleIds([]);
     setSelectedCustomer(null);
     alert("Current bill is now on hold. You can start a new one!");
   };
@@ -324,8 +322,7 @@ export default function Billing({ type }) {
     setPaymentType(held.paymentType);
     setSelectedBank(held.selectedBank);
     setTransportType(held.transportType);
-    setSelectedVehicleId(held.selectedVehicleId);
-    setSelectedVehicleId2(held.selectedVehicleId2 || '');
+    setSelectedVehicleIds(held.selectedVehicleIds || (held.selectedVehicleId ? [held.selectedVehicleId, ...(held.selectedVehicleId2 ? [held.selectedVehicleId2] : [])] : []));
     setSelectedCustomer(held.selectedCustomer);
     
     setHeldBills(heldBills.filter(b => b.id !== held.id));
@@ -453,8 +450,9 @@ export default function Billing({ type }) {
         customer_phone: customerPhone,
         customer_address: customerAddress,
         vehicle_type: transportType,
-        vehicle_id: selectedVehicleId,
-        vehicle_id2: selectedVehicleId2,
+        vehicle_id: selectedVehicleIds[0] || null,
+        vehicle_id2: selectedVehicleIds[1] || null,
+        vehicle_ids: selectedVehicleIds,
         total_amount: subtotal,
         discount: parseFloat(discount || 0),
         delivery_charges: parseFloat(delivery || 0),
@@ -508,7 +506,8 @@ export default function Billing({ type }) {
         const finalBal = result.customer_balance !== undefined ? parseFloat(result.customer_balance) : (selectedCustomer ? parseFloat(selectedCustomer.balance) + balance : balance);
         const prevBal = finalBal - balance;
         
-        const vhObj = vehicles.find(v => v && String(v.id) === String(saleData.vehicle_id));
+        const selectedVehList = vehicles.filter(v => v && selectedVehicleIds.includes(v.id));
+        const vehicleNumbersStr = selectedVehList.map(v => v.vehicle_number).join(', ');
         
         setReceiptData({
           saleId: result.saleId,
@@ -517,7 +516,7 @@ export default function Billing({ type }) {
           customerPhone: saleData.customer_phone || '',
           customerAddress: saleData.customer_address || '',
           vehicleType: saleData.vehicle_type || '',
-          vehicleId: vhObj ? vhObj.vehicle_number : (saleData.vehicle_id || ''),
+          vehicleId: vehicleNumbersStr || '',
           selectedLabourGroup: selectedLabourGroup,
           items: cart.map(item => ({
             ...item,
@@ -546,8 +545,7 @@ export default function Billing({ type }) {
         setCustomerPhone('');
         setCustomerAddress('');
         setTransportType('');
-        setSelectedVehicleId('');
-        setSelectedVehicleId2('');
+        setSelectedVehicleIds([]);
         setSelectedBank('');
         setBankDigits('');
         setSelectedLabourGroup('');
@@ -742,28 +740,27 @@ export default function Billing({ type }) {
 
               <div className="input-box mt-1">
                 <label><Truck size={14}/> Transport Vehicle</label>
-                <div className="flex gap-2 mb-2">
+                <div className="flex flex-column gap-2 mb-2">
                   <Dropdown value={transportType} options={[
                     {label: 'No Transport', value: ''},
                     {label: 'Personal', value: 'Personal'},
                     {label: 'Rent', value: 'Rent'}
-                  ]} onChange={(e) => { setTransportType(e.value); setSelectedVehicleId(''); setSelectedVehicleId2(''); }} placeholder="Transport Type" className="flex-1" />
+                  ]} onChange={(e) => { setTransportType(e.value); setSelectedVehicleIds([]); }} placeholder="Transport Type" className="w-full" />
                   
                   {transportType && (
-                    <Dropdown value={selectedVehicleId} options={vehicles.filter(v => v && !v.is_deleted && (v.ownership_type || '').toString().toLowerCase().trim() === transportType.toLowerCase().trim()).map(v => ({
-                      label: `${v.vehicle_number} (${v.driver_name})`,
-                      value: v.id
-                    }))} onChange={(e) => setSelectedVehicleId(e.value)} placeholder="Select Vehicle 1" className="flex-1" />
+                    <MultiSelect 
+                      value={selectedVehicleIds} 
+                      options={vehicles.filter(v => v && !v.is_deleted && (v.ownership_type || '').toString().toLowerCase().trim() === transportType.toLowerCase().trim()).map(v => ({
+                        label: `${v.vehicle_number} (${v.driver_name})`,
+                        value: v.id
+                      }))} 
+                      onChange={(e) => setSelectedVehicleIds(e.value)} 
+                      placeholder="Select Vehicles" 
+                      maxSelectedLabels={3} 
+                      className="w-full" 
+                    />
                   )}
                 </div>
-                {transportType && selectedVehicleId && (
-                  <div className="flex gap-2">
-                    <Dropdown value={selectedVehicleId2} options={vehicles.filter(v => v && !v.is_deleted && (v.ownership_type || '').toString().toLowerCase().trim() === transportType.toLowerCase().trim() && String(v.id) !== String(selectedVehicleId)).map(v => ({
-                      label: `${v.vehicle_number} (${v.driver_name})`,
-                      value: v.id
-                    }))} onChange={(e) => setSelectedVehicleId2(e.value)} placeholder="Select Vehicle 2 (Optional)" className="flex-1" />
-                  </div>
-                )}
               </div>
             </div>
 
@@ -1071,9 +1068,20 @@ export default function Billing({ type }) {
                   if (s.payment_type.includes('Bank')) {
                     setSelectedBank(s.payment_type.replace('Bank - ', ''));
                   }
-                  const matchedVeh = vehicles.find(v => v && String(v.id) === String(s.vehicle_id));
+                  let vIds = [];
+                  if (s.vehicle_ids) {
+                    try {
+                      vIds = typeof s.vehicle_ids === 'string' ? JSON.parse(s.vehicle_ids) : s.vehicle_ids;
+                    } catch (e) {
+                      vIds = Array.isArray(s.vehicle_ids) ? s.vehicle_ids : [];
+                    }
+                  } else {
+                    if (s.vehicle_id) vIds.push(s.vehicle_id);
+                    if (s.vehicle_id2) vIds.push(s.vehicle_id2);
+                  }
+                  setSelectedVehicleIds(Array.isArray(vIds) ? vIds.map(Number) : []);
+                  const matchedVeh = vehicles.find(v => v && String(v.id) === String(vIds[0] || s.vehicle_id));
                   setTransportType(matchedVeh ? matchedVeh.ownership_type : '');
-                  setSelectedVehicleId(s.vehicle_id || '');
                   setEditId(s.id);
                   setView('POS');
                 } : null}
@@ -1094,7 +1102,6 @@ export default function Billing({ type }) {
                     label: 'Print Receipt', 
                     icon: 'pi pi-print', 
                     command: () => {
-                      const vhObj = vehicles.find(v => v && String(v.id) === String(s.vehicle_id));
                       setReceiptData({
                         saleId: s.id,
                         date: new Date(s.created_at).toLocaleString(),
@@ -1102,7 +1109,7 @@ export default function Billing({ type }) {
                         customerPhone: s.customer_phone || '',
                         customerAddress: s.customer_address || '',
                         vehicleType: s.vehicle_type || '',
-                        vehicleId: vhObj ? vhObj.vehicle_number : (s.vehicle_id || ''),
+                        vehicleId: s.vehicle_number || '',
                         items: typeof s.items === 'string' ? JSON.parse(s.items) : (s.items || []),
                         subtotal: s.total_amount,
                         discount: s.discount,
