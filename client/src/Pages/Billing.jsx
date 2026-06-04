@@ -75,6 +75,7 @@ export default function Billing({ type }) {
   const [customerAddress, setCustomerAddress] = useState('');
   const [transportType, setTransportType] = useState('');
   const [selectedVehicleId, setSelectedVehicleId] = useState('');
+  const [selectedVehicleId2, setSelectedVehicleId2] = useState('');
   const [viewSale, setViewSale] = useState(null);
   const [receiptData, setReceiptData] = useState(null);
   const [editId, setEditId] = useState(null);
@@ -293,6 +294,7 @@ export default function Billing({ type }) {
       selectedBank,
       transportType,
       selectedVehicleId,
+      selectedVehicleId2,
       selectedCustomer
     };
     setHeldBills([...heldBills, billToHold]);
@@ -306,6 +308,7 @@ export default function Billing({ type }) {
     setPaidAmount(0);
     setTransportType('');
     setSelectedVehicleId('');
+    setSelectedVehicleId2('');
     setSelectedCustomer(null);
     alert("Current bill is now on hold. You can start a new one!");
   };
@@ -322,6 +325,7 @@ export default function Billing({ type }) {
     setSelectedBank(held.selectedBank);
     setTransportType(held.transportType);
     setSelectedVehicleId(held.selectedVehicleId);
+    setSelectedVehicleId2(held.selectedVehicleId2 || '');
     setSelectedCustomer(held.selectedCustomer);
     
     setHeldBills(heldBills.filter(b => b.id !== held.id));
@@ -450,6 +454,7 @@ export default function Billing({ type }) {
         customer_address: customerAddress,
         vehicle_type: transportType,
         vehicle_id: selectedVehicleId,
+        vehicle_id2: selectedVehicleId2,
         total_amount: subtotal,
         discount: parseFloat(discount || 0),
         delivery_charges: parseFloat(delivery || 0),
@@ -542,6 +547,7 @@ export default function Billing({ type }) {
         setCustomerAddress('');
         setTransportType('');
         setSelectedVehicleId('');
+        setSelectedVehicleId2('');
         setSelectedBank('');
         setBankDigits('');
         setSelectedLabourGroup('');
@@ -736,20 +742,28 @@ export default function Billing({ type }) {
 
               <div className="input-box mt-1">
                 <label><Truck size={14}/> Transport Vehicle</label>
-                <div className="flex gap-2">
+                <div className="flex gap-2 mb-2">
                   <Dropdown value={transportType} options={[
                     {label: 'No Transport', value: ''},
                     {label: 'Personal', value: 'Personal'},
                     {label: 'Rent', value: 'Rent'}
-                  ]} onChange={(e) => { setTransportType(e.value); setSelectedVehicleId(''); }} placeholder="Transport Type" className="flex-1" />
+                  ]} onChange={(e) => { setTransportType(e.value); setSelectedVehicleId(''); setSelectedVehicleId2(''); }} placeholder="Transport Type" className="flex-1" />
                   
                   {transportType && (
                     <Dropdown value={selectedVehicleId} options={vehicles.filter(v => v && !v.is_deleted && (v.ownership_type || '').toString().toLowerCase().trim() === transportType.toLowerCase().trim()).map(v => ({
                       label: `${v.vehicle_number} (${v.driver_name})`,
                       value: v.id
-                    }))} onChange={(e) => setSelectedVehicleId(e.value)} placeholder="Select Vehicle" className="flex-1" />
+                    }))} onChange={(e) => setSelectedVehicleId(e.value)} placeholder="Select Vehicle 1" className="flex-1" />
                   )}
                 </div>
+                {transportType && selectedVehicleId && (
+                  <div className="flex gap-2">
+                    <Dropdown value={selectedVehicleId2} options={vehicles.filter(v => v && !v.is_deleted && (v.ownership_type || '').toString().toLowerCase().trim() === transportType.toLowerCase().trim() && String(v.id) !== String(selectedVehicleId)).map(v => ({
+                      label: `${v.vehicle_number} (${v.driver_name})`,
+                      value: v.id
+                    }))} onChange={(e) => setSelectedVehicleId2(e.value)} placeholder="Select Vehicle 2 (Optional)" className="flex-1" />
+                  </div>
+                )}
               </div>
             </div>
 

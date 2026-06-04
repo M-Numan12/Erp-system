@@ -88,6 +88,8 @@ async function syncDatabaseSchema() {
     `ALTER TABLE sales ADD COLUMN IF NOT EXISTS labour_group VARCHAR(100);`,
     `ALTER TABLE sales ADD COLUMN IF NOT EXISTS vehicle_id INTEGER;`,
     `ALTER TABLE sales ADD COLUMN IF NOT EXISTS vehicle_number VARCHAR(100);`,
+    `ALTER TABLE sales ADD COLUMN IF NOT EXISTS vehicle_id2 INTEGER;`,
+    `ALTER TABLE sales ADD COLUMN IF NOT EXISTS vehicle_number2 VARCHAR(100);`,
     `ALTER TABLE sales ADD COLUMN IF NOT EXISTS user_id INTEGER;`,
     `ALTER TABLE sales ADD COLUMN IF NOT EXISTS sale_type VARCHAR(50) DEFAULT 'Retail';`,
 
@@ -132,7 +134,7 @@ async function syncDatabaseSchema() {
     `ALTER TABLE rent ALTER COLUMN payment_type TYPE TEXT;`,
     `ALTER TABLE salary ALTER COLUMN payment_type TYPE TEXT;`,
     `ALTER TABLE investments ALTER COLUMN payment_type TYPE TEXT;`,
-    `ALTER TABLE staff_ledger ALTER COLUMN payment_method TYPE TEXT;`,`,
+    `ALTER TABLE staff_ledger ALTER COLUMN payment_method TYPE TEXT;`,
     // --- 13. STAFF LEDGER TABLES ---
     `CREATE TABLE IF NOT EXISTS staff (
       id SERIAL PRIMARY KEY,

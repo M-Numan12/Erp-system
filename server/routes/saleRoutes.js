@@ -67,11 +67,24 @@ router.post('/', auth, async (req, res) => {
 
     // 1. Insert into sales table
     const vId = vehicle_id && vehicle_id !== '' ? vehicle_id : null;
+    const vId2 = req.body.vehicle_id2 && req.body.vehicle_id2 !== '' ? req.body.vehicle_id2 : null;
+    
+    let vNumber1 = null;
+    let vNumber2 = null;
+    if (vId) {
+      const v1Res = await client.query('SELECT vehicle_number FROM vehicles WHERE id=$1', [vId]);
+      vNumber1 = v1Res.rows[0]?.vehicle_number || null;
+    }
+    if (vId2) {
+      const v2Res = await client.query('SELECT vehicle_number FROM vehicles WHERE id=$1', [vId2]);
+      vNumber2 = v2Res.rows[0]?.vehicle_number || null;
+    }
+
     const saleResult = await client.query(
       `INSERT INTO sales 
-      (customer_id, customer_name, customer_phone, customer_address, total_amount, discount, delivery_charges, net_amount, paid_amount, balance_amount, payment_type, sale_type, user_id, vehicle_id, items, status, labour_group) 
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17) RETURNING id`,
-      [finalCustomerId, customer_name, customer_phone || '', req.body.customer_address || '', total_amount, discount, delivery_charges, net_amount, paid_amount, balance_amount, payment_type, finalModule, req.user.id, vId, JSON.stringify(items), 'Completed', labour_group || null]
+      (customer_id, customer_name, customer_phone, customer_address, total_amount, discount, delivery_charges, net_amount, paid_amount, balance_amount, payment_type, sale_type, user_id, vehicle_id, vehicle_id2, vehicle_number, vehicle_number2, items, status, labour_group) 
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20) RETURNING id`,
+      [finalCustomerId, customer_name, customer_phone || '', req.body.customer_address || '', total_amount, discount, delivery_charges, net_amount, paid_amount, balance_amount, payment_type, finalModule, req.user.id, vId, vId2, vNumber1, vNumber2, JSON.stringify(items), 'Completed', labour_group || null]
     );
     const saleId = saleResult.rows[0].id;
 
@@ -129,12 +142,24 @@ router.post('/', auth, async (req, res) => {
     }
 
     // 4. Automatic Transport Earnings Update if vehicle is selected
-    if (vehicle_type && vehicle_id) {
+    if (vehicle_type && vId) {
       const fareAmount = parseFloat(delivery_charges) || 0;
-      await client.query(
-        `UPDATE vehicles SET total_earnings = total_earnings + $1 WHERE id = $2`,
-        [fareAmount, vehicle_id]
-      );
+      if (vId2) {
+        const halfFare = fareAmount / 2.0;
+        await client.query(
+          `UPDATE vehicles SET total_earnings = total_earnings + $1 WHERE id = $2`,
+          [halfFare, vId]
+        );
+        await client.query(
+          `UPDATE vehicles SET total_earnings = total_earnings + $1 WHERE id = $2`,
+          [halfFare, vId2]
+        );
+      } else {
+        await client.query(
+          `UPDATE vehicles SET total_earnings = total_earnings + $1 WHERE id = $2`,
+          [fareAmount, vId]
+        );
+      }
     }
 
     // Fetch updated customer balance live inside the transaction
@@ -192,6 +217,8 @@ router.get('/ledger/:customerId', auth, async (req, res) => {
     const { from, to } = req.query;
     let query = `
       SELECT s.*, 
+      COALESCE(s.vehicle_number, v1.vehicle_number, '—') as vehicle_number,
+      v2.vehicle_number as vehicle_number2,
       (SELECT JSON_AGG(si) FROM (
         SELECT si.id, si.product_id, si.product_name as name, si.qty, si.rate, si.subtotal, p.brand 
         FROM sale_items si 
@@ -199,6 +226,8 @@ router.get('/ledger/:customerId', auth, async (req, res) => {
         WHERE si.sale_id = s.id
       ) si) as items
       FROM sales s 
+      LEFT JOIN vehicles v1 ON s.vehicle_id = v1.id
+      LEFT JOIN vehicles v2 ON s.vehicle_id2 = v2.id
       WHERE s.customer_id = $1`;
     let params = [req.params.customerId];
 
@@ -335,6 +364,18 @@ router.put('/:id', auth, async (req, res) => {
     } = req.body;
 
     const vId = vehicle_id && vehicle_id !== '' ? vehicle_id : null;
+    const vId2 = req.body.vehicle_id2 && req.body.vehicle_id2 !== '' ? req.body.vehicle_id2 : null;
+    
+    let vNumber1 = null;
+    let vNumber2 = null;
+    if (vId) {
+      const v1Res = await client.query('SELECT vehicle_number FROM vehicles WHERE id=$1', [vId]);
+      vNumber1 = v1Res.rows[0]?.vehicle_number || null;
+    }
+    if (vId2) {
+      const v2Res = await client.query('SELECT vehicle_number FROM vehicles WHERE id=$1', [vId2]);
+      vNumber2 = v2Res.rows[0]?.vehicle_number || null;
+    }
 
     // 1. Revert OLD stock
     const oldItems = await client.query('SELECT product_id, qty FROM sale_items WHERE sale_id = $1', [req.params.id]);
@@ -356,9 +397,10 @@ router.put('/:id', auth, async (req, res) => {
       `UPDATE sales SET 
         customer_name=$1, customer_phone=$2, customer_address=$3, total_amount=$4, 
         discount=$5, delivery_charges=$6, net_amount=$7, paid_amount=$8, 
-        balance_amount=$9, payment_type=$10, vehicle_id=$11, items=$12
-      WHERE id=$13`,
-      [customer_name, customer_phone, customer_address, total_amount, discount, delivery_charges, net_amount, paid_amount, balance_amount, payment_type, vId, JSON.stringify(items), req.params.id]
+        balance_amount=$9, payment_type=$10, vehicle_id=$11, vehicle_id2=$12,
+        vehicle_number=$13, vehicle_number2=$14, items=$15
+      WHERE id=$16`,
+      [customer_name, customer_phone, customer_address, total_amount, discount, delivery_charges, net_amount, paid_amount, balance_amount, payment_type, vId, vId2, vNumber1, vNumber2, JSON.stringify(items), req.params.id]
     );
 
     // 5. Insert NEW items and update stock
@@ -573,13 +615,27 @@ router.post('/return', auth, async (req, res) => {
       }
     }
 
+    // Fetch vehicle numbers for return
+    let vNumber1 = null;
+    let vNumber2 = null;
+    const vId = vehicle_id && vehicle_id !== '' ? vehicle_id : null;
+    const vId2 = req.body.vehicle_id2 && req.body.vehicle_id2 !== '' ? req.body.vehicle_id2 : null;
+    if (vId) {
+      const v1Res = await client.query('SELECT vehicle_number FROM vehicles WHERE id=$1', [vId]);
+      vNumber1 = v1Res.rows[0]?.vehicle_number || null;
+    }
+    if (vId2) {
+      const v2Res = await client.query('SELECT vehicle_number FROM vehicles WHERE id=$1', [vId2]);
+      vNumber2 = v2Res.rows[0]?.vehicle_number || null;
+    }
+
     // 3. Create a NEW Sale record for the return (Separate Bill)
     const returnBillResult = await client.query(
       `INSERT INTO sales (
         sale_type, customer_id, customer_name, customer_phone, 
         net_amount, paid_amount, balance_amount, status, 
-        payment_type, user_id, items, vehicle_id, delivery_charges, created_at
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, CURRENT_TIMESTAMP) RETURNING id`,
+        payment_type, user_id, items, vehicle_id, vehicle_id2, vehicle_number, vehicle_number2, delivery_charges, created_at
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, CURRENT_TIMESTAMP) RETURNING id`,
       [
         sale.sale_type,
         sale.customer_id,
@@ -592,18 +648,34 @@ router.post('/return', auth, async (req, res) => {
         refund_method || 'Cash',
         req.user.id,
         JSON.stringify(items.map(i => ({ ...i, quantity: i.return_qty || i.qty, name: i.product_name || i.name }))),
-        vehicle_id || null,
+        vId,
+        vId2,
+        vNumber1,
+        vNumber2,
         delivery_charges || 0
       ]
     );
     const newReturnId = returnBillResult.rows[0].id;
 
     // 3.5 Automatic Transport Earnings Update
-    if (vehicle_id && (parseFloat(delivery_charges) || 0) > 0) {
-      await client.query(
-        `UPDATE vehicles SET total_earnings = total_earnings + $1 WHERE id = $2`,
-        [parseFloat(delivery_charges), vehicle_id]
-      );
+    if (vId && (parseFloat(delivery_charges) || 0) > 0) {
+      const fareAmount = parseFloat(delivery_charges) || 0;
+      if (vId2) {
+        const halfFare = fareAmount / 2.0;
+        await client.query(
+          `UPDATE vehicles SET total_earnings = total_earnings + $1 WHERE id = $2`,
+          [halfFare, vId]
+        );
+        await client.query(
+          `UPDATE vehicles SET total_earnings = total_earnings + $1 WHERE id = $2`,
+          [halfFare, vId2]
+        );
+      } else {
+        await client.query(
+          `UPDATE vehicles SET total_earnings = total_earnings + $1 WHERE id = $2`,
+          [fareAmount, vId]
+        );
+      }
     }
 
     // 4. Insert returned items into sale_items for the return bill

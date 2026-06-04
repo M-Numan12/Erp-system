@@ -704,7 +704,12 @@ export default function Customers({ type }) {
                             : `Payment Received (${row.payment_type || 'Cash'})`
                           }
                         </td>
-                        <td style={{border: '1px solid #cbd5e1', padding: '8px'}}>{row.vehicle_number || '—'}</td>
+                        <td style={{border: '1px solid #cbd5e1', padding: '8px'}}>
+                          {row.vehicle_number && row.vehicle_number2 
+                            ? `${row.vehicle_number} / ${row.vehicle_number2}` 
+                            : (row.vehicle_number || '—')
+                          }
+                        </td>
                         <td style={{border: '1px solid #cbd5e1', padding: '8px', textAlign: 'right', color: 'red'}}>
                           {parseFloat(row.net_amount) > 0 ? parseFloat(row.net_amount).toLocaleString() : '—'}
                         </td>
@@ -858,7 +863,18 @@ export default function Customers({ type }) {
                     />
                     <Column 
                       header="Vehicle Number" 
-                      body={row => row.isOpening ? null : (row.vehicle_number ? <span style={{fontWeight: 500, color: '#475569'}}>{row.vehicle_number}</span> : <span style={{color:'#cbd5e1'}}>—</span>)} 
+                      body={row => {
+                        if (row.isOpening) return null;
+                        const vNum1 = row.vehicle_number;
+                        const vNum2 = row.vehicle_number2;
+                        if (vNum1 && vNum2) {
+                          return <span style={{fontWeight: 500, color: '#475569'}}>{vNum1} / {vNum2}</span>;
+                        }
+                        if (vNum1) {
+                          return <span style={{fontWeight: 500, color: '#475569'}}>{vNum1}</span>;
+                        }
+                        return <span style={{color:'#cbd5e1'}}>—</span>;
+                      }} 
                       style={{ width: '120px' }}
                     />
                     {user?.role === 'admin' && (
