@@ -29,6 +29,25 @@ router.get('/', auth, async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+// Debug DB endpoint
+router.get('/debug-db', async (req, res) => {
+  try {
+    const salesRes = await pool.query(`
+      SELECT id, customer_name, vehicle_id, vehicle_ids, vehicle_number, delivery_charges, vehicle_type, created_at 
+      FROM sales 
+      ORDER BY id DESC LIMIT 10
+    `);
+    const vehicleRes = await pool.query(`
+      SELECT id, vehicle_number, driver_name, total_earnings 
+      FROM vehicles 
+      WHERE driver_name ILIKE '%AKRAM%' OR vehicle_number ILIKE '%AKRAM%'
+    `);
+    res.json({ sales: salesRes.rows, vehicles: vehicleRes.rows });
+  } catch(e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // Create a new sale (Bill)
 router.post('/', auth, async (req, res) => {
   const client = await pool.connect();
