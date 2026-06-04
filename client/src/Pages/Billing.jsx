@@ -1351,7 +1351,14 @@ export default function Billing({ type }) {
                             try {
                               items = typeof row.items === 'string' ? JSON.parse(row.items) : (row.items || []);
                             } catch (e) { items = []; }
-                            return `#SAL-${row.id} - ` + items.map(i => `${i.name} (${i.qty} x Rs.${i.rate})`).join(', ');
+                            let details = items.map(i => `${i.name} (${i.qty} x Rs.${i.rate})`).join(', ');
+                            if (parseFloat(row.delivery_charges || 0) > 0) {
+                              details += ` + Delivery (Rs. ${parseFloat(row.delivery_charges).toLocaleString()})`;
+                            }
+                            if (parseFloat(row.discount || 0) > 0) {
+                              details += ` - Discount (Rs. ${parseFloat(row.discount).toLocaleString()})`;
+                            }
+                            return `#SAL-${row.id} - ` + details;
                           })()
                         ) : `#PAY-${row.id} - Payment Received (${row.payment_type || 'Cash'})`}
                       </td>
@@ -1448,8 +1455,7 @@ export default function Billing({ type }) {
                                   try {
                                     items = typeof row.items === 'string' ? JSON.parse(row.items) : (row.items || []);
                                   } catch (e) { items = []; }
-                                  
-                                  return (
+                                                  return (
                                     <div style={{display: 'flex', flexDirection: 'column', gap: '4px'}}>
                                       {items.map((item, idx) => (
                                           <div key={idx} style={{display: 'flex', alignItems: 'center', gap: '8px', background: '#f8fafc', padding: '4px 8px', borderRadius: '4px', border: '1px solid #e2e8f0'}}>
@@ -1460,6 +1466,24 @@ export default function Billing({ type }) {
                                             </span>
                                           </div>
                                       ))}
+                                      {parseFloat(row.delivery_charges || 0) > 0 && (
+                                        <div style={{display: 'flex', alignItems: 'center', gap: '8px', background: '#eff6ff', padding: '4px 8px', borderRadius: '4px', border: '1px solid #bfdbfe'}}>
+                                          <span style={{fontSize: '0.8rem', fontWeight: 700, color: '#1e3a8a', flex: 1}}>Delivery</span>
+                                          <span style={{fontSize: '0.8rem', color: '#64748b'}}>—</span>
+                                          <span style={{fontSize: '0.8rem', fontWeight: 700, color: '#3b82f6', minWidth: '60px', textAlign: 'right'}}>
+                                            Rs. {parseFloat(row.delivery_charges).toLocaleString()}
+                                          </span>
+                                        </div>
+                                      )}
+                                      {parseFloat(row.discount || 0) > 0 && (
+                                        <div style={{display: 'flex', alignItems: 'center', gap: '8px', background: '#fef2f2', padding: '4px 8px', borderRadius: '4px', border: '1px solid #fca5a5'}}>
+                                          <span style={{fontSize: '0.8rem', fontWeight: 700, color: '#991b1b', flex: 1}}>Discount</span>
+                                          <span style={{fontSize: '0.8rem', color: '#64748b'}}>—</span>
+                                          <span style={{fontSize: '0.8rem', fontWeight: 700, color: '#dc2626', minWidth: '60px', textAlign: 'right'}}>
+                                            -Rs. {parseFloat(row.discount).toLocaleString()}
+                                          </span>
+                                        </div>
+                                      )}
                                     </div>
                                   );
                                 })()}

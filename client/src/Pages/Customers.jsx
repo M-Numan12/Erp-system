@@ -52,7 +52,7 @@ export default function Customers({ type }) {
     
     // 2. Backtrack starting balance: Current Balance - Total Period Movements
     const currentLiveBalance = parseFloat(selectedCustomer?.balance || 0);
-    const historySum = sortedAsc.reduce((sum, r) => sum + (parseFloat(r.total_amount || 0) - parseFloat(r.paid_amount || 0)), 0);
+    const historySum = sortedAsc.reduce((sum, r) => sum + (parseFloat(r.net_amount || 0) - parseFloat(r.paid_amount || 0)), 0);
     
     // The starting point before all available history
     const absoluteBaseOpeningBal = currentLiveBalance - historySum;
@@ -60,7 +60,7 @@ export default function Customers({ type }) {
     // 3. Generate running balance per row
     let running = absoluteBaseOpeningBal;
     return sortedAsc.map(row => {
-      const debit = parseFloat(row.total_amount || 0);
+      const debit = parseFloat(row.net_amount || 0);
       const credit = parseFloat(row.paid_amount || 0);
       running += (debit - credit);
       return { ...row, running_balance: running };
@@ -584,7 +584,7 @@ export default function Customers({ type }) {
         // Compute filtered range opening balance
         const firstVisibleRow = sortedLedgerData[0];
         const periodOpeningBal = firstVisibleRow 
-          ? (parseFloat(firstVisibleRow.running_balance || 0) - (parseFloat(firstVisibleRow.total_amount || 0) - parseFloat(firstVisibleRow.paid_amount || 0))) 
+          ? (parseFloat(firstVisibleRow.running_balance || 0) - (parseFloat(firstVisibleRow.net_amount || 0) - parseFloat(firstVisibleRow.paid_amount || 0))) 
           : parseFloat(selectedCustomer?.balance || 0);
 
         // Construct rows for PrimeReact DataTable
@@ -691,13 +691,22 @@ export default function Customers({ type }) {
                         <td style={{border: '1px solid #cbd5e1', padding: '8px'}}>#SAL-{row.id}</td>
                         <td style={{border: '1px solid #cbd5e1', padding: '8px'}}>
                           {items.length > 0 
-                            ? items.map(i => `${i.brand || ''} ${i.name} (${i.qty} x Rs. ${i.rate})`).join(', ')
+                            ? (() => {
+                                let details = items.map(i => `${i.brand || ''} ${i.name} (${i.qty} x Rs. ${i.rate})`).join(', ');
+                                if (parseFloat(row.delivery_charges || 0) > 0) {
+                                  details += ` + Delivery (Rs. ${parseFloat(row.delivery_charges).toLocaleString()})`;
+                                }
+                                if (parseFloat(row.discount || 0) > 0) {
+                                  details += ` - Discount (Rs. ${parseFloat(row.discount).toLocaleString()})`;
+                                }
+                                return details;
+                              })()
                             : `Payment Received (${row.payment_type || 'Cash'})`
                           }
                         </td>
                         <td style={{border: '1px solid #cbd5e1', padding: '8px'}}>{row.vehicle_number || '—'}</td>
                         <td style={{border: '1px solid #cbd5e1', padding: '8px', textAlign: 'right', color: 'red'}}>
-                          {parseFloat(row.total_amount) > 0 ? parseFloat(row.total_amount).toLocaleString() : '—'}
+                          {parseFloat(row.net_amount) > 0 ? parseFloat(row.net_amount).toLocaleString() : '—'}
                         </td>
                         <td style={{border: '1px solid #cbd5e1', padding: '8px', textAlign: 'right', color: 'green'}}>
                           {parseFloat(row.paid_amount) > 0 ? parseFloat(row.paid_amount).toLocaleString() : '—'}
@@ -713,7 +722,7 @@ export default function Customers({ type }) {
                   <tr style={{background: '#f8fafc', fontWeight: 'bold'}}>
                     <td colSpan="5" style={{border: '1px solid #cbd5e1', padding: '8px', textAlign: 'right'}}>Current Outstanding Balance:</td>
                     <td style={{border: '1px solid #cbd5e1', padding: '8px', textAlign: 'right', color: 'red'}}>
-                      Rs. {sortedLedgerData.reduce((sum,r)=>sum+parseFloat(r.total_amount||0),0).toLocaleString()}
+                      Rs. {sortedLedgerData.reduce((sum,r)=>sum+parseFloat(r.net_amount||0),0).toLocaleString()}
                     </td>
                     <td style={{border: '1px solid #cbd5e1', padding: '8px', textAlign: 'right', color: 'green'}}>
                       Rs. {sortedLedgerData.reduce((sum,r)=>sum+parseFloat(r.paid_amount||0),0).toLocaleString()}
@@ -831,10 +840,16 @@ export default function Customers({ type }) {
                         try { items = typeof row.items === 'string' ? JSON.parse(row.items) : (row.items || []); } catch(e){}
                         if (items.length > 0) {
                           return (
-                            <div style={{display:'flex', flexDirection:'column', gap:'2px'}}>
+                            <div style={{display:'flex', flexDirection:'column', gap:'4px'}}>
                               {items.map((item, idx) => (
-                                <div key={idx} style={{fontWeight:600, color:'#1e293b'}}>{item.brand || ''} {item.name}</div>
+                                <div key={idx} style={{fontWeight:600, color:'#1e293b', height:'24px', display:'flex', alignItems:'center'}}>{item.brand || ''} {item.name}</div>
                               ))}
+                              {parseFloat(row.delivery_charges || 0) > 0 && (
+                                <div style={{fontWeight:700, color:'#3b82f6', height:'24px', display:'flex', alignItems:'center'}}>Delivery</div>
+                              )}
+                              {parseFloat(row.discount || 0) > 0 && (
+                                <div style={{fontWeight:700, color:'#ef4444', height:'24px', display:'flex', alignItems:'center'}}>Discount</div>
+                              )}
                             </div>
                           );
                         }
@@ -851,7 +866,7 @@ export default function Customers({ type }) {
                         header="Actions"
                         body={row => {
                           if (row.isOpening) return null;
-                          const isPayment = parseFloat(row.total_amount) === 0 && parseFloat(row.paid_amount) > 0;
+                          const isPayment = parseFloat(row.net_amount) === 0 && parseFloat(row.paid_amount) > 0;
                           return isPayment ? (
                             <button className="btn-secondary" style={{padding: '4px 8px', fontSize: '0.75rem'}} onClick={() => handleUndoPayment(row.id)} disabled={undoLoading}>
                               Undo
@@ -869,9 +884,9 @@ export default function Customers({ type }) {
                         try { items = typeof row.items === 'string' ? JSON.parse(row.items) : (row.items || []); } catch(e){}
                         if (items.length > 0) {
                           return (
-                            <div style={{display:'flex', flexDirection:'column', gap:'6px'}}>
+                            <div style={{display:'flex', flexDirection:'column', gap:'4px'}}>
                               {items.map((item, idx) => (
-                                <div key={idx} style={{display: 'flex', alignItems: 'center', gap: '4px'}}>
+                                <div key={idx} style={{display: 'flex', alignItems: 'center', gap: '4px', height:'24px'}}>
                                   {user?.role === 'admin' ? (
                                     <input 
                                       type="number" 
@@ -883,6 +898,16 @@ export default function Customers({ type }) {
                                   ) : <span>{item.qty}</span>}
                                 </div>
                               ))}
+                              {parseFloat(row.delivery_charges || 0) > 0 && (
+                                <div style={{height: '24px', display: 'flex', alignItems: 'center'}}>
+                                  <span style={{color: '#64748b'}}>—</span>
+                                </div>
+                              )}
+                              {parseFloat(row.discount || 0) > 0 && (
+                                <div style={{height: '24px', display: 'flex', alignItems: 'center'}}>
+                                  <span style={{color: '#64748b'}}>—</span>
+                                </div>
+                              )}
                             </div>
                           );
                         }
@@ -898,9 +923,9 @@ export default function Customers({ type }) {
                         try { items = typeof row.items === 'string' ? JSON.parse(row.items) : (row.items || []); } catch(e){}
                         if (items.length > 0) {
                           return (
-                            <div style={{display:'flex', flexDirection:'column', gap:'6px'}}>
+                            <div style={{display:'flex', flexDirection:'column', gap:'4px'}}>
                               {items.map((item, idx) => (
-                                <div key={idx}>
+                                <div key={idx} style={{height:'24px', display:'flex', alignItems:'center'}}>
                                   {user?.role === 'admin' ? (
                                     <input 
                                       type="number" 
@@ -912,6 +937,16 @@ export default function Customers({ type }) {
                                   ) : <span style={{fontSize:'0.85rem'}}>Rs.{item.rate}</span>}
                                 </div>
                               ))}
+                              {parseFloat(row.delivery_charges || 0) > 0 && (
+                                <div style={{height: '24px', display: 'flex', alignItems: 'center'}}>
+                                  <span style={{fontSize: '0.85rem', fontWeight: 600, color: '#475569'}}>Rs. {parseFloat(row.delivery_charges).toLocaleString()}</span>
+                                </div>
+                              )}
+                              {parseFloat(row.discount || 0) > 0 && (
+                                <div style={{height: '24px', display: 'flex', alignItems: 'center'}}>
+                                  <span style={{fontSize: '0.85rem', fontWeight: 600, color: '#ef4444'}}>-Rs. {parseFloat(row.discount).toLocaleString()}</span>
+                                </div>
+                              )}
                             </div>
                           );
                         }
@@ -923,8 +958,8 @@ export default function Customers({ type }) {
                     />
                     <Column 
                       header="Debit (+)" 
-                      body={row => (!row.isOpening && parseFloat(row.total_amount) > 0) ? <span style={{fontWeight: '600', color: '#ef4444'}}>Rs. {parseFloat(row.total_amount).toLocaleString()}</span> : <span style={{color:'#cbd5e1'}}>—</span>}
-                      footer={`Rs. ${sortedLedgerData.reduce((sum, r) => sum + parseFloat(r.total_amount || 0), 0).toLocaleString()}`}
+                      body={row => (!row.isOpening && parseFloat(row.net_amount) > 0) ? <span style={{fontWeight: '600', color: '#ef4444'}}>Rs. {parseFloat(row.net_amount).toLocaleString()}</span> : <span style={{color:'#cbd5e1'}}>—</span>}
+                      footer={`Rs. ${sortedLedgerData.reduce((sum, r) => sum + parseFloat(r.net_amount || 0), 0).toLocaleString()}`}
                       footerStyle={{ textAlign: 'right', fontWeight: '700', color: '#ef4444' }}
                       style={{ textAlign: 'right', width: '120px' }}
                     />
