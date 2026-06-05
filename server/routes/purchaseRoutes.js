@@ -130,7 +130,7 @@ router.post('/', auth, async (req, res) => {
         );
 
         if (vOwnerRes.rows.length > 0) {
-          const ownerType = String(vOwnerRes.rows[0].ownership_type).toLowerCase();
+          const ownerType = String(vOwnerRes.rows[0].ownership_type || 'Personal').toLowerCase();
           if (ownerType === 'personal') {
             expenseType = 'Personal Vehicle';
           } else if (ownerType === 'rent' || ownerType === 'external') {
@@ -372,7 +372,7 @@ router.post('/return', auth, async (req, res) => {
 
         if (
           vOwnerRes2.rows.length > 0 &&
-          String(vOwnerRes2.rows[0].ownership_type).toLowerCase() === 'personal'
+          String(vOwnerRes2.rows[0].ownership_type || 'Personal').toLowerCase() === 'personal'
         ) {
           returnExpenseType = 'Personal Vehicle';
         }

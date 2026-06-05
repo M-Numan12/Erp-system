@@ -679,7 +679,7 @@ export default function Stock({ type }) {
                           setReceiveForm({ ...receiveForm, vehicle_id: vId, vehicle_number: vObj ? vObj.vehicle_number : '' });
                         }}>
                         <option value="">Select Transport Vehicle</option>
-                        {vehicles.filter(v => v && !v.is_deleted && (v.ownership_type || '').toString().toLowerCase().trim() === 'personal').map(v => (
+                        {vehicles.filter(v => v && !v.is_deleted && (v.ownership_type || 'Personal').toString().toLowerCase().trim() === 'personal').map(v => (
                           <option key={v.id} value={v.id}>{v.vehicle_number} ({v.driver_name})</option>
                         ))}
                       </select>
@@ -819,7 +819,7 @@ export default function Stock({ type }) {
                           setPurchaseReturnForm({ ...purchaseReturnForm, vehicle_id: vId, vehicle_number: vObj ? vObj.vehicle_number : '' });
                         }}>
                         <option value="">Select Transport Vehicle</option>
-                        {vehicles.filter(v => v && !v.is_deleted && (v.ownership_type || '').toString().toLowerCase().trim() === 'personal').map(v => (
+                        {vehicles.filter(v => v && !v.is_deleted && (v.ownership_type || 'Personal').toString().toLowerCase().trim() === 'personal').map(v => (
                           <option key={v.id} value={v.id}>{v.vehicle_number} ({v.driver_name})</option>
                         ))}
                       </select>
