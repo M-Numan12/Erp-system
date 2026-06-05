@@ -118,13 +118,22 @@ router.post('/', auth, async (req, res) => {
         );
       }
 
-      // 5. Automatically record as an Expense (Assigned to discrete Supplier Vehicle Type)
+      // Determine the correct expense_type based on vehicle ownership_type
+      let expenseType = 'Supplier Vehicle';
+      if (vId) {
+        const vOwnerRes = await client.query('SELECT ownership_type FROM vehicles WHERE id = $1', [vId]);
+        if (vOwnerRes.rows.length > 0 && vOwnerRes.rows[0].ownership_type === 'Personal') {
+          expenseType = 'Personal Vehicle';
+        }
+      }
+
+      // 5. Automatically record as an Expense with the correct type
       await client.query(
         `INSERT INTO expenses (description, expense_type, category, amount, expense_date, notes, user_id, module_type, payment_type) 
          VALUES ($1, $2, $3, $4, CURRENT_DATE, $5, $6, $7, $8)`,
         [
           `Transport Fare: ${vehicle_number || 'Vehicle'}`,
-          'Supplier Vehicle', // UPDATED TYPE FOR SEPARATION
+          expenseType,
           'Transport',
           fare,
           JSON.stringify({ vehicle_id: vId, vehicle_number }),
@@ -337,12 +346,21 @@ router.post('/return', auth, async (req, res) => {
         );
       }
 
+      // Determine the correct expense_type based on vehicle ownership_type
+      let returnExpenseType = 'Supplier Vehicle';
+      if (vId) {
+        const vOwnerRes2 = await client.query('SELECT ownership_type FROM vehicles WHERE id = $1', [vId]);
+        if (vOwnerRes2.rows.length > 0 && vOwnerRes2.rows[0].ownership_type === 'Personal') {
+          returnExpenseType = 'Personal Vehicle';
+        }
+      }
+
       await client.query(
         `INSERT INTO expenses (description, expense_type, category, amount, expense_date, notes, user_id, module_type, payment_type) 
          VALUES ($1, $2, $3, $4, CURRENT_DATE, $5, $6, $7, $8)`,
         [
           `Return Transport Fare: ${vehicle_number || 'Vehicle'}`,
-          'Supplier Vehicle', 
+          returnExpenseType,
           'Transport',
           fare,
           JSON.stringify({ vehicle_id: vId, vehicle_number }),

@@ -204,7 +204,9 @@ export default function Expenses({ type }) {
 const filtered = records.filter(r => {
 
 
-    const matchType = filterType === "All" ? true : filterType === "Pending Only" ? r.payment_type === 'Pending' : filterType === "Supplier Vehicle" ? (r.expense_type === "Supplier Vehicle" && !personalVehicles.some(v => `${v.vehicle_number} (${v.driver_name})` === r.category)) : r.expense_type === filterType;
+    const matchType = filterType === "All" ? true 
+      : filterType === "Pending Only" ? r.payment_type === 'Pending' 
+      : r.expense_type === filterType;
     const matchSearch = r.title.toLowerCase().includes(search.toLowerCase()) || 
                         (r.category || "").toLowerCase().includes(search.toLowerCase());
     

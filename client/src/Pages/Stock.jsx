@@ -2,9 +2,9 @@
 const API_BASE_URL = process.env.REACT_APP_API_URL ? `${process.env.REACT_APP_API_URL}/api` : 'https://erp-backend-3rf8.onrender.com/api';
 
 import React, { useState, useEffect, useContext } from "react";
-import { 
-  Boxes, Plus, Minus, Search, AlertTriangle, TrendingUp, 
-  Database, Info, X, ChevronRight, ChevronLeft, Hash, Truck, User, 
+import {
+  Boxes, Plus, Minus, Search, AlertTriangle, TrendingUp,
+  Database, Info, X, ChevronRight, ChevronLeft, Hash, Truck, User,
   CircleDollarSign, ArrowUpCircle, ArrowDownCircle, Tag
 } from "lucide-react";
 import { DataTable } from 'primereact/datatable';
@@ -25,15 +25,15 @@ export default function Stock({ type }) {
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [showReceiveModal, setShowReceiveModal] = useState(false);
   const [showPurchaseReturnModal, setShowPurchaseReturnModal] = useState(false);
-  const [receiveForm, setReceiveForm] = useState({ 
-    supplier_id: "", quantity: "", vehicle_number: "", vehicle_id: "", 
+  const [receiveForm, setReceiveForm] = useState({
+    supplier_id: "", quantity: "", vehicle_number: "", vehicle_id: "",
     rate: "", paid_amount: "0", delivery_charges: "0", fare_status: "Pending",
-    vehicle_type: "External" 
+    vehicle_type: "External"
   });
-  const [purchaseReturnForm, setPurchaseReturnForm] = useState({ 
-    supplier_id: "", quantity: "", vehicle_number: "", vehicle_id: "", 
+  const [purchaseReturnForm, setPurchaseReturnForm] = useState({
+    supplier_id: "", quantity: "", vehicle_number: "", vehicle_id: "",
     rate: "", received_amount: "0", delivery_charges: "0", fare_status: "Pending",
-    vehicle_type: "External" 
+    vehicle_type: "External"
   });
   const [vehicles, setVehicles] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -78,7 +78,7 @@ export default function Stock({ type }) {
       const prodData = await prodRes.json();
       const supData = await supRes.json();
       const vehData = await vehRes.json();
-      
+
       const newProds = Array.isArray(prodData) ? prodData : [];
       const newSups = Array.isArray(supData) ? supData : [];
       const newVehs = Array.isArray(vehData) ? vehData : [];
@@ -107,7 +107,7 @@ export default function Stock({ type }) {
       if (cachedProds) setProducts(JSON.parse(cachedProds));
       if (cachedSups) setSuppliers(JSON.parse(cachedSups));
       if (cachedVehs) setVehicles(JSON.parse(cachedVehs));
-      
+
       // If there's no cache, show loader, else run silently in background
       if (!cachedProds) setLoading(true);
     } catch (e) {
@@ -151,7 +151,7 @@ export default function Stock({ type }) {
     try {
       await fetch(`${API}/${prod.id}`, {
         method: "PUT",
-        headers: { 
+        headers: {
           "Content-Type": "application/json",
           "Authorization": `Bearer ${localStorage.getItem('token')}`
         },
@@ -168,7 +168,7 @@ export default function Stock({ type }) {
       alert("Invalid Payment: Paid amount cannot exceed total purchase cost!");
       return;
     }
-    
+
     const amt = parseFloat(receiveForm.paid_amount || 0);
     setLoading(true);
     if (amt > 0) {
@@ -180,7 +180,7 @@ export default function Stock({ type }) {
         if (balRes.ok) {
           const balances = await balRes.json();
           const currentAvailable = balances['Cash'] || 0;
-          
+
           if (amt > currentAvailable) {
             alert(`Insufficient Balance! You only have Rs. ${currentAvailable.toLocaleString()} in your Cash account. You cannot make a payment of Rs. ${amt.toLocaleString()} for this stock!`);
             setLoading(false);
@@ -192,15 +192,19 @@ export default function Stock({ type }) {
     try {
       const res = await fetch(`${API_BASE_URL}/purchases`, {
         method: "POST",
-        headers: { 
+        headers: {
           "Content-Type": "application/json",
           "Authorization": `Bearer ${localStorage.getItem('token')}`
         },
         body: JSON.stringify({
           supplier_id: receiveForm.supplier_id,
           product_id: selectedProduct.id,
+
+          vehicle_type: receiveForm.vehicle_type,
+
           vehicle_number: receiveForm.vehicle_number,
           vehicle_id: receiveForm.vehicle_id,
+
           quantity: receiveForm.quantity,
           rate: receiveForm.rate,
           paid_amount: receiveForm.paid_amount,
@@ -211,10 +215,10 @@ export default function Stock({ type }) {
       });
       if (res.ok) {
         setShowReceiveModal(false);
-        setReceiveForm({ 
-          supplier_id: "", quantity: "", vehicle_number: "", vehicle_id: "", 
+        setReceiveForm({
+          supplier_id: "", quantity: "", vehicle_number: "", vehicle_id: "",
           rate: "", paid_amount: "0", delivery_charges: "0", fare_status: "Pending",
-          vehicle_type: "External" 
+          vehicle_type: "External"
         });
         fetchData();
       }
@@ -228,15 +232,19 @@ export default function Stock({ type }) {
     try {
       const res = await fetch(`${API_BASE_URL}/purchases/return`, {
         method: "POST",
-        headers: { 
+        headers: {
           "Content-Type": "application/json",
           "Authorization": `Bearer ${localStorage.getItem('token')}`
         },
         body: JSON.stringify({
           supplier_id: purchaseReturnForm.supplier_id,
           product_id: selectedProduct.id,
+
+          vehicle_type: purchaseReturnForm.vehicle_type,
+
           vehicle_number: purchaseReturnForm.vehicle_number,
           vehicle_id: purchaseReturnForm.vehicle_id,
+
           quantity: purchaseReturnForm.quantity,
           rate: purchaseReturnForm.rate,
           received_amount: purchaseReturnForm.received_amount,
@@ -247,10 +255,10 @@ export default function Stock({ type }) {
       });
       if (res.ok) {
         setShowPurchaseReturnModal(false);
-        setPurchaseReturnForm({ 
-          supplier_id: "", quantity: "", vehicle_number: "", vehicle_id: "", 
+        setPurchaseReturnForm({
+          supplier_id: "", quantity: "", vehicle_number: "", vehicle_id: "",
           rate: "", received_amount: "0", delivery_charges: "0", fare_status: "Pending",
-          vehicle_type: "External" 
+          vehicle_type: "External"
         });
         fetchData();
         alert("Stock successfully returned to supplier!");
@@ -288,7 +296,7 @@ export default function Stock({ type }) {
   const handleSaleReturn = async (e) => {
     e.preventDefault();
     if (!billData || returnItems.length === 0) return;
-    
+
     const finalItems = returnItems.filter(i => parseFloat(i.return_qty || 0) > 0);
     if (finalItems.length === 0) {
       alert("Please enter return quantity for at least one item");
@@ -299,11 +307,11 @@ export default function Stock({ type }) {
     try {
       const res = await fetch((API_BASE_URL + "/sales/return"), {
         method: "POST",
-        headers: { 
+        headers: {
           "Content-Type": "application/json",
           "Authorization": `Bearer ${localStorage.getItem('token')}`
         },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           sale_id: returnBillNo,
           items_to_return: finalItems.map(i => ({
             product_id: i.product_id,
@@ -352,11 +360,11 @@ export default function Stock({ type }) {
       matchCat = catLower === selCatLower;
     }
 
-    const matchSearch = p.name.toLowerCase().includes(search.toLowerCase()) || 
-                        (p.brand || "").toLowerCase().includes(search.toLowerCase());
-    const matchStock = filterStock === "All" || 
-                       (filterStock === "Low" && parseFloat(p.stock_quantity || 0) <= parseFloat(p.minimum_stock || 0)) ||
-                       (filterStock === "Out" && parseFloat(p.stock_quantity || 0) <= 0);
+    const matchSearch = p.name.toLowerCase().includes(search.toLowerCase()) ||
+      (p.brand || "").toLowerCase().includes(search.toLowerCase());
+    const matchStock = filterStock === "All" ||
+      (filterStock === "Low" && parseFloat(p.stock_quantity || 0) <= parseFloat(p.minimum_stock || 0)) ||
+      (filterStock === "Out" && parseFloat(p.stock_quantity || 0) <= 0);
     return matchCat && matchSearch && matchStock;
   });
 
@@ -368,7 +376,7 @@ export default function Stock({ type }) {
     <div className="module-page">
       <div className="module-header">
         <div className="module-title">
-          <button className="btn-icon back-btn" onClick={() => selectedCategory ? setSelectedCategory(null) : window.history.back()} style={{marginRight: '15px', background: '#f1f5f9', border: '1px solid #e2e8f0', borderRadius: '50%', width: '36px', height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#475569', transition: 'all 0.2s'}}>
+          <button className="btn-icon back-btn" onClick={() => selectedCategory ? setSelectedCategory(null) : window.history.back()} style={{ marginRight: '15px', background: '#f1f5f9', border: '1px solid #e2e8f0', borderRadius: '50%', width: '36px', height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#475569', transition: 'all 0.2s' }}>
             <ChevronLeft size={20} />
           </button>
           <div className="module-icon stock-icon"><Database size={28} /></div>
@@ -387,10 +395,10 @@ export default function Stock({ type }) {
           </div>
         )}
 
-        <div className="module-actions" style={{display: 'flex', gap: '10px'}}>
-          <button className="btn-primary" 
+        <div className="module-actions" style={{ display: 'flex', gap: '10px' }}>
+          <button className="btn-primary"
             onClick={() => setShowReturnModal(true)}
-            style={{background: '#f43f5e', border: 'none', color: 'white', padding: '8px 16px', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 600}}>
+            style={{ background: '#f43f5e', border: 'none', color: 'white', padding: '8px 16px', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 600 }}>
             <ArrowDownCircle size={20} />
             Sale Return (Bill)
           </button>
@@ -429,7 +437,7 @@ export default function Stock({ type }) {
       </div>
 
       {!selectedCategory ? (
-        <div className="category-grid" style={{marginTop: '20px'}}>
+        <div className="category-grid" style={{ marginTop: '20px' }}>
           {CATEGORIES.map((cat) => {
             const isSteel = cat.name.toLowerCase() === "steel";
             const isCrush = cat.name.toLowerCase() === "crush";
@@ -459,11 +467,11 @@ export default function Stock({ type }) {
           <div className="pos-table-actions">
             <div className="search-bar">
               <Search size={18} />
-              <input 
-                type="text" 
-                placeholder={`Search in ${selectedCategory}...`} 
-                value={search} 
-                onChange={(e) => setSearch(e.target.value)} 
+              <input
+                type="text"
+                placeholder={`Search in ${selectedCategory}...`}
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
               />
             </div>
             <div className="filter-group">
@@ -475,68 +483,68 @@ export default function Stock({ type }) {
             </div>
           </div>
 
-          <div className="module-table-container" style={{padding: '20px', background: 'white', borderRadius: '16px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)'}}>
-            <DataTable value={filtered} paginator rows={10} rowsPerPageOptions={[5, 10, 25, 50]} 
-                       emptyMessage="No stock items found." className="p-datatable-sm" stripedRows responsiveLayout="scroll"
-                       onRowClick={(e) => { setSelectedProduct(e.data); setShowDetailModal(true); }} rowHover style={{cursor: 'pointer'}}>
-              <Column field="id" header="ID" body={(prod) => <span style={{fontWeight: 600, color: '#64748b'}}>#{prod.id}</span>} sortable style={{ width: '80px' }} />
-              
+          <div className="module-table-container" style={{ padding: '20px', background: 'white', borderRadius: '16px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
+            <DataTable value={filtered} paginator rows={10} rowsPerPageOptions={[5, 10, 25, 50]}
+              emptyMessage="No stock items found." className="p-datatable-sm" stripedRows responsiveLayout="scroll"
+              onRowClick={(e) => { setSelectedProduct(e.data); setShowDetailModal(true); }} rowHover style={{ cursor: 'pointer' }}>
+              <Column field="id" header="ID" body={(prod) => <span style={{ fontWeight: 600, color: '#64748b' }}>#{prod.id}</span>} sortable style={{ width: '80px' }} />
+
               <Column field="brand" header="Brand" body={(prod) => (
-                <span style={{fontWeight: 600, color: '#475569'}}>{prod.brand || 'N/A'}</span>
+                <span style={{ fontWeight: 600, color: '#475569' }}>{prod.brand || 'N/A'}</span>
               )} sortable />
 
               <Column field="name" header="Product Name" body={(prod) => (
-                <span style={{fontWeight: 700, fontSize: '1rem', color: '#1e293b'}}>{prod.name}</span>
+                <span style={{ fontWeight: 700, fontSize: '1rem', color: '#1e293b' }}>{prod.name}</span>
               )} sortable />
-              
+
               <Column header="Min Level" body={(prod) => (
-                <span className="min-tag" style={{background: '#f1f5f9', padding: '4px 8px', borderRadius: '6px', fontSize: '0.85rem', fontWeight: 600}}>
+                <span className="min-tag" style={{ background: '#f1f5f9', padding: '4px 8px', borderRadius: '6px', fontSize: '0.85rem', fontWeight: 600 }}>
                   {parseFloat(prod.minimum_stock || 0).toLocaleString()} {prod.unit}
                 </span>
               )} field="minimum_stock" sortable />
-              
+
               <Column header="Current Stock" body={(prod) => {
                 const qty = parseFloat(prod.stock_quantity || 0);
                 const min = parseFloat(prod.minimum_stock || 0);
                 const isOut = qty <= 0;
                 const isLow = qty <= min;
                 return (
-                  <span style={{fontWeight: 800, fontSize: '1rem', color: isOut ? '#e11d48' : isLow ? '#f59e0b' : '#16a34a'}}>
+                  <span style={{ fontWeight: 800, fontSize: '1rem', color: isOut ? '#e11d48' : isLow ? '#f59e0b' : '#16a34a' }}>
                     {qty.toLocaleString()} {prod.unit}
                   </span>
                 );
               }} sortable field="stock_quantity" />
-              
+
               <Column header="Status" body={(prod) => {
                 const qty = parseFloat(prod.stock_quantity || 0);
                 const min = parseFloat(prod.minimum_stock || 0);
                 const isOut = qty <= 0;
                 const isLow = qty <= min;
                 return (
-                  <span className={`status-badge ${isOut ? 'cancelled' : isLow ? 'pending' : 'paid'}`} style={{padding: '4px 12px', borderRadius: '20px', fontSize: '0.75rem', fontWeight: 700}}>
+                  <span className={`status-badge ${isOut ? 'cancelled' : isLow ? 'pending' : 'paid'}`} style={{ padding: '4px 12px', borderRadius: '20px', fontSize: '0.75rem', fontWeight: 700 }}>
                     {isOut ? 'Out of Stock' : isLow ? 'Low Stock' : 'In Stock'}
                   </span>
                 );
               }} />
-              
+
               <Column header="" body={(prod) => (
-                <ActionMenu 
+                <ActionMenu
                   extraItems={[
-                    { 
-                      label: 'Receive Stock', 
-                      icon: 'pi pi-truck', 
-                      command: () => { 
-                        setSelectedProduct(prod); 
-                        setReceiveForm({...receiveForm, rate: prod.cost_price || ""});
-                        setShowReceiveModal(true); 
-                      } 
+                    {
+                      label: 'Receive Stock',
+                      icon: 'pi pi-truck',
+                      command: () => {
+                        setSelectedProduct(prod);
+                        setReceiveForm({ ...receiveForm, rate: prod.cost_price || "" });
+                        setShowReceiveModal(true);
+                      }
                     },
                     {
                       label: 'Return Stock',
                       icon: 'pi pi-replay',
                       command: () => {
                         setSelectedProduct(prod);
-                        setPurchaseReturnForm({...purchaseReturnForm, rate: prod.cost_price || ""});
+                        setPurchaseReturnForm({ ...purchaseReturnForm, rate: prod.cost_price || "" });
                         setShowPurchaseReturnModal(true);
                       }
                     }
@@ -559,7 +567,7 @@ export default function Stock({ type }) {
               </div>
               <button className="modal-close" onClick={() => setShowDetailModal(false)}><X size={20} /></button>
             </div>
-            
+
             <div className="detail-body">
               <div className="detail-main-header">
                 <h2>{selectedProduct.name}</h2>
@@ -609,9 +617,9 @@ export default function Stock({ type }) {
               <div className="detail-actions">
                 <button className="btn-secondary" onClick={() => setShowDetailModal(false)}>Close</button>
                 <div className="quick-add">
-                   <span>Adjust Stock:</span>
-                   <button onClick={(e) => updateStock(e, selectedProduct, -5)} className="btn-quick-adjust red">-5</button>
-                   <button onClick={(e) => updateStock(e, selectedProduct, 5)} className="btn-quick-adjust green">+5</button>
+                  <span>Adjust Stock:</span>
+                  <button onClick={(e) => updateStock(e, selectedProduct, -5)} className="btn-quick-adjust red">-5</button>
+                  <button onClick={(e) => updateStock(e, selectedProduct, 5)} className="btn-quick-adjust green">+5</button>
                 </div>
               </div>
             </div>
@@ -629,7 +637,7 @@ export default function Stock({ type }) {
             </div>
             <form onSubmit={handleReceiveStock} className="custom-form">
               <div className="form-grid">
-                <div className="form-group" style={{gridColumn: '1 / -1'}}>
+                <div className="form-group" style={{ gridColumn: '1 / -1' }}>
                   <label>Supplier / Vendor *</label>
                   <div className="input-wrapper">
                     <User size={18} />
@@ -652,19 +660,19 @@ export default function Stock({ type }) {
                 </div>
 
                 <div className="form-group">
-                  <label style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+                  <label style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     Vehicle *
-                    <div className="type-toggle" style={{display: 'flex', fontSize: '0.7rem', gap: '4px', background: '#f1f5f9', padding: '2px', borderRadius: '6px'}}>
-                      <button type="button" onClick={() => setReceiveForm({...receiveForm, vehicle_type: 'External', vehicle_id: '', vehicle_number: ''})} 
-                        style={{border: 'none', cursor: 'pointer', background: receiveForm.vehicle_type === 'External' ? 'white' : 'transparent', padding: '2px 6px', borderRadius: '4px', color: '#475569', fontWeight: receiveForm.vehicle_type === 'External' ? '600' : '400', boxShadow: receiveForm.vehicle_type === 'External' ? '0 1px 2px rgba(0,0,0,0.1)' : 'none'}}>Supplier</button>
-                      <button type="button" onClick={() => setReceiveForm({...receiveForm, vehicle_type: 'Personal', vehicle_id: '', vehicle_number: ''})} 
-                        style={{border: 'none', cursor: 'pointer', background: receiveForm.vehicle_type === 'Personal' ? 'white' : 'transparent', padding: '2px 6px', borderRadius: '4px', color: '#475569', fontWeight: receiveForm.vehicle_type === 'Personal' ? '600' : '400', boxShadow: receiveForm.vehicle_type === 'Personal' ? '0 1px 2px rgba(0,0,0,0.1)' : 'none'}}>Personal</button>
+                    <div className="type-toggle" style={{ display: 'flex', fontSize: '0.7rem', gap: '4px', background: '#f1f5f9', padding: '2px', borderRadius: '6px' }}>
+                      <button type="button" onClick={() => setReceiveForm({ ...receiveForm, vehicle_type: 'External', vehicle_id: '', vehicle_number: '' })}
+                        style={{ border: 'none', cursor: 'pointer', background: receiveForm.vehicle_type === 'External' ? 'white' : 'transparent', padding: '2px 6px', borderRadius: '4px', color: '#475569', fontWeight: receiveForm.vehicle_type === 'External' ? '600' : '400', boxShadow: receiveForm.vehicle_type === 'External' ? '0 1px 2px rgba(0,0,0,0.1)' : 'none' }}>Supplier</button>
+                      <button type="button" onClick={() => setReceiveForm({ ...receiveForm, vehicle_type: 'Personal', vehicle_id: '', vehicle_number: '' })}
+                        style={{ border: 'none', cursor: 'pointer', background: receiveForm.vehicle_type === 'Personal' ? 'white' : 'transparent', padding: '2px 6px', borderRadius: '4px', color: '#475569', fontWeight: receiveForm.vehicle_type === 'Personal' ? '600' : '400', boxShadow: receiveForm.vehicle_type === 'Personal' ? '0 1px 2px rgba(0,0,0,0.1)' : 'none' }}>Personal</button>
                     </div>
                   </label>
                   <div className="input-wrapper">
                     <Truck size={18} />
                     {receiveForm.vehicle_type === 'Personal' ? (
-                      <select required value={receiveForm.vehicle_id} 
+                      <select required value={receiveForm.vehicle_id}
                         onChange={(e) => {
                           const vId = e.target.value;
                           const vObj = vehicles.find(v => v && String(v.id) === String(vId));
@@ -714,7 +722,7 @@ export default function Stock({ type }) {
 
                 <div className="form-group">
                   <label>Total Bill Amount</label>
-                  <div className="input-wrapper" style={{background: '#f8fafc'}}>
+                  <div className="input-wrapper" style={{ background: '#f8fafc' }}>
                     <CircleDollarSign size={18} color="#64748b" />
                     <input type="text" disabled value={`Rs. ${((parseFloat(receiveForm.quantity) || 0) * (parseFloat(receiveForm.rate) || 0)).toLocaleString()}`} />
                   </div>
@@ -731,14 +739,14 @@ export default function Stock({ type }) {
 
                 <div className="form-group">
                   <label>Balance to Pay</label>
-                  <div className="input-wrapper" style={{background: '#fff1f2'}}>
+                  <div className="input-wrapper" style={{ background: '#fff1f2' }}>
                     <AlertTriangle size={18} color="#e11d48" />
-                    <input type="text" disabled value={`Rs. ${(((parseFloat(receiveForm.quantity) || 0) * (parseFloat(receiveForm.rate) || 0)) - (parseFloat(receiveForm.paid_amount) || 0)).toLocaleString()}`} style={{color: '#e11d48', fontWeight: 'bold'}} />
+                    <input type="text" disabled value={`Rs. ${(((parseFloat(receiveForm.quantity) || 0) * (parseFloat(receiveForm.rate) || 0)) - (parseFloat(receiveForm.paid_amount) || 0)).toLocaleString()}`} style={{ color: '#e11d48', fontWeight: 'bold' }} />
                   </div>
                 </div>
               </div>
 
-              <div className="form-actions" style={{display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '20px'}}>
+              <div className="form-actions" style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '20px' }}>
                 <button type="button" className="btn-secondary" onClick={() => setShowReceiveModal(false)}>Cancel</button>
                 <button type="submit" className="btn-primary" disabled={loading}>
                   {loading ? "Processing..." : "Complete Purchase"}
@@ -758,18 +766,18 @@ export default function Stock({ type }) {
               <button className="modal-close" onClick={() => setShowPurchaseReturnModal(false)}><X size={20} /></button>
             </div>
             <div style={{ padding: '12px 24px', background: '#eff6ff', borderBottom: '1px solid #bfdbfe', display: 'flex', gap: '24px' }}>
-               <div>
-                 <span style={{ fontSize: '0.8rem', color: '#1e40af', fontWeight: 600, display: 'block', textTransform: 'uppercase' }}>Available Stock</span>
-                 <strong style={{ fontSize: '1.15rem', color: '#1e3a8a' }}>{selectedProduct.stock_quantity || 0} {selectedProduct.unit}</strong>
-               </div>
-               <div>
-                 <span style={{ fontSize: '0.8rem', color: '#1e40af', fontWeight: 600, display: 'block', textTransform: 'uppercase' }}>Purchase Cost Rate</span>
-                 <strong style={{ fontSize: '1.15rem', color: '#1e3a8a' }}>Rs. {parseFloat(selectedProduct.cost_price || 0).toLocaleString()}</strong>
-               </div>
+              <div>
+                <span style={{ fontSize: '0.8rem', color: '#1e40af', fontWeight: 600, display: 'block', textTransform: 'uppercase' }}>Available Stock</span>
+                <strong style={{ fontSize: '1.15rem', color: '#1e3a8a' }}>{selectedProduct.stock_quantity || 0} {selectedProduct.unit}</strong>
+              </div>
+              <div>
+                <span style={{ fontSize: '0.8rem', color: '#1e40af', fontWeight: 600, display: 'block', textTransform: 'uppercase' }}>Purchase Cost Rate</span>
+                <strong style={{ fontSize: '1.15rem', color: '#1e3a8a' }}>Rs. {parseFloat(selectedProduct.cost_price || 0).toLocaleString()}</strong>
+              </div>
             </div>
             <form onSubmit={handlePurchaseReturn} className="custom-form">
               <div className="form-grid">
-                <div className="form-group" style={{gridColumn: '1 / -1'}}>
+                <div className="form-group" style={{ gridColumn: '1 / -1' }}>
                   <label>Supplier / Vendor *</label>
                   <div className="input-wrapper">
                     <User size={18} />
@@ -792,19 +800,19 @@ export default function Stock({ type }) {
                 </div>
 
                 <div className="form-group">
-                  <label style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+                  <label style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     Return Vehicle *
-                    <div className="type-toggle" style={{display: 'flex', fontSize: '0.7rem', gap: '4px', background: '#f1f5f9', padding: '2px', borderRadius: '6px'}}>
-                      <button type="button" onClick={() => setPurchaseReturnForm({...purchaseReturnForm, vehicle_type: 'External', vehicle_id: '', vehicle_number: ''})} 
-                        style={{border: 'none', cursor: 'pointer', background: purchaseReturnForm.vehicle_type === 'External' ? 'white' : 'transparent', padding: '2px 6px', borderRadius: '4px', color: '#475569', fontWeight: purchaseReturnForm.vehicle_type === 'External' ? '600' : '400', boxShadow: purchaseReturnForm.vehicle_type === 'External' ? '0 1px 2px rgba(0,0,0,0.1)' : 'none'}}>Supplier</button>
-                      <button type="button" onClick={() => setPurchaseReturnForm({...purchaseReturnForm, vehicle_type: 'Personal', vehicle_id: '', vehicle_number: ''})} 
-                        style={{border: 'none', cursor: 'pointer', background: purchaseReturnForm.vehicle_type === 'Personal' ? 'white' : 'transparent', padding: '2px 6px', borderRadius: '4px', color: '#475569', fontWeight: purchaseReturnForm.vehicle_type === 'Personal' ? '600' : '400', boxShadow: purchaseReturnForm.vehicle_type === 'Personal' ? '0 1px 2px rgba(0,0,0,0.1)' : 'none'}}>Personal</button>
+                    <div className="type-toggle" style={{ display: 'flex', fontSize: '0.7rem', gap: '4px', background: '#f1f5f9', padding: '2px', borderRadius: '6px' }}>
+                      <button type="button" onClick={() => setPurchaseReturnForm({ ...purchaseReturnForm, vehicle_type: 'External', vehicle_id: '', vehicle_number: '' })}
+                        style={{ border: 'none', cursor: 'pointer', background: purchaseReturnForm.vehicle_type === 'External' ? 'white' : 'transparent', padding: '2px 6px', borderRadius: '4px', color: '#475569', fontWeight: purchaseReturnForm.vehicle_type === 'External' ? '600' : '400', boxShadow: purchaseReturnForm.vehicle_type === 'External' ? '0 1px 2px rgba(0,0,0,0.1)' : 'none' }}>Supplier</button>
+                      <button type="button" onClick={() => setPurchaseReturnForm({ ...purchaseReturnForm, vehicle_type: 'Personal', vehicle_id: '', vehicle_number: '' })}
+                        style={{ border: 'none', cursor: 'pointer', background: purchaseReturnForm.vehicle_type === 'Personal' ? 'white' : 'transparent', padding: '2px 6px', borderRadius: '4px', color: '#475569', fontWeight: purchaseReturnForm.vehicle_type === 'Personal' ? '600' : '400', boxShadow: purchaseReturnForm.vehicle_type === 'Personal' ? '0 1px 2px rgba(0,0,0,0.1)' : 'none' }}>Personal</button>
                     </div>
                   </label>
                   <div className="input-wrapper">
                     <Truck size={18} />
                     {purchaseReturnForm.vehicle_type === 'Personal' ? (
-                      <select required value={purchaseReturnForm.vehicle_id} 
+                      <select required value={purchaseReturnForm.vehicle_id}
                         onChange={(e) => {
                           const vId = e.target.value;
                           const vObj = vehicles.find(v => v && String(v.id) === String(vId));
@@ -854,7 +862,7 @@ export default function Stock({ type }) {
 
                 <div className="form-group">
                   <label>Total Return Value</label>
-                  <div className="input-wrapper" style={{background: '#f8fafc'}}>
+                  <div className="input-wrapper" style={{ background: '#f8fafc' }}>
                     <CircleDollarSign size={18} color="#64748b" />
                     <input type="text" disabled value={`Rs. ${((parseFloat(purchaseReturnForm.quantity) || 0) * (parseFloat(purchaseReturnForm.rate) || 0)).toLocaleString()}`} />
                   </div>
@@ -871,14 +879,14 @@ export default function Stock({ type }) {
 
                 <div className="form-group">
                   <label>Supplier Balance Deduction</label>
-                  <div className="input-wrapper" style={{background: '#ecfdf5'}}>
+                  <div className="input-wrapper" style={{ background: '#ecfdf5' }}>
                     <ArrowDownCircle size={18} color="#059669" />
-                    <input type="text" disabled value={`Rs. ${(((parseFloat(purchaseReturnForm.quantity) || 0) * (parseFloat(purchaseReturnForm.rate) || 0)) - (parseFloat(purchaseReturnForm.received_amount) || 0)).toLocaleString()}`} style={{color: '#059669', fontWeight: 'bold'}} />
+                    <input type="text" disabled value={`Rs. ${(((parseFloat(purchaseReturnForm.quantity) || 0) * (parseFloat(purchaseReturnForm.rate) || 0)) - (parseFloat(purchaseReturnForm.received_amount) || 0)).toLocaleString()}`} style={{ color: '#059669', fontWeight: 'bold' }} />
                   </div>
                 </div>
               </div>
 
-              <div className="form-actions" style={{display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '20px'}}>
+              <div className="form-actions" style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '20px' }}>
                 <button type="button" className="btn-secondary" onClick={() => setShowPurchaseReturnModal(false)}>Cancel</button>
                 <button type="submit" className="btn-primary" disabled={loading}>
                   {loading ? "Processing..." : "Confirm Return"}
@@ -891,7 +899,7 @@ export default function Stock({ type }) {
       {/* Sale Return Modal */}
       {showReturnModal && (
         <div className="modal-overlay" onClick={() => { setShowReturnModal(false); setBillData(null); }}>
-          <div className="modal" onClick={(e) => e.stopPropagation()} style={{maxWidth: billData ? '700px' : '400px'}}>
+          <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: billData ? '700px' : '400px' }}>
             <div className="modal-header">
               <div className="header-info">
                 <ArrowDownCircle size={24} color="#f43f5e" />
@@ -899,59 +907,59 @@ export default function Stock({ type }) {
               </div>
               <button className="modal-close" onClick={() => { setShowReturnModal(false); setBillData(null); }}><X size={20} /></button>
             </div>
-            
+
             {!billData ? (
-              <form onSubmit={handleFetchBill} className="custom-form p-fluid" style={{padding: '20px'}}>
+              <form onSubmit={handleFetchBill} className="custom-form p-fluid" style={{ padding: '20px' }}>
                 <div className="field mb-4">
-                  <label className="block mb-2 font-bold" style={{color: '#475569'}}>Enter Bill Number (Sale ID) *</label>
-                  <div className="p-inputgroup" style={{display:'flex', border:'1px solid #cbd5e1', borderRadius:'8px', overflow:'hidden'}}>
-                    <span className="p-inputgroup-addon" style={{background:'#f1f5f9', padding:'10px', display:'flex', alignItems:'center'}}><Hash size={18} /></span>
-                    <input 
-                      type="number" 
-                      required 
-                      value={returnBillNo} 
+                  <label className="block mb-2 font-bold" style={{ color: '#475569' }}>Enter Bill Number (Sale ID) *</label>
+                  <div className="p-inputgroup" style={{ display: 'flex', border: '1px solid #cbd5e1', borderRadius: '8px', overflow: 'hidden' }}>
+                    <span className="p-inputgroup-addon" style={{ background: '#f1f5f9', padding: '10px', display: 'flex', alignItems: 'center' }}><Hash size={18} /></span>
+                    <input
+                      type="number"
+                      required
+                      value={returnBillNo}
                       placeholder="e.g. 105"
-                      style={{flex:1, padding:'10px', border:'none', outline:'none'}}
-                      onChange={e => setReturnBillNo(e.target.value)} 
+                      style={{ flex: 1, padding: '10px', border: 'none', outline: 'none' }}
+                      onChange={e => setReturnBillNo(e.target.value)}
                     />
                   </div>
                 </div>
-                <div className="flex justify-content-end gap-2" style={{display:'flex', justifyContent:'flex-end', gap:'10px'}}>
+                <div className="flex justify-content-end gap-2" style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
                   <button type="button" className="btn-secondary" onClick={() => setShowReturnModal(false)}>Cancel</button>
-                  <button type="submit" className="btn-primary" style={{background: '#3b82f6'}} disabled={returnLoading}>
+                  <button type="submit" className="btn-primary" style={{ background: '#3b82f6' }} disabled={returnLoading}>
                     {returnLoading ? "Searching..." : "Find Bill"}
                   </button>
                 </div>
               </form>
             ) : (
-              <form onSubmit={handleSaleReturn} className="custom-form" style={{padding: '20px'}}>
-                <div style={{background:'#eff6ff', border:'1px solid #bfdbfe', padding:'12px', borderRadius:'8px', marginBottom:'20px', display:'flex', justifyContent:'space-between'}}>
+              <form onSubmit={handleSaleReturn} className="custom-form" style={{ padding: '20px' }}>
+                <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', padding: '12px', borderRadius: '8px', marginBottom: '20px', display: 'flex', justifyContent: 'space-between' }}>
                   <div>
-                    <div style={{fontSize:'0.8rem', color:'#1e40af', fontWeight:600}}>CUSTOMER</div>
-                    <div style={{fontWeight:800, color:'#1e3a8a'}}>{billData.customer_name}</div>
+                    <div style={{ fontSize: '0.8rem', color: '#1e40af', fontWeight: 600 }}>CUSTOMER</div>
+                    <div style={{ fontWeight: 800, color: '#1e3a8a' }}>{billData.customer_name}</div>
                   </div>
-                  <div style={{textAlign:'right'}}>
-                    <div style={{fontSize:'0.8rem', color:'#1e40af', fontWeight:600}}>TOTAL BILLED</div>
-                    <div style={{fontWeight:800, color:'#1e3a8a'}}>Rs. {parseFloat(billData.net_amount || 0).toLocaleString()}</div>
+                  <div style={{ textAlign: 'right' }}>
+                    <div style={{ fontSize: '0.8rem', color: '#1e40af', fontWeight: 600 }}>TOTAL BILLED</div>
+                    <div style={{ fontWeight: 800, color: '#1e3a8a' }}>Rs. {parseFloat(billData.net_amount || 0).toLocaleString()}</div>
                   </div>
                 </div>
 
-                <div style={{maxHeight:'300px', overflowY:'auto', marginBottom:'20px', border:'1px solid #e2e8f0', borderRadius:'8px'}}>
-                  <table style={{width:'100%', borderCollapse:'collapse', fontSize:'0.9rem'}}>
-                    <thead style={{background:'#f8fafc', position:'sticky', top:0}}>
+                <div style={{ maxHeight: '300px', overflowY: 'auto', marginBottom: '20px', border: '1px solid #e2e8f0', borderRadius: '8px' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9rem' }}>
+                    <thead style={{ background: '#f8fafc', position: 'sticky', top: 0 }}>
                       <tr>
-                        <th style={{textAlign:'left', padding:'10px', borderBottom:'1px solid #e2e8f0'}}>Product</th>
-                        <th style={{textAlign:'center', padding:'10px', borderBottom:'1px solid #e2e8f0'}}>Sold Qty</th>
-                        <th style={{textAlign:'center', padding:'10px', borderBottom:'1px solid #e2e8f0'}}>Return Qty</th>
-                        <th style={{textAlign:'center', padding:'10px', borderBottom:'1px solid #e2e8f0'}}>Return Rate</th>
+                        <th style={{ textAlign: 'left', padding: '10px', borderBottom: '1px solid #e2e8f0' }}>Product</th>
+                        <th style={{ textAlign: 'center', padding: '10px', borderBottom: '1px solid #e2e8f0' }}>Sold Qty</th>
+                        <th style={{ textAlign: 'center', padding: '10px', borderBottom: '1px solid #e2e8f0' }}>Return Qty</th>
+                        <th style={{ textAlign: 'center', padding: '10px', borderBottom: '1px solid #e2e8f0' }}>Return Rate</th>
                       </tr>
                     </thead>
                     <tbody>
                       {returnItems.map((item, idx) => (
-                        <tr key={item.id || idx} style={{borderBottom:'1px solid #f1f5f9'}}>
-                          <td style={{padding:'10px', fontWeight:600}}>{item.product_name || item.name}</td>
-                          <td style={{padding:'10px', textAlign:'center', color:'#64748b'}}>{item.qty}</td>
-                          <td style={{padding:'10px'}}>
+                        <tr key={item.id || idx} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                          <td style={{ padding: '10px', fontWeight: 600 }}>{item.product_name || item.name}</td>
+                          <td style={{ padding: '10px', textAlign: 'center', color: '#64748b' }}>{item.qty}</td>
+                          <td style={{ padding: '10px' }}>
                             <input type="number" step="0.01" max={item.qty} min="0"
                               value={item.return_qty}
                               onChange={(e) => {
@@ -959,9 +967,9 @@ export default function Stock({ type }) {
                                 next[idx].return_qty = e.target.value;
                                 setReturnItems(next);
                               }}
-                              style={{width:'80px', padding:'6px', borderRadius:'4px', border:'1px solid #cbd5e1', textAlign:'center'}} />
+                              style={{ width: '80px', padding: '6px', borderRadius: '4px', border: '1px solid #cbd5e1', textAlign: 'center' }} />
                           </td>
-                          <td style={{padding:'10px'}}>
+                          <td style={{ padding: '10px' }}>
                             <input type="number" step="0.01" min="0"
                               value={item.rate}
                               onChange={(e) => {
@@ -969,7 +977,7 @@ export default function Stock({ type }) {
                                 next[idx].rate = e.target.value;
                                 setReturnItems(next);
                               }}
-                              style={{width:'100px', padding:'6px', borderRadius:'4px', border:'1px solid #cbd5e1', textAlign:'center'}} />
+                              style={{ width: '100px', padding: '6px', borderRadius: '4px', border: '1px solid #cbd5e1', textAlign: 'center' }} />
                           </td>
                         </tr>
                       ))}
@@ -977,13 +985,13 @@ export default function Stock({ type }) {
                   </table>
                 </div>
 
-                <div className="form-grid" style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:'15px', marginBottom:'20px'}}>
+                <div className="form-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', marginBottom: '20px' }}>
                   <div className="form-group">
-                    <label style={{fontWeight:600, marginBottom:'5px', display:'block'}}>Return Vehicle (Optional)</label>
-                    <select 
-                      value={returnVehicleId} 
+                    <label style={{ fontWeight: 600, marginBottom: '5px', display: 'block' }}>Return Vehicle (Optional)</label>
+                    <select
+                      value={returnVehicleId}
                       onChange={(e) => setReturnVehicleId(e.target.value)}
-                      style={{width:'100%', padding:'10px', borderRadius:'8px', border:'1px solid #cbd5e1'}}
+                      style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1' }}
                     >
                       <option value="">-- No Vehicle --</option>
                       {vehicles.filter(v => v && !v.is_deleted).map(v => (
@@ -992,19 +1000,19 @@ export default function Stock({ type }) {
                     </select>
                   </div>
                   <div className="form-group">
-                    <label style={{fontWeight:600, marginBottom:'5px', display:'block'}}>Return Delivery Fare (Karya)</label>
+                    <label style={{ fontWeight: 600, marginBottom: '5px', display: 'block' }}>Return Delivery Fare (Karya)</label>
                     <input type="number" step="0.01"
                       value={returnFare}
                       onChange={(e) => setReturnFare(e.target.value)}
-                      style={{width:'100%', padding:'10px', borderRadius:'8px', border:'1px solid #cbd5e1'}}
+                      style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1' }}
                       placeholder="0.00"
                     />
                   </div>
                 </div>
 
-                <div className="flex justify-content-end gap-2" style={{display:'flex', justifyContent:'flex-end', gap:'10px', paddingTop:'15px', borderTop:'1px solid #e2e8f0'}}>
+                <div className="flex justify-content-end gap-2" style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', paddingTop: '15px', borderTop: '1px solid #e2e8f0' }}>
                   <button type="button" className="btn-secondary" onClick={() => setBillData(null)}>Back</button>
-                  <button type="submit" className="btn-primary" style={{background: '#f43f5e'}} disabled={returnLoading}>
+                  <button type="submit" className="btn-primary" style={{ background: '#f43f5e' }} disabled={returnLoading}>
                     {returnLoading ? "Processing..." : "Confirm Return"}
                   </button>
                 </div>
