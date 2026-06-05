@@ -79,6 +79,7 @@ export default function Billing({ type }) {
   const [viewSale, setViewSale] = useState(null);
   const [showCustomerSection, setShowCustomerSection] = useState(true);
   const [showTransportSection, setShowTransportSection] = useState(true);
+  const [showPaymentSection, setShowPaymentSection] = useState(true);
   const [receiptData, setReceiptData] = useState(null);
   const [editId, setEditId] = useState(null);
   const [showLedgerModal, setShowLedgerModal] = useState(false);
@@ -887,90 +888,101 @@ export default function Billing({ type }) {
             </div>
 
             {/* Fixed Footer with Checkout Calculations */}
-            <div className="sidebar-footer">
-              <div className="calc-grid">
-                <div className="calc-row">
-                  <span>Subtotal</span>
-                  <span>Rs. {subtotal.toLocaleString()}</span>
-                </div>
-                <div className="calc-row">
-                  <span>Discount</span>
-                  <div className="p-inputgroup p-inputgroup-sm" style={{width: String(discount || '').length > 5 ? '140px' : '110px', transition: 'width 0.2s'}}>
-                    <span className="p-inputgroup-addon font-bold" style={{color: '#ef4444', fontSize: '0.75rem', padding: '0 4px'}}>Rs</span>
-                    <InputText type="text" inputMode="numeric" pattern="[0-9]*"
-                              value={discount} 
-                              onChange={(e) => {
-                                const val = e.target.value.replace(/\D/g, "");
-                                setDiscount(val ? parseInt(val) : 0);
-                              }} 
-                              className="font-bold text-center" 
-                              style={{fontSize: String(discount || '').length > 8 ? '0.65rem' : String(discount || '').length > 5 ? '0.75rem' : '0.85rem', transition: 'font-size 0.2s'}} />
-                  </div>
-                </div>
-                <div className="calc-row">
-                  <span>Delivery</span>
-                  <div className="p-inputgroup p-inputgroup-sm" style={{width: String(delivery || '').length > 5 ? '140px' : '110px', transition: 'width 0.2s'}}>
-                    <span className="p-inputgroup-addon font-bold" style={{color: '#3b82f6', fontSize: '0.75rem', padding: '0 4px'}}>Rs</span>
-                    <InputText type="text" inputMode="numeric" pattern="[0-9]*"
-                              value={delivery} 
-                              onChange={(e) => {
-                                const val = e.target.value.replace(/\D/g, "");
-                                setDelivery(val ? parseInt(val) : 0);
-                              }} 
-                              className="font-bold text-center" 
-                              style={{fontSize: String(delivery || '').length > 8 ? '0.65rem' : String(delivery || '').length > 5 ? '0.75rem' : '0.85rem', transition: 'font-size 0.2s'}} />
-                  </div>
-                </div>
-                <div className="grand-total">
-                  <span>Total</span>
-                  <span style={{fontSize: `Rs. ${netTotal.toLocaleString()}`.length > 15 ? '0.95rem' : `Rs. ${netTotal.toLocaleString()}`.length > 10 ? '1.15rem' : '1.4rem', transition: 'font-size 0.2s'}}>{`Rs. ${netTotal.toLocaleString()}`}</span>
-                </div>
-                <div className="flex flex-column gap-2 mt-2">
-                  <div className="flex gap-2">
-                    <div className="flex flex-1 gap-1">
-                      <InputText type="number" min="0" placeholder="Paid Amount" value={paidAmount} onChange={(e) => setPaidAmount(e.target.value)} 
-                                className="flex-1 font-bold" style={{fontSize: String(paidAmount || '').length > 8 ? '0.75rem' : String(paidAmount || '').length > 5 ? '0.85rem' : '1rem', transition: 'font-size 0.2s'}} />
-                      <Button icon="pi pi-pause" onClick={holdBill} tooltip="Hold Bill" className="hold-bill-btn" />
-                    </div>
-                    <Dropdown value={paymentType} options={[
-                      {label: 'Cash', value: 'Cash'},
-                      {label: 'Bank', value: 'Bank'},
-                      {label: 'Credit', value: 'Credit'}
-                    ]} onChange={(e) => setPaymentType(e.value)} className="flex-1" />
-                  </div>
-                  {paymentType === 'Bank' && (
-                    <Dropdown value={selectedBank} options={bankAccounts.filter(b => {
-                      const name = b.bank_name.toLowerCase().trim();
-                      return name !== 'cash' && name !== 'cash account';
-                    }).map(b => {
-                      const digits = b.account_number ? b.account_number.slice(-4) : '';
-                      return {
-                        label: `${b.bank_name} ${b.account_title ? `- ${b.account_title}` : ''} ${digits ? `(****${digits})` : ''}`,
-                        value: `${b.bank_name} ${digits ? `(****${digits})` : ''}`
-                      };
-                    })} onChange={(e) => setSelectedBank(e.value)} placeholder="Select Receiving Bank" />
-                  )}
-                </div>
-              </div>
-              
-              {/* Assign Labour Loading Group */}
-              <div className="input-box mt-2" style={{ borderTop: '1px solid #e2e8f0', paddingTop: '8px', paddingBottom: '4px' }}>
-                <label style={{ fontSize: '0.85rem', fontWeight: 600, color: '#475569', display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px' }}>
-                  <Users size={14} /> Assign Labour Loading Group
+            <div className="sidebar-footer" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <div className="flex justify-content-between align-items-center" onClick={() => setShowPaymentSection(!showPaymentSection)} style={{ cursor: 'pointer', paddingBottom: showPaymentSection ? '8px' : '0', borderBottom: showPaymentSection ? '1px solid #e2e8f0' : 'none' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', margin: 0, fontWeight: 700, fontSize: '0.9rem', color: '#1e293b' }}>
+                  <CreditCard size={16} /> Payment & Checkout Details
                 </label>
-                <div className="flex gap-2">
-                  <Dropdown 
-                    value={selectedLabourGroup} 
-                    options={labourGroups.map(g => ({ label: g, value: g }))} 
-                    onChange={(e) => setSelectedLabourGroup(e.value)} 
-                    placeholder="Select Group" 
-                    className="w-full" 
-                  />
-                </div>
+                <Button icon={showPaymentSection ? "pi pi-chevron-up" : "pi pi-chevron-down"} className="p-button-text p-button-rounded p-button-sm" style={{ padding: '0', width: '24px', height: '24px', color: '#64748b' }} onClick={(e) => { e.stopPropagation(); setShowPaymentSection(!showPaymentSection); }} />
               </div>
 
-              <Button label={loading ? "Processing..." : "Complete Sale"} icon="pi pi-check" onClick={handleCheckout} 
-                      disabled={loading || cart.length === 0 || cart.some(item => { const p = products.find(x => String(x.id) === String(item.id)); return parseFloat(item.qty || 0) > parseFloat(p ? p.stock_quantity : 0); })} className="w-full mt-3 p-button-lg shadow-2" />
+              {showPaymentSection && (
+                <>
+                  <div className="calc-grid">
+                    <div className="calc-row">
+                      <span>Subtotal</span>
+                      <span>Rs. {subtotal.toLocaleString()}</span>
+                    </div>
+                    <div className="calc-row">
+                      <span>Discount</span>
+                      <div className="p-inputgroup p-inputgroup-sm" style={{width: String(discount || '').length > 5 ? '140px' : '110px', transition: 'width 0.2s'}}>
+                        <span className="p-inputgroup-addon font-bold" style={{color: '#ef4444', fontSize: '0.75rem', padding: '0 4px'}}>Rs</span>
+                        <InputText type="text" inputMode="numeric" pattern="[0-9]*"
+                                  value={discount} 
+                                  onChange={(e) => {
+                                    const val = e.target.value.replace(/\D/g, "");
+                                    setDiscount(val ? parseInt(val) : 0);
+                                  }} 
+                                  className="font-bold text-center" 
+                                  style={{fontSize: String(discount || '').length > 8 ? '0.65rem' : String(discount || '').length > 5 ? '0.75rem' : '0.85rem', transition: 'font-size 0.2s'}} />
+                      </div>
+                    </div>
+                    <div className="calc-row">
+                      <span>Delivery</span>
+                      <div className="p-inputgroup p-inputgroup-sm" style={{width: String(delivery || '').length > 5 ? '140px' : '110px', transition: 'width 0.2s'}}>
+                        <span className="p-inputgroup-addon font-bold" style={{color: '#3b82f6', fontSize: '0.75rem', padding: '0 4px'}}>Rs</span>
+                        <InputText type="text" inputMode="numeric" pattern="[0-9]*"
+                                  value={delivery} 
+                                  onChange={(e) => {
+                                    const val = e.target.value.replace(/\D/g, "");
+                                    setDelivery(val ? parseInt(val) : 0);
+                                  }} 
+                                  className="font-bold text-center" 
+                                  style={{fontSize: String(delivery || '').length > 8 ? '0.65rem' : String(delivery || '').length > 5 ? '0.75rem' : '0.85rem', transition: 'font-size 0.2s'}} />
+                      </div>
+                    </div>
+                    <div className="grand-total">
+                      <span>Total</span>
+                      <span style={{fontSize: `Rs. ${netTotal.toLocaleString()}`.length > 15 ? '0.95rem' : `Rs. ${netTotal.toLocaleString()}`.length > 10 ? '1.15rem' : '1.4rem', transition: 'font-size 0.2s'}}>{`Rs. ${netTotal.toLocaleString()}`}</span>
+                    </div>
+                    <div className="flex flex-column gap-2 mt-2">
+                      <div className="flex gap-2">
+                        <div className="flex flex-1 gap-1">
+                          <InputText type="number" min="0" placeholder="Paid Amount" value={paidAmount} onChange={(e) => setPaidAmount(e.target.value)} 
+                                    className="flex-1 font-bold" style={{fontSize: String(paidAmount || '').length > 8 ? '0.75rem' : String(paidAmount || '').length > 5 ? '0.85rem' : '1rem', transition: 'font-size 0.2s'}} />
+                          <Button icon="pi pi-pause" onClick={holdBill} tooltip="Hold Bill" className="hold-bill-btn" />
+                        </div>
+                        <Dropdown value={paymentType} options={[
+                          {label: 'Cash', value: 'Cash'},
+                          {label: 'Bank', value: 'Bank'},
+                          {label: 'Credit', value: 'Credit'}
+                        ]} onChange={(e) => setPaymentType(e.value)} className="flex-1" />
+                      </div>
+                      {paymentType === 'Bank' && (
+                        <Dropdown value={selectedBank} options={bankAccounts.filter(b => {
+                          const name = b.bank_name.toLowerCase().trim();
+                          return name !== 'cash' && name !== 'cash account';
+                        }).map(b => {
+                          const digits = b.account_number ? b.account_number.slice(-4) : '';
+                          return {
+                            label: `${b.bank_name} ${b.account_title ? `- ${b.account_title}` : ''} ${digits ? `(****${digits})` : ''}`,
+                            value: `${b.bank_name} ${digits ? `(****${digits})` : ''}`
+                          };
+                        })} onChange={(e) => setSelectedBank(e.value)} placeholder="Select Receiving Bank" />
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Assign Labour Loading Group */}
+                  <div className="input-box mt-2" style={{ borderTop: '1px solid #e2e8f0', paddingTop: '8px', paddingBottom: '4px' }}>
+                    <label style={{ fontSize: '0.85rem', fontWeight: 600, color: '#475569', display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px' }}>
+                      <Users size={14} /> Assign Labour Loading Group
+                    </label>
+                    <div className="flex gap-2">
+                      <Dropdown 
+                        value={selectedLabourGroup} 
+                        options={labourGroups.map(g => ({ label: g, value: g }))} 
+                        onChange={(e) => setSelectedLabourGroup(e.value)} 
+                        placeholder="Select Group" 
+                        className="w-full" 
+                      />
+                    </div>
+                  </div>
+
+                  <Button label={loading ? "Processing..." : "Complete Sale"} icon="pi pi-check" onClick={handleCheckout} 
+                          disabled={loading || cart.length === 0 || cart.some(item => { const p = products.find(x => String(x.id) === String(item.id)); return parseFloat(item.qty || 0) > parseFloat(p ? p.stock_quantity : 0); })} className="w-full mt-3 p-button-lg shadow-2" />
+                </>
+              )}
             </div>
           </div>
         </div>
