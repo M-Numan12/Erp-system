@@ -29,6 +29,25 @@ app.use('/api/banks', require('./routes/bankRoutes'));
 app.use('/api/labours', require('./routes/labourRoutes'));
 app.use('/api/admin', require('./routes/adminRoutes'));
 
+// Temporary diagnostic endpoint for checking database records
+app.get('/api/diag-expenses-temp-xyz', async (req, res) => {
+  try {
+    const pool = require('./config/db');
+    const expenses = await pool.query(`
+      SELECT e.id, e.description, e.expense_type, e.category, e.amount, e.expense_date, e.vehicle_id, v.vehicle_number, v.ownership_type 
+      FROM expenses e
+      LEFT JOIN vehicles v ON e.vehicle_id = v.id
+      ORDER BY e.id DESC LIMIT 50
+    `);
+    const vehicles = await pool.query(`
+      SELECT id, vehicle_number, ownership_type, driver_name FROM vehicles
+    `);
+    res.json({ expenses: expenses.rows, vehicles: vehicles.rows });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 const PORT = process.env.PORT || 5000;
 
 // Auto-sync database schema on startup

@@ -123,6 +123,8 @@ router.post('/', auth, async (req, res) => {
 
       if (req.body.vehicle_type === 'Personal') {
         expenseType = 'Personal Vehicle';
+      } else if (req.body.vehicle_type === 'External') {
+        expenseType = 'Supplier Vehicle';
       } else if (vId) {
         const vOwnerRes = await client.query(
           'SELECT ownership_type FROM vehicles WHERE id = $1',
@@ -364,6 +366,8 @@ router.post('/return', auth, async (req, res) => {
 
       if (req.body.vehicle_type === 'Personal') {
         returnExpenseType = 'Personal Vehicle';
+      } else if (req.body.vehicle_type === 'External') {
+        returnExpenseType = 'Supplier Vehicle';
       } else if (vId) {
         const vOwnerRes2 = await client.query(
           'SELECT ownership_type FROM vehicles WHERE id = $1',
