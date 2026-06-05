@@ -43,27 +43,16 @@ app.get('/api/diag-expenses-temp-xyz', async (req, res) => {
       SELECT id, vehicle_number, ownership_type, driver_name FROM vehicles
     `);
     
-    // Check why Expense 111 and Vehicle 19 don't match
-    const testMatch = await pool.query(`
-      SELECT 
-        e.id as expense_id, 
-        e.description as expense_desc, 
-        v.id as vehicle_id,
-        v.vehicle_number as vehicle_num,
-        (e.vehicle_id IS NULL) as cond_veh_null,
-        (e.expense_type = 'Supplier Vehicle') as cond_type,
-        (e.category = 'Transport') as cond_cat,
-        (e.description LIKE 'Transport Fare: ' || v.vehicle_number) as cond_like1,
-        (e.description LIKE 'Transport Fare: ' || TRIM(v.vehicle_number)) as cond_like2,
-        (e.description LIKE '%' || v.vehicle_number || '%') as cond_like3,
-        (COALESCE(v.ownership_type, 'Personal') = 'Personal') as cond_owner,
-        (v.is_deleted IS NOT TRUE) as cond_not_deleted
+    // Find all transport fares
+    const transportFares = await pool.query(`
+      SELECT e.id, e.description, e.expense_type, e.category, e.amount, e.expense_date, e.vehicle_id, v.vehicle_number, v.ownership_type 
       FROM expenses e
-      CROSS JOIN vehicles v
-      WHERE e.id = 111 AND v.id = 19
+      LEFT JOIN vehicles v ON e.vehicle_id = v.id
+      WHERE e.description LIKE 'Transport Fare:%' OR e.description LIKE 'Return Transport Fare:%'
+      ORDER BY e.id DESC
     `);
 
-    res.json({ expenses: expenses.rows, vehicles: vehicles.rows, testMatch: testMatch.rows });
+    res.json({ expenses: expenses.rows, vehicles: vehicles.rows, transportFares: transportFares.rows });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
