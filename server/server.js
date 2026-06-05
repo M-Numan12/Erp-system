@@ -48,6 +48,57 @@ app.get('/api/diag-expenses-temp-xyz', async (req, res) => {
   }
 });
 
+// Temporary migration runner endpoint
+app.get('/api/run-migration-temp-xyz', async (req, res) => {
+  const pool = require('./config/db');
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+
+    // Fix by vehicle_id
+    const byVehicleId = await client.query(`
+      UPDATE expenses e
+      SET expense_type = 'Personal Vehicle'
+      FROM vehicles v
+      WHERE e.vehicle_id = v.id
+        AND COALESCE(v.ownership_type, 'Personal') = 'Personal'
+        AND e.expense_type = 'Supplier Vehicle'
+      RETURNING e.id, e.description, e.vehicle_id
+    `);
+
+    // Fix by vehicle number in description
+    const byVehicleNumber = await client.query(`
+      UPDATE expenses e
+      SET expense_type = 'Personal Vehicle'
+      FROM vehicles v
+      WHERE e.vehicle_id IS NULL
+        AND e.expense_type = 'Supplier Vehicle'
+        AND e.category = 'Transport'
+        AND (
+          e.description LIKE 'Transport Fare: ' || v.vehicle_number
+          OR e.description LIKE 'Return Transport Fare: ' || v.vehicle_number
+        )
+        AND COALESCE(v.ownership_type, 'Personal') = 'Personal'
+        AND (v.is_deleted IS NOT TRUE)
+      RETURNING e.id, e.description
+    `);
+
+    await client.query('COMMIT');
+    res.json({
+      success: true,
+      fixed_by_vehicle_id: byVehicleId.rows,
+      fixed_by_vehicle_number: byVehicleNumber.rows,
+      count_by_vehicle_id: byVehicleId.rowCount,
+      count_by_vehicle_number: byVehicleNumber.rowCount
+    });
+  } catch (err) {
+    await client.query('ROLLBACK');
+    res.status(500).json({ error: err.message });
+  } finally {
+    client.release();
+  }
+});
+
 const PORT = process.env.PORT || 5000;
 
 // Auto-sync database schema on startup
