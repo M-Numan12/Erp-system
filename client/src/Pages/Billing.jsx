@@ -79,6 +79,17 @@ export default function Billing({ type }) {
   const [viewSale, setViewSale] = useState(null);
   const [showCustomerSection, setShowCustomerSection] = useState(true);
   const [showTransportSection, setShowTransportSection] = useState(true);
+  const [showDiscountSection, setShowDiscountSection] = useState(false);
+  const [showDeliverySection, setShowDeliverySection] = useState(false);
+
+  useEffect(() => {
+    if (parseFloat(discount || 0) > 0) setShowDiscountSection(true);
+  }, [discount]);
+
+  useEffect(() => {
+    if (parseFloat(delivery || 0) > 0) setShowDeliverySection(true);
+  }, [delivery]);
+
   const [receiptData, setReceiptData] = useState(null);
   const [editId, setEditId] = useState(null);
   const [showLedgerModal, setShowLedgerModal] = useState(false);
@@ -810,8 +821,57 @@ export default function Billing({ type }) {
                         placeholder="Select Vehicles" 
                         maxSelectedLabels={3} 
                         className="w-full" 
+                        filter
                       />
                     )}
+                  </div>
+                )}
+              </div>
+
+              <div className="input-box mt-1">
+                <div className="flex justify-content-between align-items-center" onClick={() => setShowDiscountSection(!showDiscountSection)} style={{ cursor: 'pointer', paddingBottom: showDiscountSection ? '6px' : '0' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', margin: 0, fontWeight: 700 }}>
+                    <Tag size={14}/> Discount (Rs)
+                  </label>
+                  <Button icon={showDiscountSection ? "pi pi-chevron-up" : "pi pi-chevron-down"} className="p-button-text p-button-rounded p-button-sm" style={{ padding: '0', width: '24px', height: '24px', color: '#64748b' }} onClick={(e) => { e.stopPropagation(); setShowDiscountSection(!showDiscountSection); }} />
+                </div>
+                {showDiscountSection && (
+                  <div className="flex flex-column gap-2 mb-2">
+                    <div className="p-inputgroup">
+                      <span className="p-inputgroup-addon font-bold" style={{color: '#ef4444', minWidth: '40px', display: 'flex', justifyContent: 'center'}}>Rs</span>
+                      <InputText type="text" inputMode="numeric" pattern="[0-9]*"
+                                value={discount} 
+                                onChange={(e) => {
+                                  const val = e.target.value.replace(/\D/g, "");
+                                  setDiscount(val ? parseInt(val) : 0);
+                                }} 
+                                placeholder="Discount Amount"
+                                className="font-bold text-center" />
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div className="input-box mt-1">
+                <div className="flex justify-content-between align-items-center" onClick={() => setShowDeliverySection(!showDeliverySection)} style={{ cursor: 'pointer', paddingBottom: showDeliverySection ? '6px' : '0' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', margin: 0, fontWeight: 700 }}>
+                    <Truck size={14}/> Delivery Charges (Rs)
+                  </label>
+                  <Button icon={showDeliverySection ? "pi pi-chevron-up" : "pi pi-chevron-down"} className="p-button-text p-button-rounded p-button-sm" style={{ padding: '0', width: '24px', height: '24px', color: '#64748b' }} onClick={(e) => { e.stopPropagation(); setShowDeliverySection(!showDeliverySection); }} />
+                </div>
+                {showDeliverySection && (
+                  <div className="flex flex-column gap-2 mb-2">
+                    <div className="p-inputgroup">
+                      <span className="p-inputgroup-addon font-bold" style={{color: '#3b82f6', minWidth: '40px', display: 'flex', justifyContent: 'center'}}>Rs</span>
+                      <InputText type="text" inputMode="numeric" pattern="[0-9]*"
+                                value={delivery} 
+                                onChange={(e) => {
+                                  const val = e.target.value.replace(/\D/g, "");
+                                  setDelivery(val ? parseInt(val) : 0);
+                                }} 
+                                placeholder="Delivery Charges"
+                                className="font-bold text-center" />
+                    </div>
                   </div>
                 )}
               </div>
@@ -895,31 +955,11 @@ export default function Billing({ type }) {
                 </div>
                 <div className="calc-row">
                   <span>Discount</span>
-                  <div className="p-inputgroup p-inputgroup-sm" style={{width: String(discount || '').length > 5 ? '140px' : '110px', transition: 'width 0.2s'}}>
-                    <span className="p-inputgroup-addon font-bold" style={{color: '#ef4444', fontSize: '0.75rem', padding: '0 4px'}}>Rs</span>
-                    <InputText type="text" inputMode="numeric" pattern="[0-9]*"
-                              value={discount} 
-                              onChange={(e) => {
-                                const val = e.target.value.replace(/\D/g, "");
-                                setDiscount(val ? parseInt(val) : 0);
-                              }} 
-                              className="font-bold text-center" 
-                              style={{fontSize: String(discount || '').length > 8 ? '0.65rem' : String(discount || '').length > 5 ? '0.75rem' : '0.85rem', transition: 'font-size 0.2s'}} />
-                  </div>
+                  <span className="font-bold text-red-500">Rs. {parseFloat(discount || 0).toLocaleString()}</span>
                 </div>
                 <div className="calc-row">
                   <span>Delivery</span>
-                  <div className="p-inputgroup p-inputgroup-sm" style={{width: String(delivery || '').length > 5 ? '140px' : '110px', transition: 'width 0.2s'}}>
-                    <span className="p-inputgroup-addon font-bold" style={{color: '#3b82f6', fontSize: '0.75rem', padding: '0 4px'}}>Rs</span>
-                    <InputText type="text" inputMode="numeric" pattern="[0-9]*"
-                              value={delivery} 
-                              onChange={(e) => {
-                                const val = e.target.value.replace(/\D/g, "");
-                                setDelivery(val ? parseInt(val) : 0);
-                              }} 
-                              className="font-bold text-center" 
-                              style={{fontSize: String(delivery || '').length > 8 ? '0.65rem' : String(delivery || '').length > 5 ? '0.75rem' : '0.85rem', transition: 'font-size 0.2s'}} />
-                  </div>
+                  <span className="font-bold text-blue-500">Rs. {parseFloat(delivery || 0).toLocaleString()}</span>
                 </div>
                 <div className="grand-total">
                   <span>Total</span>
@@ -1793,6 +1833,7 @@ export default function Billing({ type }) {
                           placeholder="Optional Vehicle"
                           showClear
                           appendTo="self"
+                          filter
                         />
                       </div>
                       <div className="col-5">
