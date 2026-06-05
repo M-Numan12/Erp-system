@@ -228,7 +228,7 @@ export default function Staff({ type }) {
 
   return (
     <div className="module-page">
-      <div className="module-header">
+      <div className="module-header no-print">
         <div className="module-title">
           <button className="btn-icon back-btn" onClick={() => window.history.back()} style={{marginRight: '15px', background: '#f1f5f9', border: '1px solid #e2e8f0', borderRadius: '50%', width: '36px', height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#475569', transition: 'all 0.2s'}}>
             <ChevronLeft size={20} />
@@ -245,7 +245,7 @@ export default function Staff({ type }) {
         </button>
       </div>
 
-      <div className="stats-grid-pos">
+      <div className="stats-grid-pos no-print">
         <div className="pos-stat-card">
           <div className="icon blue"><UsersIcon size={24} /></div>
           <div className="info">
@@ -269,14 +269,14 @@ export default function Staff({ type }) {
         </div>
       </div>
 
-      <div className="pos-table-actions">
+      <div className="pos-table-actions no-print">
         <div className="search-bar">
           <Search size={18} />
           <input type="text" placeholder="Search by name or phone..." value={search} onChange={(e) => setSearch(e.target.value)} />
         </div>
       </div>
 
-      <div className="module-table-container" style={{padding: '20px', background: 'white', borderRadius: '16px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)'}}>
+      <div className="module-table-container no-print" style={{padding: '20px', background: 'white', borderRadius: '16px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)'}}>
         <DataTable value={filtered} paginator rows={10} rowsPerPageOptions={[5, 10, 25, 50]} 
                    emptyMessage="No staff found." className="p-datatable-sm" stripedRows>
           <Column field="id" header="ID" body={(rec) => <span style={{fontWeight: 600, color: '#64748b'}}>#{rec.id}</span>} sortable style={{ width: '80px' }} />
@@ -377,15 +377,122 @@ export default function Staff({ type }) {
       {showLedgerModal && selectedStaff && (
         <div className="modal-overlay" onClick={() => setShowLedgerModal(false)}>
           <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '1000px', width: '95%' }}>
-            <div className="modal-header">
+            <div className="modal-header no-print">
               <div className="header-info" style={{display:'flex', alignItems:'center', gap:'12px'}}>
                 <UsersIcon size={24} color="#3b82f6" />
                 <h3>Staff Ledger: {selectedStaff.name}</h3>
               </div>
-              <button className="modal-close" onClick={() => setShowLedgerModal(false)}><X size={20} /></button>
+              <div style={{display:'flex', gap:'10px'}}>
+                <button className="btn-secondary" onClick={() => window.print()} style={{padding: '6px 12px', display:'flex', alignItems:'center', gap:'6px'}}>
+                  <Printer size={16} /> Print Ledger
+                </button>
+                <button className="modal-close" onClick={() => setShowLedgerModal(false)}><X size={20} /></button>
+              </div>
             </div>
 
-            <div className="detail-body" style={{padding: '24px'}}>
+            {/* Print Only Ledger Report */}
+            <div className="ledger-report print-only" style={{padding: '20px', color: 'black'}}>
+              <div style={{textAlign: 'center', marginBottom: '20px', borderBottom: '2px solid #000', paddingBottom: '10px'}}>
+                {activeTab === 'Retail 2' ? (
+                  <>
+                    <h2 style={{margin: 0}}>DATA WALEY</h2>
+                    <h3 style={{fontSize: '15px', fontWeight: 'normal', margin: '2px 0 8px 0'}}>RETAIL 2</h3>
+                    <div style={{fontSize: '12px', margin: '5px 0'}}>
+                      <p style={{margin: '2px 0'}}>Waqar Butt: 0311-4105840</p>
+                      <p style={{margin: '2px 0'}}>Mhd Aiss: 0335-1430216</p>
+                      <p style={{margin: '2px 0'}}>Saifullah: 0333-4714628</p>
+                    </div>
+                    <p style={{fontSize: '11px', margin: '5px 0'}}>
+                      Ada Treadywali Stop Main Jaranwala Road,<br/>
+                      District Sheikupura.
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <h2 style={{margin: 0}}>DATA WALEY</h2>
+                    <h3 style={{fontSize: '15px', fontWeight: 'normal', margin: '2px 0 8px 0'}}>CEMENT DEALER</h3>
+                    <div style={{fontSize: '12px', margin: '5px 0'}}>
+                      <p style={{margin: '2px 0'}}>Tariq Mehmood: 0300-4269347</p>
+                      <p style={{margin: '2px 0'}}>Mian Shehroz: 0335-4294300</p>
+                      <p style={{margin: '2px 0'}}>Ziaullah: 0322-4295106</p>
+                    </div>
+                    <p style={{fontSize: '11px', margin: '5px 0'}}>
+                      12-KM Main Lahore Sheikhupura Road,<br/>
+                      Ada Kot Abdul Malik.
+                    </p>
+                  </>
+                )}
+                <p style={{margin: '10px 0 5px 0', borderTop: '1px dashed #cbd5e1', paddingTop: '5px'}}>Staff Ledger Statement</p>
+                <div style={{display: 'flex', justifyContent: 'space-between', marginTop: '15px', fontSize: '14px'}}>
+                  <span><strong>Staff Name:</strong> {selectedStaff.name}</span>
+                  <span><strong>Phone:</strong> {selectedStaff.phone || '—'}</span>
+                  <span><strong>Print Date:</strong> {new Date().toLocaleDateString()}</span>
+                </div>
+              </div>
+
+              <table style={{width: '100%', borderCollapse: 'collapse', marginTop: '10px'}}>
+                <thead>
+                  <tr style={{background: '#f1f5f9'}}>
+                    <th style={{border: '1px solid #cbd5e1', padding: '8px', textAlign: 'left', width: '50px'}}>S.No</th>
+                    <th style={{border: '1px solid #cbd5e1', padding: '8px', textAlign: 'left'}}>Date</th>
+                    <th style={{border: '1px solid #cbd5e1', padding: '8px', textAlign: 'left'}}>Description</th>
+                    <th style={{border: '1px solid #cbd5e1', padding: '8px', textAlign: 'left'}}>Payment Method</th>
+                    <th style={{border: '1px solid #cbd5e1', padding: '8px', textAlign: 'right'}}>Advance (+)</th>
+                    <th style={{border: '1px solid #cbd5e1', padding: '8px', textAlign: 'right'}}>Return (-)</th>
+                    <th style={{border: '1px solid #cbd5e1', padding: '8px', textAlign: 'right'}}>Running Balance</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr style={{background: '#f8fafc', fontStyle: 'italic'}}>
+                    <td style={{border: '1px solid #cbd5e1', padding: '8px'}}>—</td>
+                    <td style={{border: '1px solid #cbd5e1', padding: '8px'}}>Opening</td>
+                    <td colSpan="2" style={{border: '1px solid #cbd5e1', padding: '8px'}}>Opening Balance Brought Forward</td>
+                    <td colSpan="2" style={{border: '1px solid #cbd5e1', padding: '8px'}}>—</td>
+                    <td style={{border: '1px solid #cbd5e1', padding: '8px', textAlign: 'right', fontWeight: 'bold'}}>
+                      Rs. {Math.abs(parseFloat(selectedStaff.opening_balance)).toLocaleString()} {parseFloat(selectedStaff.opening_balance) > 0 ? 'Dr' : 'Cr'}
+                    </td>
+                  </tr>
+                  
+                  {ledgerData.map((row, index) => (
+                    <tr key={row.id}>
+                      <td style={{border: '1px solid #cbd5e1', padding: '8px'}}>{index + 1}</td>
+                      <td style={{border: '1px solid #cbd5e1', padding: '8px'}}>{new Date(row.date).toLocaleDateString()}</td>
+                      <td style={{border: '1px solid #cbd5e1', padding: '8px'}}>{row.description}</td>
+                      <td style={{border: '1px solid #cbd5e1', padding: '8px'}}>{row.payment_method}</td>
+                      <td style={{border: '1px solid #cbd5e1', padding: '8px', textAlign: 'right', color: 'green'}}>
+                        {parseFloat(row.debit) > 0 ? parseFloat(row.debit).toLocaleString() : '—'}
+                      </td>
+                      <td style={{border: '1px solid #cbd5e1', padding: '8px', textAlign: 'right', color: 'red'}}>
+                        {parseFloat(row.credit) > 0 ? parseFloat(row.credit).toLocaleString() : '—'}
+                      </td>
+                      <td style={{border: '1px solid #cbd5e1', padding: '8px', textAlign: 'right', fontWeight: 'bold'}}>
+                        Rs. {Math.abs(parseFloat(row.balance || 0)).toLocaleString()} {parseFloat(row.balance || 0) > 0 ? 'Dr' : 'Cr'}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+                <tfoot>
+                  <tr style={{background: '#f8fafc', fontWeight: 'bold'}}>
+                    <td colSpan="4" style={{border: '1px solid #cbd5e1', padding: '8px', textAlign: 'right'}}>Final Outstanding Balance:</td>
+                    <td style={{border: '1px solid #cbd5e1', padding: '8px', textAlign: 'right', color: 'green'}}>
+                      Rs. {ledgerData.reduce((sum,r)=>sum+parseFloat(r.debit||0),0).toLocaleString()}
+                    </td>
+                    <td style={{border: '1px solid #cbd5e1', padding: '8px', textAlign: 'right', color: 'red'}}>
+                      Rs. {ledgerData.reduce((sum,r)=>sum+parseFloat(r.credit||0),0).toLocaleString()}
+                    </td>
+                    <td style={{border: '1px solid #cbd5e1', padding: '8px', textAlign: 'right', color: parseFloat(selectedStaff.current_balance) > 0 ? 'green' : 'red'}}>
+                      Rs. {Math.abs(parseFloat(selectedStaff.current_balance)).toLocaleString()} ({parseFloat(selectedStaff.current_balance) > 0 ? 'Advance' : 'Payable'})
+                    </td>
+                  </tr>
+                </tfoot>
+              </table>
+              <div style={{marginTop: '40px', display: 'flex', justifyContent: 'space-between'}}>
+                <div style={{borderTop: '1px solid #000', width: '200px', textAlign: 'center', paddingTop: '5px'}}>Staff Signature</div>
+                <div style={{borderTop: '1px solid #000', width: '200px', textAlign: 'center', paddingTop: '5px'}}>Authorized Official</div>
+              </div>
+            </div>
+
+            <div className="detail-body no-print" style={{padding: '24px'}}>
               <div className="stats-mini-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px', marginBottom: '24px' }}>
                 <div className="stat-item" style={{ background: '#f8fafc', padding: '16px', borderRadius: '12px', border: '1px solid #f1f5f9' }}>
                   <div style={{ fontSize: '0.75rem', color: '#64748b', textTransform: 'uppercase', fontWeight: 600 }}>Total Records</div>
@@ -431,6 +538,10 @@ export default function Staff({ type }) {
                   </DataTable>
                 </div>
               )}
+            </div>
+
+            <div className="modal-footer no-print" style={{padding: '12px 20px', borderTop: '1px solid #e2e8f0', display: 'flex', justifyContent: 'flex-end'}}>
+              <button className="btn-secondary" onClick={() => setShowLedgerModal(false)}>Close Ledger</button>
             </div>
           </div>
         </div>
