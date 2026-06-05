@@ -46,7 +46,7 @@ export default function Accounts() {
     const recipientAccounts = accounts.filter(a => a.module_type === 'Admin Recipient');
     const targetModule = user?.role === 'admin' ? activeTab : (user?.module_type || 'Wholesale');
     const isRetailModule = targetModule === 'Retail 1' || targetModule === 'Retail 2';
-    const includeRecipients = user?.role === 'admin' && !isRetailModule;
+    const includeRecipients = !isRetailModule;
     return [
       ...accounts.filter(a => (a.module_type || 'Wholesale') === targetModule && (includeRecipients || a.module_type !== 'Admin Recipient')),
       ...(includeRecipients ? recipientAccounts : [])
