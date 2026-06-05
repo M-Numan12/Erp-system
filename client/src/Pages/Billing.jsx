@@ -98,6 +98,40 @@ export default function Billing({ type }) {
   const [ledgerTo, setLedgerTo] = useState("");
   const [ledgerFilter, setLedgerFilter] = useState("all");
   const [selectedCustForLedger, setSelectedCustForLedger] = useState(null);
+  const [ledgerSearch, setLedgerSearch] = useState("");
+
+  const filteredLedgerData = useMemo(() => {
+    if (!ledgerSearch.trim()) return calculatedLedgerData;
+    const term = ledgerSearch.toLowerCase();
+    return calculatedLedgerData.filter(row => {
+      const dateStr = new Date(row.created_at).toLocaleDateString().toLowerCase();
+      const debitStr = String(row.net_amount || 0);
+      const creditStr = String(row.paid_amount || 0);
+      const balanceStr = String(row.running_balance || 0);
+      
+      if (dateStr.includes(term) || debitStr.includes(term) || creditStr.includes(term) || balanceStr.includes(term)) {
+        return true;
+      }
+      
+      if (parseFloat(row.net_amount) > 0) {
+        if (`#sal-${row.id}`.includes(term) || `sal-${row.id}`.includes(term)) return true;
+        let items = [];
+        try {
+          items = typeof row.items === 'string' ? JSON.parse(row.items) : (row.items || []);
+        } catch (e) { items = []; }
+        for (const item of items) {
+          if ((item.name || '').toLowerCase().includes(term) || String(item.rate || '').includes(term)) return true;
+        }
+        if (parseFloat(row.delivery_charges || 0) > 0 && 'delivery'.includes(term)) return true;
+        if (parseFloat(row.discount || 0) > 0 && 'discount'.includes(term)) return true;
+      } else {
+        if (`#pay-${row.id}`.includes(term) || `pay-${row.id}`.includes(term)) return true;
+        if ('payment received'.includes(term)) return true;
+        if ((row.payment_type || '').toLowerCase().includes(term)) return true;
+      }
+      return false;
+    });
+  }, [calculatedLedgerData, ledgerSearch]);
   const [heldBills, setHeldBills] = useState(() => JSON.parse(localStorage.getItem('heldBills') || '[]'));
   const [showHoldModal, setShowHoldModal] = useState(false);
   const [salesDateFilter, setSalesDateFilter] = useState("Today");
@@ -567,6 +601,7 @@ export default function Billing({ type }) {
     setLedgerFrom(from);
     setLedgerTo(to);
     setLedgerFilter(filter);
+    setLedgerSearch("");
     setShowLedgerModal(true);
     setLoading(true);
     try {
@@ -1379,7 +1414,7 @@ export default function Billing({ type }) {
                   </tr>
                 </thead>
                 <tbody>
-                  {calculatedLedgerData.map((row, index) => (
+                  {filteredLedgerData.map((row, index) => (
                     <tr key={row.id}>
                       <td style={{border: '1px solid #cbd5e1', padding: '8px'}}>{index + 1}</td>
                       <td style={{border: '1px solid #cbd5e1', padding: '8px'}}>{new Date(row.created_at).toLocaleDateString()}</td>
@@ -1446,18 +1481,49 @@ export default function Billing({ type }) {
                 )}
               </div>
 
+              <div style={{marginBottom: '20px', display: 'flex', gap: '12px', alignItems: 'center'}}>
+                <div className="search-bar" style={{
+                  flex: 1,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  border: '1px solid #cbd5e1',
+                  borderRadius: '10px',
+                  padding: '8px 14px',
+                  background: 'white',
+                  boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
+                }}>
+                  <Search size={18} color="#64748b" />
+                  <input 
+                    type="text" 
+                    placeholder="Search transactions by date, bill/payment no, description or product name..." 
+                    value={ledgerSearch} 
+                    onChange={(e) => setLedgerSearch(e.target.value)} 
+                    style={{border: 'none', outline: 'none', width: '100%', fontSize: '0.9rem', color: '#1e293b'}}
+                  />
+                  {ledgerSearch && (
+                    <button 
+                      onClick={() => setLedgerSearch("")} 
+                      style={{background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0}}
+                    >
+                      <X size={16} />
+                    </button>
+                  )}
+                </div>
+              </div>
+
               <div className="stats-mini-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px', marginBottom: '24px' }}>
                 <div className="stat-item" style={{ background: '#f8fafc', padding: '16px', borderRadius: '12px', border: '1px solid #f1f5f9' }}>
                   <div style={{ fontSize: '0.75rem', color: '#64748b', textTransform: 'uppercase', fontWeight: 600 }}>Total Invoices</div>
-                  <div style={{ fontSize: '1.25rem', color: '#0f172a', fontWeight: 700 }}>{ledgerData.length}</div>
+                  <div style={{ fontSize: '1.25rem', color: '#0f172a', fontWeight: 700 }}>{filteredLedgerData.length}</div>
                 </div>
                 <div className="stat-item" style={{ background: '#f8fafc', padding: '16px', borderRadius: '12px', border: '1px solid #f1f5f9' }}>
                   <div style={{ fontSize: '0.75rem', color: '#64748b', textTransform: 'uppercase', fontWeight: 600 }}>Total Value</div>
-                  <div style={{ fontSize: '1.25rem', color: '#0f172a', fontWeight: 700 }}>Rs. {ledgerData.reduce((sum, item) => sum + parseFloat(item.net_amount), 0).toLocaleString()}</div>
+                  <div style={{ fontSize: '1.25rem', color: '#0f172a', fontWeight: 700 }}>Rs. {filteredLedgerData.reduce((sum, item) => sum + parseFloat(item.net_amount || 0), 0).toLocaleString()}</div>
                 </div>
                 <div className="stat-item" style={{ background: '#f0fdf4', padding: '16px', borderRadius: '12px', border: '1px solid #f1f5f9' }}>
                   <div style={{ fontSize: '0.75rem', color: '#64748b', textTransform: 'uppercase', fontWeight: 600 }}>Total Collected</div>
-                  <div style={{ fontSize: '1.25rem', color: '#16a34a', fontWeight: 700 }}>Rs. {ledgerData.reduce((sum, item) => sum + parseFloat(item.paid_amount), 0).toLocaleString()}</div>
+                  <div style={{ fontSize: '1.25rem', color: '#16a34a', fontWeight: 700 }}>Rs. {filteredLedgerData.reduce((sum, item) => sum + parseFloat(item.paid_amount || 0), 0).toLocaleString()}</div>
                 </div>
               </div>
 
@@ -1474,10 +1540,10 @@ export default function Billing({ type }) {
                     </tr>
                   </thead>
                   <tbody>
-                    {calculatedLedgerData.length === 0 ? (
+                    {filteredLedgerData.length === 0 ? (
                       <tr><td colSpan="6" className="empty-msg">No sales history found for this customer.</td></tr>
                     ) : (
-                      calculatedLedgerData.map((row, index) => (
+                      filteredLedgerData.map((row, index) => (
                         <tr key={row.id}>
                           <td style={{fontWeight: '700', color: '#64748b'}}>{index + 1}</td>
                           <td>{new Date(row.created_at).toLocaleDateString()}</td>
