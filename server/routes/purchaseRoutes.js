@@ -68,18 +68,18 @@ router.post('/', auth, async (req, res) => {
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
-    const { 
-      supplier_id, product_id, vehicle_number, quantity, rate, 
-      paid_amount, module_type, vehicle_id, delivery_charges, fare_status 
+    const {
+      supplier_id, product_id, vehicle_number, quantity, rate,
+      paid_amount, module_type, vehicle_id, delivery_charges, fare_status
     } = req.body;
-    
+
     const qty = parseFloat(quantity) || 0;
     const rt = parseFloat(rate) || 0;
     const paid = parseFloat(paid_amount) || 0;
     const fare = parseFloat(delivery_charges) || 0;
     const totalAmount = qty * rt;
     const balanceAmount = totalAmount - paid;
-    
+
     const finalModule = isAdmin(req) ? (module_type || 'Wholesale') : (req.user.module_type || 'Retail 1');
 
     // Find vehicle_id if not provided but number is present
@@ -120,9 +120,19 @@ router.post('/', auth, async (req, res) => {
 
       // Determine the correct expense_type based on vehicle ownership_type
       let expenseType = 'Supplier Vehicle';
-      if (vId) {
-        const vOwnerRes = await client.query('SELECT ownership_type FROM vehicles WHERE id = $1', [vId]);
-        if (vOwnerRes.rows.length > 0 && vOwnerRes.rows[0].ownership_type === 'Personal') {
+
+      if (req.body.vehicle_type === 'Personal') {
+        expenseType = 'Personal Vehicle';
+      } else if (vId) {
+        const vOwnerRes = await client.query(
+          'SELECT ownership_type FROM vehicles WHERE id = $1',
+          [vId]
+        );
+
+        if (
+          vOwnerRes.rows.length > 0 &&
+          String(vOwnerRes.rows[0].ownership_type).toLowerCase() === 'personal'
+        ) {
           expenseType = 'Personal Vehicle';
         }
       }
@@ -161,7 +171,7 @@ router.post('/payment', auth, async (req, res) => {
   try {
     await client.query('BEGIN');
     const { supplier_id, paid_amount, notes, module_type, payment_type } = req.body;
-    
+
     const paid = parseFloat(paid_amount) || 0;
     const finalModule = isAdmin(req) ? (module_type || 'Wholesale') : (req.user.module_type || 'Retail 1');
 
@@ -199,7 +209,7 @@ router.post('/adjustment', auth, async (req, res) => {
     const { supplier_id, amount, notes, type, module_type } = req.body;
     const amt = parseFloat(amount) || 0;
     const finalModule = isAdmin(req) ? (module_type || 'Wholesale') : (req.user.module_type || 'Retail 1');
-    
+
     let totalAmount = 0;
     let paidAmount = 0;
     let balanceImpact = 0;
@@ -300,19 +310,19 @@ router.post('/return', auth, async (req, res) => {
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
-    const { 
-      supplier_id, product_id, vehicle_number, vehicle_id, quantity, rate, 
-      received_amount, module_type, delivery_charges, fare_status 
+    const {
+      supplier_id, product_id, vehicle_number, vehicle_id, quantity, rate,
+      received_amount, module_type, delivery_charges, fare_status
     } = req.body;
-    
+
     const qty = parseFloat(quantity) || 0;
     const rt = parseFloat(rate) || 0;
     const refund = parseFloat(received_amount) || 0;
     const fare = parseFloat(delivery_charges) || 0;
-    
+
     const returnTotal = qty * rt;
     const balanceImpact = -(returnTotal - refund);
-    
+
     const finalModule = isAdmin(req) ? (module_type || 'Wholesale') : (req.user.module_type || 'Retail 1');
 
     let vId = vehicle_id;
