@@ -358,9 +358,19 @@ router.post('/return', auth, async (req, res) => {
 
       // Determine the correct expense_type based on vehicle ownership_type
       let returnExpenseType = 'Supplier Vehicle';
-      if (vId) {
-        const vOwnerRes2 = await client.query('SELECT ownership_type FROM vehicles WHERE id = $1', [vId]);
-        if (vOwnerRes2.rows.length > 0 && vOwnerRes2.rows[0].ownership_type === 'Personal') {
+
+      if (req.body.vehicle_type === 'Personal') {
+        returnExpenseType = 'Personal Vehicle';
+      } else if (vId) {
+        const vOwnerRes2 = await client.query(
+          'SELECT ownership_type FROM vehicles WHERE id = $1',
+          [vId]
+        );
+
+        if (
+          vOwnerRes2.rows.length > 0 &&
+          String(vOwnerRes2.rows[0].ownership_type).toLowerCase() === 'personal'
+        ) {
           returnExpenseType = 'Personal Vehicle';
         }
       }
