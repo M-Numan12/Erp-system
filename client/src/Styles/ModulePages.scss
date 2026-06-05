@@ -3591,6 +3591,23 @@ form {
     visibility: visible !important;
   }
 
+  /* If a thermal receipt/slip is being printed, hide any background ledger reports/dialogs */
+  body:has(.thermal-receipt) .ledger-report,
+  body:has(.thermal-receipt) .ledger-report *,
+  body:has(.print-bill-box) .ledger-report,
+  body:has(.print-bill-box) .ledger-report *,
+  body:has(#return-slip-print) .ledger-report,
+  body:has(#return-slip-print) .ledger-report *,
+  body:has(.thermal-receipt) .ledger-dialog,
+  body:has(.thermal-receipt) .ledger-dialog *,
+  body:has(.print-bill-box) .ledger-dialog,
+  body:has(.print-bill-box) .ledger-dialog *,
+  body:has(#return-slip-print) .ledger-dialog,
+  body:has(#return-slip-print) .ledger-dialog * {
+    visibility: hidden !important;
+    display: none !important;
+  }
+
   /* Position printed content absolute at the top-left of the page */
   .print-only,
   .ledger-report,
