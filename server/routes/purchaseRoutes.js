@@ -123,24 +123,28 @@ router.post('/', auth, async (req, res) => {
 
       if (req.body.vehicle_type === 'Personal') {
         expenseType = 'Personal Vehicle';
-      } else if (vId) {
+      }
+
+      if (vId) {
         const vOwnerRes = await client.query(
           'SELECT ownership_type FROM vehicles WHERE id = $1',
           [vId]
         );
 
-        if (
-          vOwnerRes.rows.length > 0 &&
-          String(vOwnerRes.rows[0].ownership_type).toLowerCase() === 'personal'
-        ) {
-          expenseType = 'Personal Vehicle';
+        if (vOwnerRes.rows.length > 0) {
+          const ownerType = String(vOwnerRes.rows[0].ownership_type).toLowerCase();
+          if (ownerType === 'personal') {
+            expenseType = 'Personal Vehicle';
+          } else if (ownerType === 'rent' || ownerType === 'external') {
+            expenseType = 'Supplier Vehicle';
+          }
         }
       }
 
-      // 5. Automatically record as an Expense with the correct type
+      // 5. Automatically record as an Expense with the correct type and link vehicle_id
       await client.query(
-        `INSERT INTO expenses (description, expense_type, category, amount, expense_date, notes, user_id, module_type, payment_type) 
-         VALUES ($1, $2, $3, $4, CURRENT_DATE, $5, $6, $7, $8)`,
+        `INSERT INTO expenses (description, expense_type, category, amount, expense_date, notes, user_id, module_type, payment_type, vehicle_id) 
+         VALUES ($1, $2, $3, $4, CURRENT_DATE, $5, $6, $7, $8, $9)`,
         [
           `Transport Fare: ${vehicle_number || 'Vehicle'}`,
           expenseType,
@@ -149,7 +153,8 @@ router.post('/', auth, async (req, res) => {
           JSON.stringify({ vehicle_id: vId, vehicle_number }),
           req.user.id,
           finalModule,
-          fare_status === 'Paid' ? 'Cash' : 'Pending'
+          fare_status === 'Paid' ? 'Cash' : 'Pending',
+          vId || null
         ]
       );
     }
