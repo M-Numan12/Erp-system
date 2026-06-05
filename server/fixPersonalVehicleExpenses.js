@@ -23,7 +23,7 @@ async function fixPersonalVehicleExpenses() {
       SET expense_type = 'Personal Vehicle'
       FROM vehicles v
       WHERE e.vehicle_id = v.id
-        AND v.ownership_type = 'Personal'
+        AND COALESCE(v.ownership_type, 'Personal') = 'Personal'
         AND e.expense_type = 'Supplier Vehicle'
       RETURNING e.id, e.description, e.vehicle_id
     `);
@@ -43,7 +43,7 @@ async function fixPersonalVehicleExpenses() {
           e.description LIKE 'Transport Fare: ' || v.vehicle_number
           OR e.description LIKE 'Return Transport Fare: ' || v.vehicle_number
         )
-        AND v.ownership_type = 'Personal'
+        AND COALESCE(v.ownership_type, 'Personal') = 'Personal'
         AND (v.is_deleted IS NOT TRUE)
       RETURNING e.id, e.description
     `);
