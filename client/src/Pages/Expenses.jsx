@@ -201,8 +201,10 @@ export default function Expenses({ type }) {
     } catch (err) { console.error(err); }
   };
 
-  const filtered = records.filter(r => {
-    const matchType = filterType === "All" ? true : filterType === "Pending Only" ? r.payment_type === 'Pending' : r.expense_type === filterType;
+const filtered = records.filter(r => {
+
+
+    const matchType = filterType === "All" ? true : filterType === "Pending Only" ? r.payment_type === 'Pending' : filterType === "Supplier Vehicle" ? (r.expense_type === "Supplier Vehicle" && !personalVehicles.some(v => `${v.vehicle_number} (${v.driver_name})` === r.category)) : r.expense_type === filterType;
     const matchSearch = r.title.toLowerCase().includes(search.toLowerCase()) || 
                         (r.category || "").toLowerCase().includes(search.toLowerCase());
     
@@ -284,14 +286,14 @@ export default function Expenses({ type }) {
           <div className="icon blue" style={{ background: '#ecfeff', color: '#0891b2' }}><Truck size={24} /></div>
           <div className="info">
             <span className="label">Personal Veh.</span>
-            <span className="value">Rs. {filtered.filter(r => r.expense_type === "Personal Vehicle" && r.payment_type !== 'Pending').reduce((sum, r) => sum + parseFloat(r.amount), 0).toLocaleString()}</span>
+            <span className="value">Rs. {filtered.filter(r => r.expense_type === "Personal Vehicle").reduce((sum, r) => sum + parseFloat(r.amount), 0).toLocaleString()}</span>
           </div>
         </div>
         <div className="pos-stat-card">
           <div className="icon orange" style={{ background: '#fff7ed', color: '#c2410c' }}><Truck size={24} /></div>
           <div className="info">
             <span className="label">Supplier Veh.</span>
-            <span className="value">Rs. {filtered.filter(r => (r.expense_type === "Supplier Vehicle" || r.category === 'Transport') && r.payment_type !== 'Pending').reduce((sum, r) => sum + parseFloat(r.amount), 0).toLocaleString()}</span>
+            <span className="value">Rs. {filtered.filter(r => r.expense_type === "Supplier Vehicle" && r.expense_type !== "Personal Vehicle" && !personalVehicles.some(v => `${v.vehicle_number} (${v.driver_name})` === r.category) && r.payment_type !== 'Pending').reduce((sum, r) => sum + parseFloat(r.amount), 0).toLocaleString()}</span>
           </div>
         </div>
         <div className="pos-stat-card">
