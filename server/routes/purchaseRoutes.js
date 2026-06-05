@@ -123,9 +123,7 @@ router.post('/', auth, async (req, res) => {
 
       if (req.body.vehicle_type === 'Personal') {
         expenseType = 'Personal Vehicle';
-      }
-
-      if (vId) {
+      } else if (vId) {
         const vOwnerRes = await client.query(
           'SELECT ownership_type FROM vehicles WHERE id = $1',
           [vId]
@@ -381,8 +379,8 @@ router.post('/return', auth, async (req, res) => {
       }
 
       await client.query(
-        `INSERT INTO expenses (description, expense_type, category, amount, expense_date, notes, user_id, module_type, payment_type) 
-         VALUES ($1, $2, $3, $4, CURRENT_DATE, $5, $6, $7, $8)`,
+        `INSERT INTO expenses (description, expense_type, category, amount, expense_date, notes, user_id, module_type, payment_type, vehicle_id) 
+         VALUES ($1, $2, $3, $4, CURRENT_DATE, $5, $6, $7, $8, $9)`,
         [
           `Return Transport Fare: ${vehicle_number || 'Vehicle'}`,
           returnExpenseType,
@@ -391,7 +389,8 @@ router.post('/return', auth, async (req, res) => {
           JSON.stringify({ vehicle_id: vId, vehicle_number }),
           req.user.id,
           finalModule,
-          fare_status === 'Paid' ? 'Cash' : 'Pending'
+          fare_status === 'Paid' ? 'Cash' : 'Pending',
+          vId || null
         ]
       );
     }
