@@ -21,6 +21,47 @@ export default function Accounts() {
               acc.bank_name?.toLowerCase() === 'cash account');
   };
 
+  const checkAccountMatch = (cleanMethod, bankAccount) => {
+    if (!cleanMethod || !bankAccount) return false;
+    const cl = cleanMethod.replace(/^bank\s*-\s*/i, '').toLowerCase().trim();
+    
+    // If it's a cash check
+    if (cl === '' || cl.startsWith('cash') || cl.startsWith('credit') || cl === 'cash account') {
+      return checkIsCash(bankAccount);
+    }
+    
+    if (checkIsCash(bankAccount)) return false;
+
+    // Match by last 4 digits of account number
+    const digits = bankAccount.account_number ? bankAccount.account_number.slice(-4) : '';
+    if (digits && cl.includes(digits)) {
+      return true;
+    }
+
+    const bl = (bankAccount.bank_name || '').toLowerCase().trim();
+    
+    // Exact or contains match
+    if (cl.includes(bl) || bl.includes(cl)) {
+      return true;
+    }
+
+    // Normalize strings by removing non-alphanumeric characters
+    const normCl = cl.replace(/[^a-z0-9]/g, '');
+    const normBl = bl.replace(/[^a-z0-9]/g, '');
+    
+    if (normCl && normBl && (normCl.includes(normBl) || normBl.includes(normCl))) {
+      return true;
+    }
+
+    // Special prefix match for jazz / jazz cash
+    if (normCl.startsWith('jazz') && normBl.startsWith('jazz')) {
+      return true;
+    }
+
+    return false;
+  };
+
+
   // State for bank accounts
   const [accounts, setAccounts] = useState([]);
   const [form, setForm] = useState({ bank_name: "", account_title: "", account_number: "", opening_balance: "" });
@@ -134,12 +175,11 @@ export default function Accounts() {
 
   const getSourceBalance = (method) => {
     if (!method) return 0;
-    if (method.toLowerCase() === 'cash') return totalCash;
-    const match = filteredAccounts.find(b => {
-      const bName = (b.bank_name || '').toLowerCase();
-      const mName = method.toLowerCase();
-      return bName.includes(mName) || mName.includes(bName);
-    });
+    const cleanPT = method.replace(/^Bank - /i, '').toLowerCase().trim();
+    if (cleanPT.startsWith('cash') || cleanPT.startsWith('credit') || cleanPT === '') {
+      return totalCash;
+    }
+    const match = filteredAccounts.find(b => checkAccountMatch(method, b));
     if (match) return paymentSummary[match.id] || 0;
     const summaryKey = Object.keys(paymentSummary).find(k => k.toLowerCase() === method.toLowerCase());
     return summaryKey ? paymentSummary[summaryKey] : 0;
@@ -624,23 +664,15 @@ export default function Accounts() {
       if (s.payment_type === 'Deduction') return acc;
       if (s.payment_type === 'Deduction') return acc;
       const method = s.payment_type || 'Cash';
-      let cleanMethod = method.replace('Bank - ', '').trim();
       
-      const normMethod = cleanMethod.toLowerCase().trim();
-      const isCash = normMethod.startsWith('cash') || normMethod.startsWith('credit') || normMethod === '';
       let targetKey = 'UNMATCHED_GHOST';
+      const cleanPT = method.replace(/^Bank - /i, '').toLowerCase().trim();
+      const isCash = cleanPT.startsWith('cash') || cleanPT.startsWith('credit') || cleanPT === '';
       
       if (isCash) {
          targetKey = 'Cash';
       } else {
-         const match = filteredAccounts.find(b => {
-             const cl = cleanMethod.toLowerCase().trim();
-             if (cl === 'cash' || cl === 'cash account') return false;
-             const digits = b.account_number ? b.account_number.slice(-4) : '';
-             if (digits && cl.includes(digits)) return true;
-             const bl = b.bank_name.toLowerCase();
-             return cl.includes(bl) || bl.includes(cl);
-         });
+         const match = filteredAccounts.find(b => checkAccountMatch(method, b));
          if (match) targetKey = match.id;
       }
       
@@ -736,36 +768,11 @@ export default function Accounts() {
     }).filter(s => {
         if (!selectedLedgerAccount) return false;
         
-        let method = (s.payment_type || 'Cash').replace('Bank - ', '');
-        const normMethod = method.toLowerCase().trim();
-        if (normMethod.startsWith('cash') || normMethod.startsWith('credit') || normMethod === '') {
-          method = 'Cash';
-        }
-        
-        const isAccCash = selectedLedgerAccount.isCash || selectedLedgerAccount.bank_name.toLowerCase() === 'cash' || selectedLedgerAccount.bank_name.toLowerCase() === 'cash account';
-        
         if (selectedLedgerAccount.module_type === 'Admin Recipient') {
           return (s.customer_name === 'Received Galla Handover' || s.customer_name === 'Sent Admin Payment') && s.notes?.includes(selectedLedgerAccount.bank_name) && s.notes?.includes(selectedLedgerAccount.account_number);
         }
 
-        let accountMatch = false;
-        if (isAccCash) {
-          accountMatch = (method === 'Cash');
-        } else {
-          const cleanM = method.toLowerCase().trim();
-          if (cleanM.startsWith('cash') || cleanM.startsWith('credit') || cleanM === '') {
-             accountMatch = false;
-          } else {
-             const accDigits = selectedLedgerAccount.account_number ? selectedLedgerAccount.account_number.slice(-4) : '';
-             if (accDigits && cleanM.includes(accDigits)) {
-                accountMatch = true;
-             } else {
-                const targetB = selectedLedgerAccount.bank_name.toLowerCase();
-                accountMatch = cleanM.includes(targetB) || targetB.includes(cleanM);
-             }
-          }
-        }
-        
+        const accountMatch = checkAccountMatch(s.payment_type || 'Cash', selectedLedgerAccount);
         if (!accountMatch) return false;
   
         const saleDate = new Date(s.created_at || s.purchase_date || s.date);
@@ -882,17 +889,7 @@ export default function Accounts() {
       if (acc.module_type === 'Admin Recipient') {
         return (s.customer_name === 'Received Galla Handover' || s.customer_name === 'Sent Admin Payment') && s.notes?.includes(acc.bank_name) && s.notes?.includes(acc.account_number);
       }
-      const payType = (s.payment_type || 'Cash').replace('Bank - ', '');
-      const cleanPT = payType.toLowerCase().trim();
-      if (isCash) {
-         return cleanPT.startsWith('cash') || cleanPT.startsWith('credit') || cleanPT === '';
-      } else {
-         if (cleanPT.startsWith('cash') || cleanPT.startsWith('credit') || cleanPT === '') return false;
-         const accDig = acc.account_number ? acc.account_number.slice(-4) : '';
-         if (accDig && cleanPT.includes(accDig)) return true;
-         const bLower = acc.bank_name.toLowerCase();
-         return cleanPT.includes(bLower) || bLower.includes(cleanPT);
-      }
+      return checkAccountMatch(s.payment_type || 'Cash', acc);
     }).sort((a, b) => new Date(b.created_at || b.purchase_date || b.date) - new Date(a.created_at || a.purchase_date || a.date));
 
     return accountTransactions.slice(0, 3);
