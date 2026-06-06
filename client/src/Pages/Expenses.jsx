@@ -495,9 +495,11 @@ const filtered = records.filter(r => {
                 <div className="form-group">
                   <label style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <span>Payment Source *</span>
-                    <span style={{ fontSize: '0.8rem', fontWeight: 800, color: (liveBalances['Cash'] || 0) < 0 ? '#ef4444' : '#16a34a' }}>
-                      Cash Bal: Rs. {(liveBalances['Cash'] || 0).toLocaleString()}
-                    </span>
+                    {form.payment_source !== 'Bank' && (
+                      <span style={{ fontSize: '0.8rem', fontWeight: 800, color: (liveBalances['Cash'] || 0) < 0 ? '#ef4444' : '#16a34a' }}>
+                        Cash Bal: Rs. {(liveBalances['Cash'] || 0).toLocaleString()}
+                      </span>
+                    )}
                   </label>
                   <div className="input-wrapper">
                     <Wallet size={18} />

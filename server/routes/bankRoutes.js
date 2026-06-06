@@ -21,7 +21,7 @@ router.get('/balances', auth, async (req, res) => {
       params.push(userId, targetModule);
     } else {
       // Admins fetch all relevant accounts for this context
-      accountsQ += " WHERE COALESCE(module_type, 'Wholesale') = $1 OR module_type = 'Admin Recipient'";
+      accountsQ += " WHERE COALESCE(module_type, 'Wholesale') = $1";
       params.push(targetModule);
     }
     const accountsRes = await pool.query(accountsQ, params);
@@ -230,7 +230,7 @@ router.get('/balance/:method', auth, async (req, res) => {
       accountsQ += " WHERE user_id = $1 OR COALESCE(module_type, 'Wholesale') = $2";
       params.push(userId, finalModule);
     } else {
-      accountsQ += " WHERE COALESCE(module_type, 'Wholesale') = $1 OR module_type = 'Admin Recipient'";
+      accountsQ += " WHERE COALESCE(module_type, 'Wholesale') = $1";
       params.push(finalModule);
     }
     const accountsRes = await pool.query(accountsQ, params);
