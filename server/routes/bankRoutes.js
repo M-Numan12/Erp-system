@@ -42,7 +42,7 @@ router.get('/balances', auth, async (req, res) => {
       if (!methodName) return 'Cash';
       let clean = methodName.replace('Bank - ', '').trim();
       const norm = clean.toLowerCase();
-      if (norm.includes('cash') || norm === 'cash account' || norm.startsWith('credit') || norm === '') return 'Cash';
+      if (norm.startsWith('cash') || norm === 'cash account' || norm.startsWith('credit') || norm === '') return 'Cash';
       
       const keys = Object.keys(balances);
       const match = keys.find(k => {
@@ -251,7 +251,7 @@ router.get('/balance/:method', auth, async (req, res) => {
       if (!methodName) return 'Cash';
       let clean = methodName.replace('Bank - ', '').trim();
       const norm = clean.toLowerCase();
-      if (norm.includes('cash') || norm === 'cash account' || norm.startsWith('credit') || norm === '') return 'Cash';
+      if (norm.startsWith('cash') || norm === 'cash account' || norm.startsWith('credit') || norm === '') return 'Cash';
       
       const keys = Object.keys(balances);
       const match = keys.find(k => {
