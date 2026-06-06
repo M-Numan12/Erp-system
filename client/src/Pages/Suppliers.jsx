@@ -105,7 +105,8 @@ export default function Suppliers({ type }) {
               setSelectedBank("");
             } else {
               const positiveBanks = bankAccounts.filter(b => {
-                if (b.bank_name.toLowerCase().includes('cash')) return false;
+                const name = b.bank_name.toLowerCase().trim();
+                if (name === 'cash' || name === 'cash account') return false;
                 const digits = b.account_number ? b.account_number.slice(-4) : '';
                 const key = `${b.bank_name} ${digits ? `(****${digits})` : ''}`;
                 return (data[key] || 0) > 0;
@@ -1027,7 +1028,8 @@ export default function Suppliers({ type }) {
                 >
                   <option value="Cash">Main Cash (Counter)</option>
                   {bankAccounts.some(b => {
-                    if (b.bank_name.toLowerCase().includes('cash')) return false;
+                    const name = b.bank_name.toLowerCase().trim();
+                    if (name === 'cash' || name === 'cash account') return false;
                     return (b.module_type || 'Wholesale') === activeTab;
                   }) && (
                     <option value="Bank">Bank / Online Account</option>

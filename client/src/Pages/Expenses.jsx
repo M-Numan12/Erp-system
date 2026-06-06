@@ -64,7 +64,8 @@ export default function Expenses({ type }) {
                 setForm(prev => ({ ...prev, payment_source: "Cash", bank_name: "" }));
               } else {
                 const positiveBanks = banks.filter(b => {
-                  if (b.bank_name.toLowerCase().includes('cash')) return false;
+                  const name = b.bank_name.toLowerCase().trim();
+                  if (name === 'cash' || name === 'cash account') return false;
                   const digits = b.account_number ? b.account_number.slice(-4) : '';
                   const key = `${b.bank_name} ${digits ? `(****${digits})` : ''}`;
                   return (data[key] || 0) > 0;
@@ -85,7 +86,8 @@ export default function Expenses({ type }) {
                 setPayForm(prev => ({ ...prev, source: "Cash", bank: "" }));
               } else {
                 const positiveBanks = banks.filter(b => {
-                  if (b.bank_name.toLowerCase().includes('cash')) return false;
+                  const name = b.bank_name.toLowerCase().trim();
+                  if (name === 'cash' || name === 'cash account') return false;
                   const digits = b.account_number ? b.account_number.slice(-4) : '';
                   const key = `${b.bank_name} ${digits ? `(****${digits})` : ''}`;
                   return (data[key] || 0) > 0;
@@ -505,7 +507,8 @@ const filtered = records.filter(r => {
                     >
                       <option value="Cash">Cash Payment</option>
                       {banks.some(b => {
-                        if (b.bank_name.toLowerCase().includes('cash')) return false;
+                        const name = b.bank_name.toLowerCase().trim();
+                        if (name === 'cash' || name === 'cash account') return false;
                         return (b.module_type || 'Wholesale') === activeTab;
                       }) && (
                         <option value="Bank">Bank Transfer</option>
@@ -600,7 +603,8 @@ const filtered = records.filter(r => {
                 >
                   <option value="Cash">Main Cash (Counter)</option>
                   {banks.some(b => {
-                    if (b.bank_name.toLowerCase().includes('cash')) return false;
+                    const name = b.bank_name.toLowerCase().trim();
+                    if (name === 'cash' || name === 'cash account') return false;
                     return (b.module_type || 'Wholesale') === activeTab;
                   }) && (
                     <option value="Bank">Bank / Online Account</option>

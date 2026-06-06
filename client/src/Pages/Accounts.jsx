@@ -626,15 +626,17 @@ export default function Accounts() {
       const method = s.payment_type || 'Cash';
       let cleanMethod = method.replace('Bank - ', '').trim();
       
-      const isCash = cleanMethod.toLowerCase().includes('cash') || cleanMethod === 'Cash Account';
+      const normMethod = cleanMethod.toLowerCase().trim();
+      const isCash = normMethod === 'cash' || normMethod === 'cash account';
       let targetKey = 'UNMATCHED_GHOST';
       
       if (isCash) {
          targetKey = 'Cash';
       } else {
          const match = filteredAccounts.find(b => {
+             const cl = cleanMethod.toLowerCase().trim();
+             if (cl === 'cash' || cl === 'cash account') return false;
              const digits = b.account_number ? b.account_number.slice(-4) : '';
-             const cl = cleanMethod.toLowerCase();
              if (digits && cl.includes(digits)) return true;
              const bl = b.bank_name.toLowerCase();
              return cl.includes(bl) || bl.includes(cl);
@@ -735,7 +737,8 @@ export default function Accounts() {
         if (!selectedLedgerAccount) return false;
         
         let method = (s.payment_type || 'Cash').replace('Bank - ', '');
-        if (method === 'Cash Account' || method.toLowerCase().includes('cash')) {
+        const normMethod = method.toLowerCase().trim();
+        if (normMethod === 'cash' || normMethod === 'cash account') {
           method = 'Cash';
         }
         
@@ -750,12 +753,16 @@ export default function Accounts() {
           accountMatch = (method === 'Cash');
         } else {
           const cleanM = method.toLowerCase().trim();
-          const accDigits = selectedLedgerAccount.account_number ? selectedLedgerAccount.account_number.slice(-4) : '';
-          if (accDigits && cleanM.includes(accDigits)) {
-             accountMatch = true;
+          if (cleanM === 'cash' || cleanM === 'cash account') {
+             accountMatch = false;
           } else {
-             const targetB = selectedLedgerAccount.bank_name.toLowerCase();
-             accountMatch = cleanM.includes(targetB) || targetB.includes(cleanM);
+             const accDigits = selectedLedgerAccount.account_number ? selectedLedgerAccount.account_number.slice(-4) : '';
+             if (accDigits && cleanM.includes(accDigits)) {
+                accountMatch = true;
+             } else {
+                const targetB = selectedLedgerAccount.bank_name.toLowerCase();
+                accountMatch = cleanM.includes(targetB) || targetB.includes(cleanM);
+             }
           }
         }
         
@@ -878,8 +885,9 @@ export default function Accounts() {
       const payType = (s.payment_type || 'Cash').replace('Bank - ', '');
       const cleanPT = payType.toLowerCase().trim();
       if (isCash) {
-         return cleanPT.includes('cash') || cleanPT === 'cash account';
+         return cleanPT === 'cash' || cleanPT === 'cash account';
       } else {
+         if (cleanPT === 'cash' || cleanPT === 'cash account') return false;
          const accDig = acc.account_number ? acc.account_number.slice(-4) : '';
          if (accDig && cleanPT.includes(accDig)) return true;
          const bLower = acc.bank_name.toLowerCase();
