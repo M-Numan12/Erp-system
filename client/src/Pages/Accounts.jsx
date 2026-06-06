@@ -627,7 +627,7 @@ export default function Accounts() {
       let cleanMethod = method.replace('Bank - ', '').trim();
       
       const normMethod = cleanMethod.toLowerCase().trim();
-      const isCash = normMethod === 'cash' || normMethod === 'cash account';
+      const isCash = normMethod.startsWith('cash') || normMethod.startsWith('credit') || normMethod === '';
       let targetKey = 'UNMATCHED_GHOST';
       
       if (isCash) {
@@ -738,7 +738,7 @@ export default function Accounts() {
         
         let method = (s.payment_type || 'Cash').replace('Bank - ', '');
         const normMethod = method.toLowerCase().trim();
-        if (normMethod === 'cash' || normMethod === 'cash account') {
+        if (normMethod.startsWith('cash') || normMethod.startsWith('credit') || normMethod === '') {
           method = 'Cash';
         }
         
@@ -753,7 +753,7 @@ export default function Accounts() {
           accountMatch = (method === 'Cash');
         } else {
           const cleanM = method.toLowerCase().trim();
-          if (cleanM === 'cash' || cleanM === 'cash account') {
+          if (cleanM.startsWith('cash') || cleanM.startsWith('credit') || cleanM === '') {
              accountMatch = false;
           } else {
              const accDigits = selectedLedgerAccount.account_number ? selectedLedgerAccount.account_number.slice(-4) : '';
@@ -885,9 +885,9 @@ export default function Accounts() {
       const payType = (s.payment_type || 'Cash').replace('Bank - ', '');
       const cleanPT = payType.toLowerCase().trim();
       if (isCash) {
-         return cleanPT === 'cash' || cleanPT === 'cash account';
+         return cleanPT.startsWith('cash') || cleanPT.startsWith('credit') || cleanPT === '';
       } else {
-         if (cleanPT === 'cash' || cleanPT === 'cash account') return false;
+         if (cleanPT.startsWith('cash') || cleanPT.startsWith('credit') || cleanPT === '') return false;
          const accDig = acc.account_number ? acc.account_number.slice(-4) : '';
          if (accDig && cleanPT.includes(accDig)) return true;
          const bLower = acc.bank_name.toLowerCase();
