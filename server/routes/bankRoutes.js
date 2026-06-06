@@ -29,7 +29,7 @@ router.get('/balances', auth, async (req, res) => {
     const balances = { 'Cash': 0 };
     accountsRes.rows.forEach(acc => {
       let name = acc.bank_name.replace(' Account', '');
-      if (name.toLowerCase() === 'cash') {
+      if (name.toLowerCase() === 'cash' || name.toLowerCase() === 'cash account') {
         name = 'Cash';
       } else {
         const digits = acc.account_number ? acc.account_number.slice(-4) : '';
@@ -38,28 +38,60 @@ router.get('/balances', auth, async (req, res) => {
       balances[name] = parseFloat(acc.opening_balance) || 0;
     });
 
+    const checkAccountMatch = (paymentMethod, acc) => {
+      if (!paymentMethod || !acc) return false;
+      const cl = paymentMethod.replace(/^bank\s*-\s*/i, '').toLowerCase().trim();
+      
+      const isCashPT = cl === '' || cl.startsWith('cash') || cl.startsWith('credit') || cl === 'cash account';
+      const isCashAcc = (acc.bank_name || '').toLowerCase().trim() === 'cash' || (acc.bank_name || '').toLowerCase().trim() === 'cash account';
+      
+      if (isCashPT) {
+        return isCashAcc;
+      }
+      if (isCashAcc) return false;
+
+      // Match by last 4 digits of account number
+      const digits = acc.account_number ? acc.account_number.slice(-4) : '';
+      if (digits && cl.includes(digits)) {
+        return true;
+      }
+
+      const bl = (acc.bank_name || '').toLowerCase().trim();
+      
+      // Exact or contains match
+      if (cl.includes(bl) || bl.includes(cl)) {
+        return true;
+      }
+
+      // Normalize strings by removing non-alphanumeric characters
+      const normCl = cl.replace(/[^a-z0-9]/g, '');
+      const normBl = bl.replace(/[^a-z0-9]/g, '');
+      
+      if (normCl && normBl && (normCl.includes(normBl) || normBl.includes(normCl))) {
+        return true;
+      }
+
+      // Special prefix match for jazz / jazz cash
+      if (normCl.startsWith('jazz') && normBl.startsWith('jazz')) {
+        return true;
+      }
+
+      return false;
+    };
+
     const findBalanceKey = (methodName) => {
       if (!methodName) return 'Cash';
-      let clean = methodName.replace('Bank - ', '').trim();
-      const norm = clean.toLowerCase();
-      if (norm.startsWith('cash') || norm === 'cash account' || norm.startsWith('credit') || norm === '') return 'Cash';
-      
-      const keys = Object.keys(balances);
-      const match = keys.find(k => {
-        if (k === 'Cash') return false;
-        const cleanK = k.toLowerCase();
-        const cleanM = clean.toLowerCase();
-        
-        const suffixK = cleanK.match(/\(\*\*\*\*(\d+)\)/);
-        const suffixM = cleanM.match(/\(\*\*\*\*(\d+)\)/);
-        if (suffixK && suffixM) {
-          return suffixK[1] === suffixM[1];
-        }
-        
-        return cleanK.includes(cleanM) || cleanM.includes(cleanK);
-      });
-      
-      return match || clean;
+      const cl = methodName.replace(/^bank\s*-\s*/i, '').toLowerCase().trim();
+      const isCashPT = cl === '' || cl.startsWith('cash') || cl.startsWith('credit') || cl === 'cash account';
+      if (isCashPT) return 'Cash';
+
+      const match = accountsRes.rows.find(acc => checkAccountMatch(methodName, acc));
+      if (match) {
+        const digits = match.account_number ? match.account_number.slice(-4) : '';
+        return `${match.bank_name} ${digits ? `(****${digits})` : ''}`;
+      }
+
+      return methodName.replace(/^bank\s*-\s*/i, '').trim();
     };
 
     // 2. Fetch sales
@@ -81,6 +113,14 @@ router.get('/balances', auth, async (req, res) => {
     // 6. Fetch rents
     let rentsQ = "SELECT amount, created_at FROM rent WHERE COALESCE(module_type, 'Wholesale') = $1";
     const rentsRes = await pool.query(rentsQ, [targetModule]);
+
+    // 7. Fetch investments
+    let investmentsQ = "SELECT amount, created_at, date FROM investment WHERE COALESCE(module_type, 'Wholesale') = $1";
+    const investmentsRes = await pool.query(investmentsQ, [targetModule]);
+
+    // 8. Fetch other expenses
+    let otherExpensesQ = "SELECT amount, payment_method, created_at, date FROM other_expenses WHERE COALESCE(module_type, 'Wholesale') = $1";
+    const otherExpensesRes = await pool.query(otherExpensesQ, [targetModule]);
 
     // Chronological transactions consolidation
     const transactions = [];
@@ -116,7 +156,7 @@ router.get('/balances', auth, async (req, res) => {
     salariesRes.rows.forEach(s => {
       transactions.push({
         type: 'expense',
-        payment_type: s.payment_type,
+        payment_type: s.payment_type || 'Cash',
         amount: parseFloat(s.amount) || 0,
         date: new Date(s.created_at || 0)
       });
@@ -128,6 +168,24 @@ router.get('/balances', auth, async (req, res) => {
         payment_type: 'Cash',
         amount: parseFloat(r.amount) || 0,
         date: new Date(r.created_at || 0)
+      });
+    });
+
+    investmentsRes.rows.forEach(i => {
+      transactions.push({
+        type: 'income',
+        payment_type: 'Cash',
+        amount: parseFloat(i.amount) || 0,
+        date: new Date(i.created_at || i.date || 0)
+      });
+    });
+
+    otherExpensesRes.rows.forEach(o => {
+      transactions.push({
+        type: 'expense',
+        payment_type: o.payment_method || 'Cash',
+        amount: parseFloat(o.amount) || 0,
+        date: new Date(o.created_at || o.date || 0)
       });
     });
 
@@ -278,7 +336,7 @@ router.get('/balance/:method', auth, async (req, res) => {
     const balances = { 'Cash': 0 };
     accountsRes.rows.forEach(acc => {
       let name = acc.bank_name.replace(' Account', '');
-      if (name.toLowerCase() === 'cash') {
+      if (name.toLowerCase() === 'cash' || name.toLowerCase() === 'cash account') {
         name = 'Cash';
       } else {
         const digits = acc.account_number ? acc.account_number.slice(-4) : '';
@@ -287,28 +345,60 @@ router.get('/balance/:method', auth, async (req, res) => {
       balances[name] = parseFloat(acc.opening_balance) || 0;
     });
 
+    const checkAccountMatch = (paymentMethod, acc) => {
+      if (!paymentMethod || !acc) return false;
+      const cl = paymentMethod.replace(/^bank\s*-\s*/i, '').toLowerCase().trim();
+      
+      const isCashPT = cl === '' || cl.startsWith('cash') || cl.startsWith('credit') || cl === 'cash account';
+      const isCashAcc = (acc.bank_name || '').toLowerCase().trim() === 'cash' || (acc.bank_name || '').toLowerCase().trim() === 'cash account';
+      
+      if (isCashPT) {
+        return isCashAcc;
+      }
+      if (isCashAcc) return false;
+
+      // Match by last 4 digits of account number
+      const digits = acc.account_number ? acc.account_number.slice(-4) : '';
+      if (digits && cl.includes(digits)) {
+        return true;
+      }
+
+      const bl = (acc.bank_name || '').toLowerCase().trim();
+      
+      // Exact or contains match
+      if (cl.includes(bl) || bl.includes(cl)) {
+        return true;
+      }
+
+      // Normalize strings by removing non-alphanumeric characters
+      const normCl = cl.replace(/[^a-z0-9]/g, '');
+      const normBl = bl.replace(/[^a-z0-9]/g, '');
+      
+      if (normCl && normBl && (normCl.includes(normBl) || normBl.includes(normCl))) {
+        return true;
+      }
+
+      // Special prefix match for jazz / jazz cash
+      if (normCl.startsWith('jazz') && normBl.startsWith('jazz')) {
+        return true;
+      }
+
+      return false;
+    };
+
     const findBalanceKey = (methodName) => {
       if (!methodName) return 'Cash';
-      let clean = methodName.replace('Bank - ', '').trim();
-      const norm = clean.toLowerCase();
-      if (norm.startsWith('cash') || norm === 'cash account' || norm.startsWith('credit') || norm === '') return 'Cash';
-      
-      const keys = Object.keys(balances);
-      const match = keys.find(k => {
-        if (k === 'Cash') return false;
-        const cleanK = k.toLowerCase();
-        const cleanM = clean.toLowerCase();
-        
-        const suffixK = cleanK.match(/\(\*\*\*\*(\d+)\)/);
-        const suffixM = cleanM.match(/\(\*\*\*\*(\d+)\)/);
-        if (suffixK && suffixM) {
-          return suffixK[1] === suffixM[1];
-        }
-        
-        return cleanK.includes(cleanM) || cleanM.includes(cleanK);
-      });
-      
-      return match || clean;
+      const cl = methodName.replace(/^bank\s*-\s*/i, '').toLowerCase().trim();
+      const isCashPT = cl === '' || cl.startsWith('cash') || cl.startsWith('credit') || cl === 'cash account';
+      if (isCashPT) return 'Cash';
+
+      const match = accountsRes.rows.find(acc => checkAccountMatch(methodName, acc));
+      if (match) {
+        const digits = match.account_number ? match.account_number.slice(-4) : '';
+        return `${match.bank_name} ${digits ? `(****${digits})` : ''}`;
+      }
+
+      return methodName.replace(/^bank\s*-\s*/i, '').trim();
     };
 
     // 2. Fetch sales
@@ -330,6 +420,14 @@ router.get('/balance/:method', auth, async (req, res) => {
     // 6. Fetch rents
     let rentsQ = "SELECT amount, created_at FROM rent WHERE COALESCE(module_type, 'Wholesale') = $1";
     const rentsRes = await pool.query(rentsQ, [finalModule]);
+
+    // 7. Fetch investments
+    let investmentsQ = "SELECT amount, created_at, date FROM investment WHERE COALESCE(module_type, 'Wholesale') = $1";
+    const investmentsRes = await pool.query(investmentsQ, [finalModule]);
+
+    // 8. Fetch other expenses
+    let otherExpensesQ = "SELECT amount, payment_method, created_at, date FROM other_expenses WHERE COALESCE(module_type, 'Wholesale') = $1";
+    const otherExpensesRes = await pool.query(otherExpensesQ, [finalModule]);
 
     // Chronological transactions consolidation
     const transactions = [];
@@ -365,7 +463,7 @@ router.get('/balance/:method', auth, async (req, res) => {
     salariesRes.rows.forEach(s => {
       transactions.push({
         type: 'expense',
-        payment_type: s.payment_type,
+        payment_type: s.payment_type || 'Cash',
         amount: parseFloat(s.amount) || 0,
         date: new Date(s.created_at || 0)
       });
@@ -377,6 +475,24 @@ router.get('/balance/:method', auth, async (req, res) => {
         payment_type: 'Cash',
         amount: parseFloat(r.amount) || 0,
         date: new Date(r.created_at || 0)
+      });
+    });
+
+    investmentsRes.rows.forEach(i => {
+      transactions.push({
+        type: 'income',
+        payment_type: 'Cash',
+        amount: parseFloat(i.amount) || 0,
+        date: new Date(i.created_at || i.date || 0)
+      });
+    });
+
+    otherExpensesRes.rows.forEach(o => {
+      transactions.push({
+        type: 'expense',
+        payment_type: o.payment_method || 'Cash',
+        amount: parseFloat(o.amount) || 0,
+        date: new Date(o.created_at || o.date || 0)
       });
     });
 

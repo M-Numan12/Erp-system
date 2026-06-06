@@ -18,6 +18,7 @@ app.use('/api/customers', require('./routes/customerRoutes'));
 app.use('/api/suppliers', require('./routes/supplierRoutes'));
 app.use('/api/transport', require('./routes/transportRoutes'));
 app.use('/api/expenses', require('./routes/expenseRoutes'));
+app.use('/api/other-expenses', require('./routes/otherExpensesRoutes'));
 app.use('/api/salary', require('./routes/salaryRoutes'));
 app.use('/api/sales', require('./routes/saleRoutes'));
 app.use('/api/rent', require('./routes/rentRoutes'));
