@@ -76,6 +76,7 @@ export default function Billing({ type }) {
   const [customerAddress, setCustomerAddress] = useState('');
   const [transportType, setTransportType] = useState('');
   const [selectedVehicleIds, setSelectedVehicleIds] = useState([]);
+  const [supplierVehicleNumber, setSupplierVehicleNumber] = useState("");
   const [viewSale, setViewSale] = useState(null);
   const [showCustomerSection, setShowCustomerSection] = useState(true);
   const [showTransportSection, setShowTransportSection] = useState(true);
@@ -490,6 +491,7 @@ export default function Billing({ type }) {
         vehicle_id: selectedVehicleIds[0] || null,
         vehicle_id2: selectedVehicleIds[1] || null,
         vehicle_ids: selectedVehicleIds,
+        vehicle_number: transportType === 'Supplier' ? supplierVehicleNumber : '',
         total_amount: subtotal,
         discount: parseFloat(discount || 0),
         delivery_charges: parseFloat(delivery || 0),
@@ -544,7 +546,7 @@ export default function Billing({ type }) {
         const prevBal = finalBal - balance;
         
         const selectedVehList = vehicles.filter(v => v && selectedVehicleIds.includes(v.id));
-        const vehicleNumbersStr = selectedVehList.map(v => v.vehicle_number).join(', ');
+        const vehicleNumbersStr = transportType === 'Supplier' ? supplierVehicleNumber : (selectedVehList.map(v => v.vehicle_number).join(', ') || '');
         
         setReceiptData({
           saleId: result.saleId,
@@ -583,6 +585,7 @@ export default function Billing({ type }) {
         setCustomerAddress('');
         setTransportType('');
         setSelectedVehicleIds([]);
+        setSupplierVehicleNumber('');
         setSelectedBank('');
         setBankDigits('');
         setSelectedLabourGroup('');
@@ -794,24 +797,44 @@ export default function Billing({ type }) {
                 </div>
                 {showTransportSection && (
                   <div className="flex flex-column gap-2 mb-2">
-                    <Dropdown value={transportType} options={[
-                      {label: 'No Transport', value: ''},
-                      {label: 'Personal', value: 'Personal'},
-                      {label: 'Rent', value: 'Rent'}
-                    ]} onChange={(e) => { setTransportType(e.value); setSelectedVehicleIds([]); }} placeholder="Transport Type" className="w-full" />
+                    <Dropdown value={transportType} options={
+                      activeTab === 'Wholesale' ? [
+                        {label: 'No Transport', value: ''},
+                        {label: 'Personal', value: 'Personal'},
+                        {label: 'Rent', value: 'Rent'},
+                        {label: 'Supplier', value: 'Supplier'}
+                      ] : [
+                        {label: 'No Transport', value: ''},
+                        {label: 'Personal', value: 'Personal'},
+                        {label: 'Rent', value: 'Rent'}
+                      ]
+                    } onChange={(e) => { 
+                      setTransportType(e.value); 
+                      setSelectedVehicleIds([]); 
+                      setSupplierVehicleNumber('');
+                    }} placeholder="Transport Type" className="w-full" />
                     
                     {transportType && (
-                      <MultiSelect 
-                        value={selectedVehicleIds} 
-                        options={vehicles.filter(v => v && !v.is_deleted && (v.ownership_type || '').toString().toLowerCase().trim() === transportType.toLowerCase().trim()).map(v => ({
-                          label: `${v.vehicle_number} (${v.driver_name})`,
-                          value: v.id
-                        }))} 
-                        onChange={(e) => setSelectedVehicleIds(e.value)} 
-                        placeholder="Select Vehicles" 
-                        maxSelectedLabels={3} 
-                        className="w-full" 
-                      />
+                      transportType === 'Supplier' ? (
+                        <InputText 
+                          value={supplierVehicleNumber} 
+                          onChange={(e) => setSupplierVehicleNumber(e.target.value)} 
+                          placeholder="Enter Supplier Vehicle Number" 
+                          className="w-full" 
+                        />
+                      ) : (
+                        <MultiSelect 
+                          value={selectedVehicleIds} 
+                          options={vehicles.filter(v => v && !v.is_deleted && (v.ownership_type || '').toString().toLowerCase().trim() === transportType.toLowerCase().trim()).map(v => ({
+                            label: `${v.vehicle_number} (${v.driver_name})`,
+                            value: v.id
+                          }))} 
+                          onChange={(e) => setSelectedVehicleIds(e.value)} 
+                          placeholder="Select Vehicles" 
+                          maxSelectedLabels={3} 
+                          className="w-full" 
+                        />
+                      )
                     )}
                   </div>
                 )}
@@ -1146,7 +1169,13 @@ export default function Billing({ type }) {
                   }
                   setSelectedVehicleIds(Array.isArray(vIds) ? vIds.map(Number) : []);
                   const matchedVeh = vehicles.find(v => v && String(v.id) === String(vIds[0] || s.vehicle_id));
-                  setTransportType(matchedVeh ? matchedVeh.ownership_type : '');
+                  setTransportType(s.vehicle_type || (matchedVeh ? matchedVeh.ownership_type : ''));
+                  if (s.vehicle_type === 'Supplier') {
+                    setSupplierVehicleNumber(s.vehicle_number || '');
+                    setSelectedVehicleIds([]);
+                  } else {
+                    setSupplierVehicleNumber('');
+                  }
                   setEditId(s.id);
                   setView('POS');
                 } : null}

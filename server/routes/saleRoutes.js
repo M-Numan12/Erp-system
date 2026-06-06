@@ -81,7 +81,7 @@ router.post('/', auth, async (req, res) => {
       vehicleNumbers = vRes.rows.map(r => r.vehicle_number);
     }
     
-    const vNumber1 = vehicleNumbers.join(', ') || null;
+    const vNumber1 = (vehicle_type === 'Supplier' && req.body.vehicle_number) ? req.body.vehicle_number : (vehicleNumbers.join(', ') || null);
     const vId = vehicleIds[0] || null;
     const vId2 = vehicleIds[1] || null;
     const vNumber2 = vehicleNumbers[1] || null;
@@ -377,7 +377,7 @@ router.put('/:id', auth, async (req, res) => {
       vehicleNumbers = vRes.rows.map(r => r.vehicle_number);
     }
     
-    const vNumber1 = vehicleNumbers.join(', ') || null;
+    const vNumber1 = (vehicle_type === 'Supplier' && req.body.vehicle_number) ? req.body.vehicle_number : (vehicleNumbers.join(', ') || null);
     const vId = vehicleIds[0] || null;
     const vId2 = vehicleIds[1] || null;
     const vNumber2 = vehicleNumbers[1] || null;
@@ -702,7 +702,7 @@ router.post('/return', auth, async (req, res) => {
       vehicleNumbers = vRes.rows.map(r => r.vehicle_number);
     }
     
-    const vNumber1 = vehicleNumbers.join(', ') || null;
+    const vNumber1 = (req.body.vehicle_type === 'Supplier' && req.body.vehicle_number) ? req.body.vehicle_number : (vehicleNumbers.join(', ') || null);
     const vId = vehicleIds[0] || null;
     const vId2 = vehicleIds[1] || null;
     const vNumber2 = vehicleNumbers[1] || null;
