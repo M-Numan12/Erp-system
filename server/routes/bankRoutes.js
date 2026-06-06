@@ -63,50 +63,90 @@ router.get('/balances', auth, async (req, res) => {
     };
 
     // 2. Fetch sales
-    let salesQ = "SELECT net_amount, paid_amount, payment_type FROM sales WHERE COALESCE(sale_type, 'Wholesale') = $1";
+    let salesQ = "SELECT net_amount, paid_amount, payment_type, created_at FROM sales WHERE COALESCE(sale_type, 'Wholesale') = $1";
     const salesRes = await pool.query(salesQ, [targetModule]);
-    salesRes.rows.forEach(s => {
-      let key = findBalanceKey(s.payment_type);
-      if (!balances[key]) balances[key] = 0;
-      balances[key] += parseFloat(s.paid_amount) || 0;
-    });
 
     // 3. Fetch purchases & supplier payments
-    let purchasesQ = "SELECT paid_amount, payment_type FROM purchases WHERE COALESCE(module_type, 'Wholesale') = $1";
+    let purchasesQ = "SELECT paid_amount, payment_type, purchase_date FROM purchases WHERE COALESCE(module_type, 'Wholesale') = $1";
     const purchasesRes = await pool.query(purchasesQ, [targetModule]);
-    purchasesRes.rows.forEach(p => {
-      let key = findBalanceKey(p.payment_type);
-      if (!balances[key]) balances[key] = 0;
-      balances[key] -= parseFloat(p.paid_amount) || 0;
-    });
 
     // 4. Fetch expenses
-    let expensesQ = "SELECT amount, payment_type, expense_type FROM expenses WHERE COALESCE(module_type, 'Wholesale') = $1";
+    let expensesQ = "SELECT amount, payment_type, expense_type, created_at FROM expenses WHERE COALESCE(module_type, 'Wholesale') = $1";
     const expensesRes = await pool.query(expensesQ, [targetModule]);
-    expensesRes.rows.forEach(e => {
-      let key = findBalanceKey(e.payment_type);
-      if (!balances[key]) balances[key] = 0;
-      if (e.expense_type === 'Admin Payment' || e.expense_type === 'Transfer In') {
-        balances[key] += parseFloat(e.amount) || 0;
-      } else {
-        balances[key] -= parseFloat(e.amount) || 0;
-      }
-    });
 
     // 5. Fetch actual salaries paid from salary_payments
-    let salariesQ = "SELECT amount, payment_type FROM salary_payments WHERE COALESCE(module_type, 'Wholesale') = $1";
+    let salariesQ = "SELECT amount, payment_type, created_at FROM salary_payments WHERE COALESCE(module_type, 'Wholesale') = $1";
     const salariesRes = await pool.query(salariesQ, [targetModule]);
-    salariesRes.rows.forEach(s => {
-      let key = findBalanceKey(s.payment_type);
-      if (!balances[key]) balances[key] = 0;
-      balances[key] -= parseFloat(s.amount) || 0;
-    });
 
     // 6. Fetch rents
-    let rentsQ = "SELECT amount FROM rent WHERE COALESCE(module_type, 'Wholesale') = $1";
+    let rentsQ = "SELECT amount, created_at FROM rent WHERE COALESCE(module_type, 'Wholesale') = $1";
     const rentsRes = await pool.query(rentsQ, [targetModule]);
+
+    // Chronological transactions consolidation
+    const transactions = [];
+
+    salesRes.rows.forEach(s => {
+      transactions.push({
+        type: 'income',
+        payment_type: s.payment_type,
+        amount: parseFloat(s.paid_amount) || 0,
+        date: new Date(s.created_at || 0)
+      });
+    });
+
+    purchasesRes.rows.forEach(p => {
+      transactions.push({
+        type: 'expense',
+        payment_type: p.payment_type,
+        amount: parseFloat(p.paid_amount) || 0,
+        date: new Date(p.purchase_date || 0)
+      });
+    });
+
+    expensesRes.rows.forEach(e => {
+      const isIncome = e.expense_type === 'Admin Payment' || e.expense_type === 'Transfer In';
+      transactions.push({
+        type: isIncome ? 'income' : 'expense',
+        payment_type: e.payment_type,
+        amount: parseFloat(e.amount) || 0,
+        date: new Date(e.created_at || 0)
+      });
+    });
+
+    salariesRes.rows.forEach(s => {
+      transactions.push({
+        type: 'expense',
+        payment_type: s.payment_type,
+        amount: parseFloat(s.amount) || 0,
+        date: new Date(s.created_at || 0)
+      });
+    });
+
     rentsRes.rows.forEach(r => {
-      balances['Cash'] -= parseFloat(r.amount) || 0;
+      transactions.push({
+        type: 'expense',
+        payment_type: 'Cash',
+        amount: parseFloat(r.amount) || 0,
+        date: new Date(r.created_at || 0)
+      });
+    });
+
+    // Sort ascending by date
+    transactions.sort((a, b) => a.date - b.date);
+
+    // Apply transactions chronologically with Cash clamping to 0
+    transactions.forEach(t => {
+      let key = findBalanceKey(t.payment_type);
+      if (!balances[key]) balances[key] = 0;
+      
+      if (t.type === 'income') {
+        balances[key] += t.amount;
+      } else {
+        balances[key] -= t.amount;
+        if (key === 'Cash' && balances[key] < 0) {
+          balances[key] = 0;
+        }
+      }
     });
 
     res.json(balances);
@@ -272,50 +312,90 @@ router.get('/balance/:method', auth, async (req, res) => {
     };
 
     // 2. Fetch sales
-    let salesQ = "SELECT net_amount, paid_amount, payment_type FROM sales WHERE COALESCE(sale_type, 'Wholesale') = $1";
+    let salesQ = "SELECT net_amount, paid_amount, payment_type, created_at FROM sales WHERE COALESCE(sale_type, 'Wholesale') = $1";
     const salesRes = await pool.query(salesQ, [finalModule]);
-    salesRes.rows.forEach(s => {
-      let key = findBalanceKey(s.payment_type);
-      if (!balances[key]) balances[key] = 0;
-      balances[key] += parseFloat(s.paid_amount) || 0;
-    });
 
     // 3. Fetch purchases & supplier payments
-    let purchasesQ = "SELECT paid_amount, payment_type FROM purchases WHERE COALESCE(module_type, 'Wholesale') = $1";
+    let purchasesQ = "SELECT paid_amount, payment_type, purchase_date FROM purchases WHERE COALESCE(module_type, 'Wholesale') = $1";
     const purchasesRes = await pool.query(purchasesQ, [finalModule]);
-    purchasesRes.rows.forEach(p => {
-      let key = findBalanceKey(p.payment_type);
-      if (!balances[key]) balances[key] = 0;
-      balances[key] -= parseFloat(p.paid_amount) || 0;
-    });
 
     // 4. Fetch expenses
-    let expensesQ = "SELECT amount, payment_type, expense_type FROM expenses WHERE COALESCE(module_type, 'Wholesale') = $1";
+    let expensesQ = "SELECT amount, payment_type, expense_type, created_at FROM expenses WHERE COALESCE(module_type, 'Wholesale') = $1";
     const expensesRes = await pool.query(expensesQ, [finalModule]);
-    expensesRes.rows.forEach(e => {
-      let key = findBalanceKey(e.payment_type);
-      if (!balances[key]) balances[key] = 0;
-      if (e.expense_type === 'Admin Payment' || e.expense_type === 'Transfer In') {
-        balances[key] += parseFloat(e.amount) || 0;
-      } else {
-        balances[key] -= parseFloat(e.amount) || 0;
-      }
-    });
 
     // 5. Fetch actual salaries paid from salary_payments
-    let salariesQ = "SELECT amount, payment_type FROM salary_payments WHERE COALESCE(module_type, 'Wholesale') = $1";
+    let salariesQ = "SELECT amount, payment_type, created_at FROM salary_payments WHERE COALESCE(module_type, 'Wholesale') = $1";
     const salariesRes = await pool.query(salariesQ, [finalModule]);
-    salariesRes.rows.forEach(s => {
-      let key = findBalanceKey(s.payment_type);
-      if (!balances[key]) balances[key] = 0;
-      balances[key] -= parseFloat(s.amount) || 0;
-    });
 
     // 6. Fetch rents
-    let rentsQ = "SELECT amount FROM rent WHERE COALESCE(module_type, 'Wholesale') = $1";
+    let rentsQ = "SELECT amount, created_at FROM rent WHERE COALESCE(module_type, 'Wholesale') = $1";
     const rentsRes = await pool.query(rentsQ, [finalModule]);
+
+    // Chronological transactions consolidation
+    const transactions = [];
+
+    salesRes.rows.forEach(s => {
+      transactions.push({
+        type: 'income',
+        payment_type: s.payment_type,
+        amount: parseFloat(s.paid_amount) || 0,
+        date: new Date(s.created_at || 0)
+      });
+    });
+
+    purchasesRes.rows.forEach(p => {
+      transactions.push({
+        type: 'expense',
+        payment_type: p.payment_type,
+        amount: parseFloat(p.paid_amount) || 0,
+        date: new Date(p.purchase_date || 0)
+      });
+    });
+
+    expensesRes.rows.forEach(e => {
+      const isIncome = e.expense_type === 'Admin Payment' || e.expense_type === 'Transfer In';
+      transactions.push({
+        type: isIncome ? 'income' : 'expense',
+        payment_type: e.payment_type,
+        amount: parseFloat(e.amount) || 0,
+        date: new Date(e.created_at || 0)
+      });
+    });
+
+    salariesRes.rows.forEach(s => {
+      transactions.push({
+        type: 'expense',
+        payment_type: s.payment_type,
+        amount: parseFloat(s.amount) || 0,
+        date: new Date(s.created_at || 0)
+      });
+    });
+
     rentsRes.rows.forEach(r => {
-      balances['Cash'] -= parseFloat(r.amount) || 0;
+      transactions.push({
+        type: 'expense',
+        payment_type: 'Cash',
+        amount: parseFloat(r.amount) || 0,
+        date: new Date(r.created_at || 0)
+      });
+    });
+
+    // Sort ascending by date
+    transactions.sort((a, b) => a.date - b.date);
+
+    // Apply transactions chronologically with Cash clamping to 0
+    transactions.forEach(t => {
+      let key = findBalanceKey(t.payment_type);
+      if (!balances[key]) balances[key] = 0;
+      
+      if (t.type === 'income') {
+        balances[key] += t.amount;
+      } else {
+        balances[key] -= t.amount;
+        if (key === 'Cash' && balances[key] < 0) {
+          balances[key] = 0;
+        }
+      }
     });
 
     const targetKey = findBalanceKey(method);
