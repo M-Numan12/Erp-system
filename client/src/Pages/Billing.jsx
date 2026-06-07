@@ -232,7 +232,7 @@ export default function Billing({ type }) {
 
   const handleCustomerChange = (val) => {
     setCustomerName(val);
-    const existing = customers.find(c => c.name.toLowerCase() === val.toLowerCase());
+    const existing = customers.find(c => (c.name || '').toLowerCase() === (val || '').toLowerCase());
     if (existing) {
       setCustomerPhone(existing.phone || '');
       setCustomerAddress(existing.address || '');
@@ -659,7 +659,7 @@ export default function Billing({ type }) {
       matchesCategory = p.category === selectedCategory;
     }
     return matchesCategory && 
-      (p.name.toLowerCase().includes(search.toLowerCase()) || (p.brand || "").toLowerCase().includes(search.toLowerCase()));
+      ((p.name || '').toLowerCase().includes(search.toLowerCase()) || (p.brand || "").toLowerCase().includes(search.toLowerCase()));
   });
 
   return (
@@ -973,7 +973,7 @@ export default function Billing({ type }) {
                       </div>
                       {paymentType === 'Bank' && (
                         <Dropdown value={selectedBank} options={bankAccounts.filter(b => {
-                          const name = b.bank_name.toLowerCase().trim();
+                          const name = (b.bank_name || '').toLowerCase().trim();
                           return name !== 'cash' && name !== 'cash account';
                         }).map(b => {
                           const digits = b.account_number ? b.account_number.slice(-4) : '';
@@ -1871,7 +1871,7 @@ export default function Billing({ type }) {
                         <label className="block mb-1 text-xs font-bold">Refund Via</label>
                         <Dropdown 
                           value={refundMethod} 
-                          options={['Cash', ...bankAccounts.filter(b => b.bank_name.toLowerCase() !== 'cash').map(b => b.bank_name)]} 
+                          options={['Cash', ...bankAccounts.filter(b => (b.bank_name || '').toLowerCase() !== 'cash').map(b => b.bank_name)]} 
                           onChange={e => setRefundMethod(e.value)}
                           className="p-inputtext-sm w-full"
                           appendTo="self"
