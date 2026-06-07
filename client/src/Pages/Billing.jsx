@@ -1129,7 +1129,7 @@ export default function Billing({ type }) {
             <Column header="Total" body={(s) => <span className="font-bold">Rs.{s.net_amount.toLocaleString()}</span>} sortable field="net_amount" />
             <Column header="Paid" body={(s) => <span className="text-green-600 font-bold">Rs.{s.paid_amount.toLocaleString()}</span>} sortable field="paid_amount" />
             <Column header="Balance" body={(s) => <span className="text-red-600 font-bold">Rs.{s.balance_amount.toLocaleString()}</span>} sortable field="balance_amount" />
-            <Column header="Type" body={(s) => <span className={`status-badge ${s.payment_type.toLowerCase()}`} style={{padding: '4px 12px', borderRadius: '20px', fontSize: '0.75rem', fontWeight: 700}}>{s.payment_type}</span>} sortable field="payment_type" />
+            <Column header="Type" body={(s) => <span className={`status-badge ${(s.payment_type || '').toLowerCase()}`} style={{padding: '4px 12px', borderRadius: '20px', fontSize: '0.75rem', fontWeight: 700}}>{s.payment_type || '—'}</span>} sortable field="payment_type" />
             <Column header="Status" body={(s) => (
               <span className={`status-badge ${s.status === 'Returned' ? 'cancelled' : 'paid'}`} style={{padding: '4px 12px', borderRadius: '20px', fontSize: '0.75rem', fontWeight: 700}}>
                 {s.status || 'Completed'}
@@ -1152,8 +1152,8 @@ export default function Billing({ type }) {
                   setDiscount(s.discount);
                   setDelivery(s.delivery_charges);
                   setPaidAmount(s.paid_amount);
-                  setPaymentType(s.payment_type.includes('Bank') ? 'Bank' : s.payment_type);
-                  if (s.payment_type.includes('Bank')) {
+                  setPaymentType((s.payment_type || '').includes('Bank') ? 'Bank' : (s.payment_type || 'Cash'));
+                  if ((s.payment_type || '').includes('Bank')) {
                     setSelectedBank(s.payment_type.replace('Bank - ', ''));
                   }
                   let vIds = [];
@@ -1220,7 +1220,7 @@ export default function Billing({ type }) {
                           return matchedCust ? parseFloat(matchedCust.balance || 0) : parseFloat(s.balance_amount || 0);
                         })(),
                         paymentMethod: s.payment_type,
-                        bankAccount: s.payment_type.includes('Bank') ? s.payment_type.replace('Bank - ', '') : null,
+                        bankAccount: (s.payment_type || '').includes('Bank') ? s.payment_type.replace('Bank - ', '') : null,
                         saleType: s.sale_type,
                         selectedLabourGroup: s.labour_group,
                       });
