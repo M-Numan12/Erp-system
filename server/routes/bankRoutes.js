@@ -6,6 +6,51 @@ const auth = require('../middleware/auth');
 const isAdmin = (req) => req.user.role === 'admin';
 const isMasterAdmin = (req) => req.user.role === 'admin' && req.user.email === 'admin@erp.com';
 
+const checkAccountMatch = (paymentMethod, acc) => {
+  if (!paymentMethod || !acc) return false;
+  const cl = paymentMethod.replace(/^bank\s*-\s*/i, '').toLowerCase().trim();
+  
+  const isCashPT = cl === '' || cl.startsWith('cash') || cl.startsWith('credit') || cl === 'cash account';
+  const isCashAcc = (acc.bank_name || '').toLowerCase().trim() === 'cash' || (acc.bank_name || '').toLowerCase().trim() === 'cash account';
+  
+  if (isCashPT) {
+    return isCashAcc;
+  }
+  if (isCashAcc) return false;
+
+  // Match by last 4 digits of account number
+  const digits = acc.account_number ? acc.account_number.slice(-4) : '';
+  const starDigitsMatch = cl.match(/\*\*\*\*(\d+)/);
+  const generalDigitsMatch = cl.match(/\d{4,}/);
+  const paymentDigits = starDigitsMatch ? starDigitsMatch[1] : (generalDigitsMatch ? generalDigitsMatch[0] : null);
+
+  if (paymentDigits) {
+    return digits === paymentDigits;
+  }
+
+  const bl = (acc.bank_name || '').toLowerCase().trim();
+  
+  // Exact or contains match
+  if (cl.includes(bl) || bl.includes(cl)) {
+    return true;
+  }
+
+  // Normalize strings by removing non-alphanumeric characters
+  const normCl = cl.replace(/[^a-z0-9]/g, '');
+  const normBl = bl.replace(/[^a-z0-9]/g, '');
+  
+  if (normCl && normBl && (normCl.includes(normBl) || normBl.includes(normCl))) {
+    return true;
+  }
+
+  // Special prefix match for jazz / jazz cash
+  if (normCl.startsWith('jazz') && normBl.startsWith('jazz')) {
+    return true;
+  }
+
+  return false;
+};
+
 // Get real-time balances for all accounts
 router.get('/balances', auth, async (req, res) => {
   try {
@@ -38,46 +83,7 @@ router.get('/balances', auth, async (req, res) => {
       balances[name] = parseFloat(acc.opening_balance) || 0;
     });
 
-    const checkAccountMatch = (paymentMethod, acc) => {
-      if (!paymentMethod || !acc) return false;
-      const cl = paymentMethod.replace(/^bank\s*-\s*/i, '').toLowerCase().trim();
-      
-      const isCashPT = cl === '' || cl.startsWith('cash') || cl.startsWith('credit') || cl === 'cash account';
-      const isCashAcc = (acc.bank_name || '').toLowerCase().trim() === 'cash' || (acc.bank_name || '').toLowerCase().trim() === 'cash account';
-      
-      if (isCashPT) {
-        return isCashAcc;
-      }
-      if (isCashAcc) return false;
 
-      // Match by last 4 digits of account number
-      const digits = acc.account_number ? acc.account_number.slice(-4) : '';
-      if (digits && cl.includes(digits)) {
-        return true;
-      }
-
-      const bl = (acc.bank_name || '').toLowerCase().trim();
-      
-      // Exact or contains match
-      if (cl.includes(bl) || bl.includes(cl)) {
-        return true;
-      }
-
-      // Normalize strings by removing non-alphanumeric characters
-      const normCl = cl.replace(/[^a-z0-9]/g, '');
-      const normBl = bl.replace(/[^a-z0-9]/g, '');
-      
-      if (normCl && normBl && (normCl.includes(normBl) || normBl.includes(normCl))) {
-        return true;
-      }
-
-      // Special prefix match for jazz / jazz cash
-      if (normCl.startsWith('jazz') && normBl.startsWith('jazz')) {
-        return true;
-      }
-
-      return false;
-    };
 
     const findBalanceKey = (methodName) => {
       if (!methodName) return 'Cash';
@@ -345,46 +351,7 @@ router.get('/balance/:method', auth, async (req, res) => {
       balances[name] = parseFloat(acc.opening_balance) || 0;
     });
 
-    const checkAccountMatch = (paymentMethod, acc) => {
-      if (!paymentMethod || !acc) return false;
-      const cl = paymentMethod.replace(/^bank\s*-\s*/i, '').toLowerCase().trim();
-      
-      const isCashPT = cl === '' || cl.startsWith('cash') || cl.startsWith('credit') || cl === 'cash account';
-      const isCashAcc = (acc.bank_name || '').toLowerCase().trim() === 'cash' || (acc.bank_name || '').toLowerCase().trim() === 'cash account';
-      
-      if (isCashPT) {
-        return isCashAcc;
-      }
-      if (isCashAcc) return false;
 
-      // Match by last 4 digits of account number
-      const digits = acc.account_number ? acc.account_number.slice(-4) : '';
-      if (digits && cl.includes(digits)) {
-        return true;
-      }
-
-      const bl = (acc.bank_name || '').toLowerCase().trim();
-      
-      // Exact or contains match
-      if (cl.includes(bl) || bl.includes(cl)) {
-        return true;
-      }
-
-      // Normalize strings by removing non-alphanumeric characters
-      const normCl = cl.replace(/[^a-z0-9]/g, '');
-      const normBl = bl.replace(/[^a-z0-9]/g, '');
-      
-      if (normCl && normBl && (normCl.includes(normBl) || normBl.includes(normCl))) {
-        return true;
-      }
-
-      // Special prefix match for jazz / jazz cash
-      if (normCl.startsWith('jazz') && normBl.startsWith('jazz')) {
-        return true;
-      }
-
-      return false;
-    };
 
     const findBalanceKey = (methodName) => {
       if (!methodName) return 'Cash';

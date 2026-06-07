@@ -34,8 +34,12 @@ export default function Accounts() {
 
     // Match by last 4 digits of account number
     const digits = bankAccount.account_number ? bankAccount.account_number.slice(-4) : '';
-    if (digits && cl.includes(digits)) {
-      return true;
+    const starDigitsMatch = cl.match(/\*\*\*\*(\d+)/);
+    const generalDigitsMatch = cl.match(/\d{4,}/);
+    const paymentDigits = starDigitsMatch ? starDigitsMatch[1] : (generalDigitsMatch ? generalDigitsMatch[0] : null);
+
+    if (paymentDigits) {
+      return digits === paymentDigits;
     }
 
     const bl = (bankAccount.bank_name || '').toLowerCase().trim();
