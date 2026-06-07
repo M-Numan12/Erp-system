@@ -717,8 +717,10 @@ export default function Accounts() {
     return received - paid;
   }, [generalExpenses]);
 
-  // Filter all transactions for the selected ledger account and date range
-  const ledgerTransactions = useMemo(() => {
+  // Filter all transactions for the selected ledger account (without date filter)
+  const allAccountTransactions = useMemo(() => {
+    if (!selectedLedgerAccount) return [];
+    
     return [
       ...filteredSales, 
       ...filteredSupplierPayments.map(p => ({ ...p, isExpense: true, customer_name: p.supplier_name || 'Supplier', amount: p.paid_amount, created_at: p.created_at || p.purchase_date })),
@@ -777,29 +779,16 @@ export default function Accounts() {
         }
 
         const accountMatch = checkAccountMatch(s.payment_type || 'Cash', selectedLedgerAccount);
-        if (!accountMatch) return false;
-  
-        const saleDate = new Date(s.created_at || s.purchase_date || s.date);
-        const now = new Date();
-        if (dateFilter === 'Today') return saleDate.toDateString() === now.toDateString();
-        if (dateFilter === 'Week') {
-          const weekAgo = new Date();
-          weekAgo.setDate(now.getDate() - 7);
-          return saleDate >= weekAgo;
-        }
-        if (dateFilter === 'Month') return saleDate.getMonth() === now.getMonth() && saleDate.getFullYear() === now.getFullYear();
-        return true;
-      }).sort((a, b) => new Date(b.created_at || b.purchase_date || b.date) - new Date(a.created_at || a.purchase_date || a.date));
-  }, [filteredSales, filteredSupplierPayments, filteredGeneralExpenses, filteredSalaries, filteredRents, filteredOtherExpenses, filteredInvestments, selectedLedgerAccount, dateFilter]);
+        return accountMatch;
+    }).sort((a, b) => new Date(a.created_at || a.purchase_date || a.date) - new Date(b.created_at || b.purchase_date || b.date));
+  }, [filteredSales, filteredSupplierPayments, filteredGeneralExpenses, filteredSalaries, filteredRents, filteredOtherExpenses, filteredInvestments, selectedLedgerAccount]);
 
   
-  // Calculate running balances chronologically (ascending), then return descending for display
-  const calculatedTransactions = useMemo(() => {
-    const sortedAsc = [...ledgerTransactions].sort((a, b) => new Date(a.created_at || a.purchase_date || a.date || a.created_at) - new Date(b.created_at || b.purchase_date || b.date || b.created_at));
+  // Calculate running balances chronologically (ascending) for all transactions
+  const allCalculatedTransactions = useMemo(() => {
     let currentBal = parseFloat(selectedLedgerAccount?.opening_balance || 0);
-    const isCashAcc = checkIsCash(selectedLedgerAccount);
     
-    const withRunning = sortedAsc.map(t => {
+    return allAccountTransactions.map(t => {
       const amt = getTransactionAmount(t);
       if (t.isExpense) {
         currentBal -= amt;
@@ -811,14 +800,30 @@ export default function Accounts() {
       }
       return { ...t, running_balance: currentBal };
     });
-    return withRunning;
-  }, [ledgerTransactions, selectedLedgerAccount]);
+  }, [allAccountTransactions, selectedLedgerAccount]);
+
+
+  // Filter calculated transactions by date range for display
+  const calculatedTransactions = useMemo(() => {
+    return allCalculatedTransactions.filter(s => {
+      const saleDate = new Date(s.created_at || s.purchase_date || s.date);
+      const now = new Date();
+      if (dateFilter === 'Today') return saleDate.toDateString() === now.toDateString();
+      if (dateFilter === 'Week') {
+        const weekAgo = new Date();
+        weekAgo.setDate(now.getDate() - 7);
+        return saleDate >= weekAgo;
+      }
+      if (dateFilter === 'Month') return saleDate.getMonth() === now.getMonth() && saleDate.getFullYear() === now.getFullYear();
+      return true;
+    });
+  }, [allCalculatedTransactions, dateFilter]);
   
   // Calculate ledger totals (Opening, Cash In, Cash Out, Closing)
   const ledgerTotals = useMemo(() => {
     let totalIn = 0;
     let totalOut = 0;
-    ledgerTransactions.forEach(t => {
+    calculatedTransactions.forEach(t => {
       const amt = getTransactionAmount(t);
       if (t.isExpense) {
         totalOut += amt;
@@ -826,15 +831,31 @@ export default function Accounts() {
         totalIn += amt;
       }
     });
-    const opening = parseFloat(selectedLedgerAccount?.opening_balance || 0);
-    const closing = calculatedTransactions.length > 0 ? calculatedTransactions[calculatedTransactions.length - 1].running_balance : opening;
+
+    let opening = parseFloat(selectedLedgerAccount?.opening_balance || 0);
+    if (calculatedTransactions.length > 0) {
+      const firstTx = calculatedTransactions[0];
+      const idx = allCalculatedTransactions.findIndex(t => t === firstTx || (t.id === firstTx.id && t.created_at === firstTx.created_at && t.customer_name === firstTx.customer_name));
+      if (idx > 0) {
+        opening = allCalculatedTransactions[idx - 1].running_balance;
+      }
+    } else {
+      if (allCalculatedTransactions.length > 0) {
+        opening = allCalculatedTransactions[allCalculatedTransactions.length - 1].running_balance;
+      }
+    }
+
+    const closing = calculatedTransactions.length > 0 
+      ? calculatedTransactions[calculatedTransactions.length - 1].running_balance 
+      : opening;
+
     return {
       opening,
       totalIn,
       totalOut,
       closing
     };
-  }, [ledgerTransactions, selectedLedgerAccount, calculatedTransactions]);
+  }, [calculatedTransactions, allCalculatedTransactions, selectedLedgerAccount]);
 
   const getRecentTransactionsForAccount = (acc) => {
     const isCash = checkIsCash(acc);
