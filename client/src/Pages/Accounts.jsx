@@ -1645,8 +1645,10 @@ export default function Accounts() {
                   {displayAccounts.filter(acc => acc.module_type !== 'Admin Recipient').map(acc => {
                     if (acc.bank_name.toLowerCase() === 'cash' || acc.bank_name.toLowerCase() === 'cash account') return null;
                     const bal = paymentSummary[acc.id] || 0;
+                    const digits = acc.account_number ? acc.account_number.slice(-4) : '';
+                    const optionValue = `${acc.bank_name}${digits ? ` (****${digits})` : ''}`;
                     return (
-                      <option key={acc.id} value={acc.bank_name}>
+                      <option key={acc.id} value={optionValue}>
                         {acc.bank_name} - {acc.account_title || 'Bank'} (Rs. {bal.toLocaleString()})
                       </option>
                     );
@@ -1688,8 +1690,10 @@ export default function Accounts() {
                   {displayAccounts.filter(acc => acc.module_type !== 'Admin Recipient').map(acc => {
                     if (acc.bank_name.toLowerCase() === 'cash' || acc.bank_name.toLowerCase() === 'cash account') return null;
                     const bal = paymentSummary[acc.id] || 0;
+                    const digits = acc.account_number ? acc.account_number.slice(-4) : '';
+                    const optionValue = `${acc.bank_name}${digits ? ` (****${digits})` : ''}`;
                     return (
-                      <option key={acc.id} value={acc.bank_name}>
+                      <option key={acc.id} value={optionValue}>
                         {acc.bank_name} - {acc.account_title || 'Bank'} (Rs. {bal.toLocaleString()})
                       </option>
                     );
