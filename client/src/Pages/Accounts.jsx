@@ -665,9 +665,7 @@ export default function Accounts() {
     }, { 'Cash': cashOpeningBal });
 
     const thresholdIdx = rawList.findIndex(t => 
-      !t.isTransportFare && 
-      t.supplier_id !== undefined && 
-      Number(t.id) === 59
+      Number(t.id) === 218
     );
 
     const res = rawList.reduce((acc, s, idx) => {
@@ -794,9 +792,7 @@ export default function Accounts() {
   const allCalculatedTransactions = useMemo(() => {
     let currentBal = parseFloat(selectedLedgerAccount?.opening_balance || 0);
     const thresholdIdx = allAccountTransactions.findIndex(t => 
-      !t.isTransportFare && 
-      t.supplier_id !== undefined && 
-      Number(t.id) === 59
+      Number(t.id) === 218
     );
     
     return allAccountTransactions.map((t, idx) => {

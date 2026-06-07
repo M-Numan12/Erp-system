@@ -136,7 +136,8 @@ router.get('/balances', auth, async (req, res) => {
         type: 'income',
         payment_type: s.payment_type,
         amount: parseFloat(s.paid_amount) || 0,
-        date: new Date(s.created_at || 0)
+        date: new Date(s.created_at || 0),
+        id: s.id
       });
     });
 
@@ -201,8 +202,7 @@ router.get('/balances', auth, async (req, res) => {
     transactions.sort((a, b) => a.date - b.date);
 
     const thresholdIdx = transactions.findIndex(t => 
-      t.supplier_id !== undefined && 
-      Number(t.id) === 59
+      Number(t.id) === 218
     );
 
     // Apply transactions chronologically with Cash clamping to 0
@@ -412,7 +412,8 @@ router.get('/balance/:method', auth, async (req, res) => {
         type: 'income',
         payment_type: s.payment_type,
         amount: parseFloat(s.paid_amount) || 0,
-        date: new Date(s.created_at || 0)
+        date: new Date(s.created_at || 0),
+        id: s.id
       });
     });
 
@@ -477,8 +478,7 @@ router.get('/balance/:method', auth, async (req, res) => {
     transactions.sort((a, b) => a.date - b.date);
 
     const thresholdIdx = transactions.findIndex(t => 
-      t.supplier_id !== undefined && 
-      Number(t.id) === 59
+      Number(t.id) === 218
     );
 
     // Apply transactions chronologically with Cash clamping to 0
