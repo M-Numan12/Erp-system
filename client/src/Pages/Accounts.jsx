@@ -685,7 +685,7 @@ export default function Accounts() {
       
       if (s.isExpense) {
          acc[targetKey] -= amt;
-         if (targetKey === 'Cash' && acc[targetKey] < 0) acc[targetKey] = 0; 
+         if (targetKey === 'Cash' && acc[targetKey] < 0 && activeTab !== 'Retail 1') acc[targetKey] = 0; 
       } else {
          acc[targetKey] += amt;
       }
@@ -693,7 +693,7 @@ export default function Accounts() {
     }, initial);
 
     return res;
-  }, [filteredSales, filteredInvestments, filteredCloseouts, filteredSupplierPayments, filteredGeneralExpenses, filteredSalaries, filteredRents, filteredOtherExpenses, filteredAccounts]);
+  }, [filteredSales, filteredInvestments, filteredCloseouts, filteredSupplierPayments, filteredGeneralExpenses, filteredSalaries, filteredRents, filteredOtherExpenses, filteredAccounts, activeTab]);
 
 
   const totalCash = paymentSummary['Cash'] || 0;
@@ -792,7 +792,7 @@ export default function Accounts() {
       const amt = getTransactionAmount(t);
       if (t.isExpense) {
         currentBal -= amt;
-        if (selectedLedgerAccount?.module_type !== 'Admin Recipient' && currentBal < 0) {
+        if (selectedLedgerAccount?.module_type !== 'Admin Recipient' && currentBal < 0 && activeTab !== 'Retail 1') {
           currentBal = 0;
         }
       } else {
@@ -800,7 +800,7 @@ export default function Accounts() {
       }
       return { ...t, running_balance: currentBal };
     });
-  }, [allAccountTransactions, selectedLedgerAccount]);
+  }, [allAccountTransactions, selectedLedgerAccount, activeTab]);
 
 
   // Filter calculated transactions by date range for display
@@ -1089,7 +1089,7 @@ export default function Accounts() {
             
             if (acc.module_type === 'Admin Recipient') {
               bal = getAdminBankBalance(acc);
-            } else if (bal < 0) {
+            } else if (bal < 0 && activeTab !== 'Retail 1') {
               bal = 0;
             }
             const recent = getRecentTransactionsForAccount(acc);
@@ -1219,7 +1219,7 @@ export default function Accounts() {
             let bal = checkIsCash(acc) ? (paymentSummary['Cash'] || 0) : (paymentSummary[acc.id] || 0);
             if (acc.module_type === 'Admin Recipient') {
               bal = getAdminBankBalance(acc);
-            } else if (bal < 0) {
+            } else if (bal < 0 && activeTab !== 'Retail 1') {
               bal = 0;
             }
             return <div style={{fontWeight: 900, color: '#16a34a', fontSize: '1.1rem'}}>Rs. {bal.toLocaleString()}</div>

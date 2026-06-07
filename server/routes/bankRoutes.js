@@ -207,7 +207,7 @@ router.get('/balances', auth, async (req, res) => {
         balances[key] += t.amount;
       } else {
         balances[key] -= t.amount;
-        if (key === 'Cash' && balances[key] < 0) {
+        if (key === 'Cash' && balances[key] < 0 && targetModule !== 'Retail 1') {
           balances[key] = 0;
         }
       }
@@ -475,7 +475,7 @@ router.get('/balance/:method', auth, async (req, res) => {
         balances[key] += t.amount;
       } else {
         balances[key] -= t.amount;
-        if (key === 'Cash' && balances[key] < 0) {
+        if (key === 'Cash' && balances[key] < 0 && finalModule !== 'Retail 1') {
           balances[key] = 0;
         }
       }
