@@ -105,7 +105,7 @@ router.get('/balances', auth, async (req, res) => {
     const salesRes = await pool.query(salesQ, [targetModule]);
 
     // 3. Fetch purchases & supplier payments
-    let purchasesQ = "SELECT paid_amount, payment_type, purchase_date FROM purchases WHERE COALESCE(module_type, 'Wholesale') = $1";
+    let purchasesQ = "SELECT id, supplier_id, paid_amount, payment_type, purchase_date FROM purchases WHERE COALESCE(module_type, 'Wholesale') = $1";
     const purchasesRes = await pool.query(purchasesQ, [targetModule]);
 
     // 4. Fetch expenses
@@ -145,7 +145,9 @@ router.get('/balances', auth, async (req, res) => {
         type: 'expense',
         payment_type: p.payment_type,
         amount: parseFloat(p.paid_amount) || 0,
-        date: new Date(p.purchase_date || 0)
+        date: new Date(p.purchase_date || 0),
+        id: p.id,
+        supplier_id: p.supplier_id
       });
     });
 
@@ -198,8 +200,13 @@ router.get('/balances', auth, async (req, res) => {
     // Sort ascending by date
     transactions.sort((a, b) => a.date - b.date);
 
+    const thresholdIdx = transactions.findIndex(t => 
+      t.supplier_id !== undefined && 
+      Number(t.id) === 59
+    );
+
     // Apply transactions chronologically with Cash clamping to 0
-    transactions.forEach(t => {
+    transactions.forEach((t, idx) => {
       let key = findBalanceKey(t.payment_type);
       if (!balances[key]) balances[key] = 0;
       
@@ -207,7 +214,8 @@ router.get('/balances', auth, async (req, res) => {
         balances[key] += t.amount;
       } else {
         balances[key] -= t.amount;
-        if (key === 'Cash' && balances[key] < 0 && targetModule !== 'Retail 1') {
+        const shouldClamp = targetModule !== 'Retail 1' || (thresholdIdx !== -1 && idx < thresholdIdx);
+        if (key === 'Cash' && balances[key] < 0 && shouldClamp) {
           balances[key] = 0;
         }
       }
@@ -373,7 +381,7 @@ router.get('/balance/:method', auth, async (req, res) => {
     const salesRes = await pool.query(salesQ, [finalModule]);
 
     // 3. Fetch purchases & supplier payments
-    let purchasesQ = "SELECT paid_amount, payment_type, purchase_date FROM purchases WHERE COALESCE(module_type, 'Wholesale') = $1";
+    let purchasesQ = "SELECT id, supplier_id, paid_amount, payment_type, purchase_date FROM purchases WHERE COALESCE(module_type, 'Wholesale') = $1";
     const purchasesRes = await pool.query(purchasesQ, [finalModule]);
 
     // 4. Fetch expenses
@@ -413,7 +421,9 @@ router.get('/balance/:method', auth, async (req, res) => {
         type: 'expense',
         payment_type: p.payment_type,
         amount: parseFloat(p.paid_amount) || 0,
-        date: new Date(p.purchase_date || 0)
+        date: new Date(p.purchase_date || 0),
+        id: p.id,
+        supplier_id: p.supplier_id
       });
     });
 
@@ -466,8 +476,13 @@ router.get('/balance/:method', auth, async (req, res) => {
     // Sort ascending by date
     transactions.sort((a, b) => a.date - b.date);
 
+    const thresholdIdx = transactions.findIndex(t => 
+      t.supplier_id !== undefined && 
+      Number(t.id) === 59
+    );
+
     // Apply transactions chronologically with Cash clamping to 0
-    transactions.forEach(t => {
+    transactions.forEach((t, idx) => {
       let key = findBalanceKey(t.payment_type);
       if (!balances[key]) balances[key] = 0;
       
@@ -475,7 +490,8 @@ router.get('/balance/:method', auth, async (req, res) => {
         balances[key] += t.amount;
       } else {
         balances[key] -= t.amount;
-        if (key === 'Cash' && balances[key] < 0 && finalModule !== 'Retail 1') {
+        const shouldClamp = finalModule !== 'Retail 1' || (thresholdIdx !== -1 && idx < thresholdIdx);
+        if (key === 'Cash' && balances[key] < 0 && shouldClamp) {
           balances[key] = 0;
         }
       }

@@ -664,7 +664,13 @@ export default function Accounts() {
       return acc;
     }, { 'Cash': cashOpeningBal });
 
-    const res = rawList.reduce((acc, s) => {
+    const thresholdIdx = rawList.findIndex(t => 
+      !t.isTransportFare && 
+      t.supplier_id !== undefined && 
+      Number(t.id) === 59
+    );
+
+    const res = rawList.reduce((acc, s, idx) => {
       if (s.payment_type === 'Deduction') return acc;
       if (s.payment_type === 'Deduction') return acc;
       const method = s.payment_type || 'Cash';
@@ -685,7 +691,8 @@ export default function Accounts() {
       
       if (s.isExpense) {
          acc[targetKey] -= amt;
-         if (targetKey === 'Cash' && acc[targetKey] < 0 && activeTab !== 'Retail 1') acc[targetKey] = 0; 
+         const shouldClamp = activeTab !== 'Retail 1' || (thresholdIdx !== -1 && idx < thresholdIdx);
+         if (targetKey === 'Cash' && acc[targetKey] < 0 && shouldClamp) acc[targetKey] = 0; 
       } else {
          acc[targetKey] += amt;
       }
@@ -784,15 +791,20 @@ export default function Accounts() {
   }, [filteredSales, filteredSupplierPayments, filteredGeneralExpenses, filteredSalaries, filteredRents, filteredOtherExpenses, filteredInvestments, selectedLedgerAccount]);
 
   
-  // Calculate running balances chronologically (ascending) for all transactions
   const allCalculatedTransactions = useMemo(() => {
     let currentBal = parseFloat(selectedLedgerAccount?.opening_balance || 0);
+    const thresholdIdx = allAccountTransactions.findIndex(t => 
+      !t.isTransportFare && 
+      t.supplier_id !== undefined && 
+      Number(t.id) === 59
+    );
     
-    return allAccountTransactions.map(t => {
+    return allAccountTransactions.map((t, idx) => {
       const amt = getTransactionAmount(t);
       if (t.isExpense) {
         currentBal -= amt;
-        if (selectedLedgerAccount?.module_type !== 'Admin Recipient' && currentBal < 0 && activeTab !== 'Retail 1') {
+        const shouldClamp = activeTab !== 'Retail 1' || (thresholdIdx !== -1 && idx < thresholdIdx);
+        if (selectedLedgerAccount?.module_type !== 'Admin Recipient' && currentBal < 0 && shouldClamp) {
           currentBal = 0;
         }
       } else {
