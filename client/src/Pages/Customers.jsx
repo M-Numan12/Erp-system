@@ -4,7 +4,8 @@ const API_BASE_URL = process.env.REACT_APP_API_URL ? `${process.env.REACT_APP_AP
 import React, { useState, useEffect, useContext, useMemo } from "react";
 import { 
   Users as UsersIcon, Plus, Pencil, Trash2, X, Search, Phone, Mail, 
-  MapPin, ChevronLeft, CreditCard, Banknote, UserPlus, Info, FileText, Printer
+  MapPin, ChevronLeft, CreditCard, Banknote, UserPlus, Info, FileText, Printer,
+  MessageCircle
 } from "lucide-react";
 import { DataTable } from 'primereact/datatable';
 import { Column } from 'primereact/column';
@@ -587,6 +588,62 @@ export default function Customers({ type }) {
           ? (parseFloat(firstVisibleRow.running_balance || 0) - (parseFloat(firstVisibleRow.net_amount || 0) - parseFloat(firstVisibleRow.paid_amount || 0))) 
           : parseFloat(selectedCustomer?.balance || 0);
 
+        const sendToWhatsApp = () => {
+          let phone = (selectedCustomer.phone || '').trim().replace(/[^\d+]/g, '');
+          if (!phone) {
+            alert("Customer has no phone number entered!");
+            return;
+          }
+          if (phone.startsWith('0')) {
+            phone = '92' + phone.substring(1);
+          } else if (!phone.startsWith('+') && !phone.startsWith('92')) {
+            phone = '92' + phone;
+          }
+          phone = phone.replace('+', '');
+
+          let msg = `*DATA WALEY CEMENT DEALER*\n`;
+          msg += `---------------------------------\n`;
+          msg += `*Customer Ledger Report*\n`;
+          msg += `*Customer:* ${selectedCustomer.name}\n`;
+          msg += `*Period:* ${ledgerFilter === 'all' ? 'All Time' : `${ledgerFrom} to ${ledgerTo}`}\n`;
+          msg += `*Date:* ${new Date().toLocaleDateString()}\n\n`;
+
+          msg += `*Transactions:*\n`;
+          msg += `---------------------------------\n`;
+          msg += `Opening Bal: Rs. ${Math.abs(periodOpeningBal).toLocaleString()} ${periodOpeningBal > 0 ? 'Dr' : 'Cr'}\n`;
+
+          sortedLedgerData.forEach((row, index) => {
+            const dateStr = new Date(row.created_at).toLocaleDateString('en-GB', {day: '2-digit', month: '2-digit', year: '2-digit'});
+            const ref = `SAL-${row.id}`;
+
+            let details = "";
+            let items = [];
+            try { items = typeof row.items === 'string' ? JSON.parse(row.items) : (row.items || []); } catch(e){}
+            if (items.length > 0) {
+              details = items.map(i => `${i.name} (${i.qty})`).join(', ');
+            } else {
+              details = `Payment (${row.payment_type || 'Cash'})`;
+            }
+
+            const debit = parseFloat(row.net_amount) > 0 ? `+Rs.${parseFloat(row.net_amount).toLocaleString()}` : '';
+            const credit = parseFloat(row.paid_amount) > 0 ? `-Rs.${parseFloat(row.paid_amount).toLocaleString()}` : '';
+            const amt = debit || credit;
+            const bal = `Bal: Rs. ${Math.abs(parseFloat(row.running_balance || 0)).toLocaleString()} ${parseFloat(row.running_balance || 0) > 0 ? 'Dr' : 'Cr'}`;
+
+            msg += `${index + 1}. ${dateStr} | ${ref}\n   _${details}_\n   *${amt}* | ${bal}\n`;
+          });
+
+          msg += `---------------------------------\n`;
+          msg += `*Summary:*\n`;
+          msg += `*Total Net Sales (Debit):* Rs. ${sortedLedgerData.reduce((sum, r) => sum + parseFloat(r.net_amount || 0), 0).toLocaleString()}\n`;
+          msg += `*Total Paid (Credit):* Rs. ${sortedLedgerData.reduce((sum, r) => sum + parseFloat(r.paid_amount || 0), 0).toLocaleString()}\n`;
+          msg += `*Outstanding Balance:* Rs. ${Math.abs(parseFloat(selectedCustomer.balance)).toLocaleString()} (${parseFloat(selectedCustomer.balance) > 0 ? 'Receivable' : 'Advance'})\n\n`;
+          msg += `Thank you for your business!`;
+
+          const url = `https://wa.me/${phone}?text=${encodeURIComponent(msg)}`;
+          window.open(url, '_blank');
+        };
+
         // Construct rows for PrimeReact DataTable
         const datatableRows = [
           {
@@ -611,6 +668,9 @@ export default function Customers({ type }) {
                 <h3>Customer Ledger: {selectedCustomer.name}</h3>
               </div>
               <div style={{display:'flex', gap:'10px'}}>
+                <button className="btn-secondary" onClick={sendToWhatsApp} style={{padding: '6px 12px', display:'flex', alignItems:'center', gap:'6px', background: '#25D366', color: 'white', border: 'none'}}>
+                  <MessageCircle size={16} /> Send to WhatsApp
+                </button>
                 <button className="btn-secondary" onClick={() => window.print()} style={{padding: '6px 12px', display:'flex', alignItems:'center', gap:'6px'}}>
                   <FileText size={16} /> Print Ledger
                 </button>

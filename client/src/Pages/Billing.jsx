@@ -6,7 +6,7 @@ import {
   ShoppingCart, Search, Trash2, User, Plus, Minus, 
   Printer, CreditCard, Banknote, Truck, Tag, X, CheckCircle, Pencil,
   History, ArrowLeft, ChevronLeft, FileText, Download, Filter, Package, Phone, MapPin,
-  ArrowDownCircle, Hash, Users
+  ArrowDownCircle, Hash, Users, MessageCircle
 } from "lucide-react";
 import { Button } from 'primereact/button';
 import { Dialog } from 'primereact/dialog';
@@ -661,6 +661,65 @@ export default function Billing({ type }) {
     return matchesCategory && 
       ((p.name || '').toLowerCase().includes(search.toLowerCase()) || (p.brand || "").toLowerCase().includes(search.toLowerCase()));
   });
+
+  const sendLedgerToWhatsApp = () => {
+    if (!selectedCustForLedger) return;
+    
+    const fullCustomer = customers.find(c => c.id === selectedCustForLedger.id) || selectedCustForLedger;
+    
+    let phone = (fullCustomer.phone || '').trim().replace(/[^\d+]/g, '');
+    if (!phone) {
+      alert("Customer has no phone number entered!");
+      return;
+    }
+    if (phone.startsWith('0')) {
+      phone = '92' + phone.substring(1);
+    } else if (!phone.startsWith('+') && !phone.startsWith('92')) {
+      phone = '92' + phone;
+    }
+    phone = phone.replace('+', '');
+    
+    let msg = `*DATA WALEY CEMENT DEALER*\n`;
+    msg += `---------------------------------\n`;
+    msg += `*Customer Ledger Report*\n`;
+    msg += `*Customer:* ${fullCustomer.name}\n`;
+    msg += `*Period:* ${ledgerFilter === 'all' ? 'All Time' : `${ledgerFrom} to ${ledgerTo}`}\n`;
+    msg += `*Date:* ${new Date().toLocaleDateString()}\n\n`;
+    
+    msg += `*Transactions:*\n`;
+    msg += `---------------------------------\n`;
+    
+    filteredLedgerData.forEach((row, index) => {
+      const dateStr = new Date(row.created_at).toLocaleDateString('en-GB', {day: '2-digit', month: '2-digit', year: '2-digit'});
+      const ref = parseFloat(row.net_amount) > 0 ? `SAL-${row.id}` : `PAY-${row.id}`;
+      
+      let details = "";
+      if (parseFloat(row.net_amount) > 0) {
+        let items = [];
+        try { items = typeof row.items === 'string' ? JSON.parse(row.items) : (row.items || []); } catch(e){}
+        details = items.map(i => `${i.name} (${i.qty})`).join(', ');
+      } else {
+        details = `Payment (${row.payment_type || 'Cash'})`;
+      }
+      
+      const debit = parseFloat(row.net_amount) > 0 ? `+Rs.${parseFloat(row.net_amount).toLocaleString()}` : '';
+      const credit = parseFloat(row.paid_amount) > 0 ? `-Rs.${parseFloat(row.paid_amount).toLocaleString()}` : '';
+      const amt = debit || credit;
+      const bal = `Bal: Rs. ${parseFloat(row.running_balance || 0).toLocaleString()}`;
+      
+      msg += `${index + 1}. ${dateStr} | ${ref}\n   _${details}_\n   *${amt}* | ${bal}\n`;
+    });
+    
+    msg += `---------------------------------\n`;
+    msg += `*Summary:*\n`;
+    msg += `*Total Net Sales (Debit):* Rs. ${filteredLedgerData.reduce((sum, r) => sum + parseFloat(r.net_amount || 0), 0).toLocaleString()}\n`;
+    msg += `*Total Paid (Credit):* Rs. ${filteredLedgerData.reduce((sum, r) => sum + parseFloat(r.paid_amount || 0), 0).toLocaleString()}\n`;
+    msg += `*Outstanding Balance:* Rs. ${parseFloat(fullCustomer.balance || 0).toLocaleString()}\n\n`;
+    msg += `Thank you for your business!`;
+    
+    const url = `https://wa.me/${phone}?text=${encodeURIComponent(msg)}`;
+    window.open(url, '_blank');
+  };
 
   return (
     <div className="module-page billing-page">
@@ -1398,6 +1457,9 @@ export default function Billing({ type }) {
                 <h3>Customer Ledger: {selectedCustForLedger.name}</h3>
               </div>
               <div style={{display:'flex', gap:'10px'}}>
+                <button className="btn-secondary" onClick={sendLedgerToWhatsApp} style={{padding: '6px 12px', display:'flex', alignItems:'center', gap:'6px', background: '#25D366', color: 'white', border: 'none'}}>
+                  <MessageCircle size={16} /> Send to WhatsApp
+                </button>
                 <button className="btn-secondary" onClick={() => window.print()} style={{padding: '6px 12px', display:'flex', alignItems:'center', gap:'6px'}}>
                   <Printer size={16} /> Print Report
                 </button>
