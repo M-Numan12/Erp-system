@@ -58,15 +58,15 @@ router.get('/balances', auth, async (req, res) => {
     const isAdminUser = req.user.role === 'admin';
     const targetModule = req.query.type || req.user.module_type || 'Wholesale';
 
-    // 1. Fetch bank accounts opening balances
+    // 1. Fetch bank accounts opening balances (always include Cash account)
     let accountsQ = 'SELECT bank_name, account_number, opening_balance FROM bank_accounts';
     let params = [];
     if (!isAdminUser) {
-      accountsQ += " WHERE user_id = $1 OR COALESCE(module_type, 'Wholesale') = $2";
+      accountsQ += " WHERE user_id = $1 OR COALESCE(module_type, 'Wholesale') = $2 OR LOWER(bank_name) = 'cash' OR LOWER(bank_name) = 'cash account'";
       params.push(userId, targetModule);
     } else {
-      // Admins fetch all relevant accounts for this context
-      accountsQ += " WHERE COALESCE(module_type, 'Wholesale') = $1";
+      // Admins fetch all relevant accounts for this context, plus Cash
+      accountsQ += " WHERE COALESCE(module_type, 'Wholesale') = $1 OR LOWER(bank_name) = 'cash' OR LOWER(bank_name) = 'cash account'";
       params.push(targetModule);
     }
     const accountsRes = await pool.query(accountsQ, params);
@@ -83,8 +83,6 @@ router.get('/balances', auth, async (req, res) => {
       balances[name] = parseFloat(acc.opening_balance) || 0;
     });
 
-
-
     const findBalanceKey = (methodName) => {
       if (!methodName) return 'Cash';
       const cl = methodName.replace(/^bank\s*-\s*/i, '').toLowerCase().trim();
@@ -100,32 +98,32 @@ router.get('/balances', auth, async (req, res) => {
       return methodName.replace(/^bank\s*-\s*/i, '').trim();
     };
 
-    // 2. Fetch sales
-    let salesQ = "SELECT net_amount, paid_amount, payment_type, created_at FROM sales WHERE COALESCE(sale_type, 'Wholesale') = $1";
+    // 2. Fetch sales (current module or any Cash sale)
+    let salesQ = "SELECT net_amount, paid_amount, payment_type, created_at FROM sales WHERE COALESCE(sale_type, 'Wholesale') = $1 OR payment_type ILIKE 'Cash%' OR payment_type = 'Cash Account'";
     const salesRes = await pool.query(salesQ, [targetModule]);
 
-    // 3. Fetch purchases & supplier payments
-    let purchasesQ = "SELECT id, supplier_id, paid_amount, payment_type, purchase_date FROM purchases WHERE COALESCE(module_type, 'Wholesale') = $1";
+    // 3. Fetch purchases & supplier payments (current module or any Cash payment)
+    let purchasesQ = "SELECT id, supplier_id, paid_amount, payment_type, purchase_date FROM purchases WHERE COALESCE(module_type, 'Wholesale') = $1 OR payment_type ILIKE 'Cash%' OR payment_type = 'Cash Account'";
     const purchasesRes = await pool.query(purchasesQ, [targetModule]);
 
-    // 4. Fetch expenses
-    let expensesQ = "SELECT amount, payment_type, expense_type, created_at FROM expenses WHERE COALESCE(module_type, 'Wholesale') = $1";
+    // 4. Fetch expenses (current module or any Cash payment)
+    let expensesQ = "SELECT amount, payment_type, expense_type, created_at FROM expenses WHERE COALESCE(module_type, 'Wholesale') = $1 OR payment_type ILIKE 'Cash%' OR payment_type = 'Cash Account'";
     const expensesRes = await pool.query(expensesQ, [targetModule]);
 
-    // 5. Fetch actual salaries paid from salary_payments
-    let salariesQ = "SELECT amount, payment_type, created_at FROM salary_payments WHERE COALESCE(module_type, 'Wholesale') = $1";
+    // 5. Fetch actual salaries paid from salary_payments (current module or any Cash payment)
+    let salariesQ = "SELECT amount, payment_type, created_at FROM salary_payments WHERE COALESCE(module_type, 'Wholesale') = $1 OR payment_type ILIKE 'Cash%' OR payment_type = 'Cash Account' OR payment_type IS NULL";
     const salariesRes = await pool.query(salariesQ, [targetModule]);
 
-    // 6. Fetch rents
-    let rentsQ = "SELECT amount, created_at FROM rent WHERE COALESCE(module_type, 'Wholesale') = $1";
-    const rentsRes = await pool.query(rentsQ, [targetModule]);
+    // 6. Fetch rents (rents are always Cash, so calculate globally)
+    let rentsQ = "SELECT amount, created_at FROM rent";
+    const rentsRes = await pool.query(rentsQ);
 
-    // 7. Fetch investments
-    let investmentsQ = "SELECT amount, created_at, date FROM investment WHERE COALESCE(module_type, 'Wholesale') = $1";
-    const investmentsRes = await pool.query(investmentsQ, [targetModule]);
+    // 7. Fetch investments (investments are always Cash, so calculate globally)
+    let investmentsQ = "SELECT amount, created_at, date FROM investment";
+    const investmentsRes = await pool.query(investmentsQ);
 
-    // 8. Fetch other expenses
-    let otherExpensesQ = "SELECT amount, payment_method, created_at, date FROM other_expenses WHERE COALESCE(module_type, 'Wholesale') = $1";
+    // 8. Fetch other expenses (current module or any Cash payment)
+    let otherExpensesQ = "SELECT amount, payment_method, created_at, date FROM other_expenses WHERE COALESCE(module_type, 'Wholesale') = $1 OR payment_method ILIKE 'Cash%' OR payment_method = 'Cash Account' OR payment_method IS NULL";
     const otherExpensesRes = await pool.query(otherExpensesQ, [targetModule]);
 
     // Chronological transactions consolidation

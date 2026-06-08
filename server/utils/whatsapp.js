@@ -1,4 +1,6 @@
 const axios = require('axios');
+const https = require('https');
+const querystring = require('querystring');
 
 /**
  * Sends a WhatsApp message using a configured gateway (like UltraMsg, Green-API, Wassenger, etc.)
@@ -93,7 +95,7 @@ async function sendWhatsAppMessage(to, body) {
  * Sends a PDF/Document via WhatsApp scan gateways (like UltraMsg) using base64.
  */
 async function sendWhatsAppDocument(to, base64Data, filename = 'Ledger.pdf') {
-  const apiUrl = process.env.WHATSAPP_API_URL || 'https://api.ultramsg.com/instance174172/messages/chat';
+  const instanceUrl = process.env.WHATSAPP_API_URL || 'https://api.ultramsg.com/instance174172/messages/chat';
   const token = process.env.WHATSAPP_TOKEN || '4722xwbvpu3mdq18';
 
   if (!to) {
@@ -111,34 +113,67 @@ async function sendWhatsAppDocument(to, base64Data, filename = 'Ledger.pdf') {
     cleanPhone = '92' + cleanPhone;
   }
 
-  // Generate document API URL (e.g. replacing 'chat' with 'document')
-  const docApiUrl = apiUrl.replace(/\/chat\/?$/, '/document').replace(/\/chat$/, '/document');
-
-  try {
-    if (docApiUrl.includes('ultramsg')) {
-      const params = new URLSearchParams();
-      params.append('token', token);
-      params.append('to', cleanPhone);
-      params.append('filename', filename);
-      params.append('document', base64Data);
-
-      await axios.post(docApiUrl, params, {
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
-      });
-    } else {
-      await axios.post(docApiUrl, {
-        to: cleanPhone,
-        chatId: `${cleanPhone}@c.us`,
-        filename: filename,
-        document: base64Data,
-        token: token
-      });
-    }
-    console.log(`✅ Document WhatsApp successfully sent to ${cleanPhone}`);
-  } catch (err) {
-    console.error(`❌ Document WhatsApp failed to ${cleanPhone}:`, err.response?.data || err.message);
-    throw err;
+  // Ensure document has the correct data URI prefix for UltraMsg
+  let documentData = base64Data;
+  if (!documentData.startsWith('data:')) {
+    documentData = `data:application/pdf;base64,${documentData}`;
   }
+
+  // Build the document endpoint URL
+  const docApiUrl = instanceUrl
+    .replace(/\/messages\/chat(\/?)?$/, '/messages/document')
+    .replace(/\/chat(\/?)?$/, '/messages/document');
+
+  console.log(`📤 Sending PDF document to ${cleanPhone} via UltraMsg...`);
+  console.log(`📍 Endpoint: ${docApiUrl}`);
+
+  // Use native https for large payloads to avoid axios body size issues
+  return new Promise((resolve, reject) => {
+    const postData = querystring.stringify({
+      token: token,
+      to: cleanPhone,
+      filename: filename,
+      document: documentData
+    });
+
+    const urlObj = new URL(docApiUrl);
+    const options = {
+      hostname: urlObj.hostname,
+      path: urlObj.pathname + urlObj.search,
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Content-Length': Buffer.byteLength(postData)
+      }
+    };
+
+    const req = https.request(options, (res) => {
+      let data = '';
+      res.on('data', chunk => data += chunk);
+      res.on('end', () => {
+        try {
+          const parsed = JSON.parse(data);
+          console.log(`✅ UltraMsg Document Response: ${JSON.stringify(parsed)}`);
+          if (parsed.sent === 'true' || parsed.sent === true) {
+            resolve(parsed);
+          } else {
+            reject(new Error(`UltraMsg rejected document: ${JSON.stringify(parsed)}`));
+          }
+        } catch (e) {
+          console.error('❌ UltraMsg Document raw response:', data);
+          reject(new Error(`Invalid JSON response from UltraMsg: ${data}`));
+        }
+      });
+    });
+
+    req.on('error', (err) => {
+      console.error(`❌ Document WhatsApp network error to ${cleanPhone}:`, err.message);
+      reject(err);
+    });
+
+    req.write(postData);
+    req.end();
+  });
 }
 
 /**
