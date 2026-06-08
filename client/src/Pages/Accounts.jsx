@@ -765,7 +765,7 @@ export default function Accounts() {
               customer_name: `Sent Admin Payment`
             };
           }
-          const isGallaCloseout = s.customer_name?.includes('Galla Closeout') || s.title?.includes('Galla Closeout') || s.notes?.includes('Recipient Bank') || String(s.notes).includes(selectedLedgerAccount.bank_name);
+          const isGallaCloseout = s.expense_type === 'Galla Closeout' || s.customer_name?.includes('Galla Closeout') || s.title?.includes('Galla Closeout') || s.notes?.includes('Recipient Bank');
           if (isGallaCloseout && s.notes?.includes(selectedLedgerAccount.bank_name) && s.notes?.includes(selectedLedgerAccount.account_number)) {
             return {
               ...s,
@@ -898,7 +898,7 @@ export default function Accounts() {
       ...filteredInvestments.map(i => ({ ...i, isIncome: true, customer_name: `Invest: ${i.investor}`, payment_type: 'Cash', created_at: i.created_at || i.date }))
     ].map(s => {
       if (acc.module_type === 'Admin Recipient') {
-        const isGallaCloseout = s.customer_name?.includes('Galla Closeout') || s.title?.includes('Galla Closeout') || s.notes?.includes('Recipient Bank') || String(s.notes).includes(acc.bank_name);
+        const isGallaCloseout = s.expense_type === 'Galla Closeout' || s.customer_name?.includes('Galla Closeout') || s.title?.includes('Galla Closeout') || s.notes?.includes('Recipient Bank');
         if (isGallaCloseout && s.notes?.includes(acc.bank_name) && s.notes?.includes(acc.account_number)) {
           return {
             ...s,
