@@ -804,6 +804,7 @@ export default function Suppliers({ type }) {
                 <div style={{background: 'white', borderRadius: '10px', border: '1px solid #e2e8f0', overflow: 'hidden'}}>
                   <DataTable 
                     value={datatableRows} 
+                    dataKey="id"
                     scrollable 
                     scrollHeight="380px" 
                     className="p-datatable-sm card-table"
@@ -857,6 +858,7 @@ export default function Suppliers({ type }) {
                             <div style={{display: 'flex', alignItems: 'center', gap: '4px'}}>
                               {user?.role === 'admin' ? (
                                 <input 
+                                  key={`qty-${row.id}`}
                                   type="number" 
                                   defaultValue={row.quantity} 
                                   style={{width: '50px', padding: '2px 4px', fontSize: '0.8rem', border: '1px solid #cbd5e1', borderRadius: '4px'}}
@@ -879,6 +881,7 @@ export default function Suppliers({ type }) {
                         if (row.product_name && parseFloat(row.total_amount) > 0) {
                           return user?.role === 'admin' ? (
                             <input 
+                              key={`rate-${row.id}`}
                               type="number" 
                               defaultValue={row.rate} 
                               style={{width: '60px', padding: '2px 4px', fontSize: '0.8rem', border: '1px solid #cbd5e1', borderRadius: '4px'}}
