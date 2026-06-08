@@ -1034,12 +1034,20 @@ export default function Accounts() {
   // Combine Bank Accounts with a virtual "Cash" account ONLY if no real Cash account exists
   const displayAccounts = useMemo(() => {
     const hasRealCash = filteredAccounts.some(a => (a.bank_name.toLowerCase() === 'cash' || a.bank_name.toLowerCase() === 'cash account') && a.module_type !== 'Admin Recipient');
-    if (hasRealCash) return filteredAccounts;
-    return [
+    const baseAccounts = hasRealCash ? filteredAccounts : [
       { id: 'cash-id', bank_name: 'Cash Account', account_title: 'Main Counter', account_number: 'N/A', isCash: true, opening_balance: 0 },
       ...filteredAccounts
     ];
-  }, [filteredAccounts]);
+    return baseAccounts.map(acc => {
+      let bal = checkIsCash(acc) ? (paymentSummary['Cash'] || 0) : (paymentSummary[acc.id] || 0);
+      if (acc.module_type === 'Admin Recipient') {
+        bal = getAdminBankBalance(acc);
+      } else if (bal < 0 && activeTab !== 'Retail 1') {
+        bal = 0;
+      }
+      return { ...acc, calculated_balance: bal };
+    });
+  }, [filteredAccounts, paymentSummary, generalExpenses, activeTab]);
 
 
   const filtered = displayAccounts.filter(acc => acc.bank_name.toLowerCase().includes(search.toLowerCase()));
@@ -1093,13 +1101,7 @@ export default function Accounts() {
           marginBottom: '35px'
         }}>
           {displayAccounts.map(acc => {
-            let bal = checkIsCash(acc) ? (paymentSummary['Cash'] || 0) : (paymentSummary[acc.id] || 0);
-            
-            if (acc.module_type === 'Admin Recipient') {
-              bal = getAdminBankBalance(acc);
-            } else if (bal < 0 && activeTab !== 'Retail 1') {
-              bal = 0;
-            }
+            const bal = acc.calculated_balance;
             const recent = getRecentTransactionsForAccount(acc);
             const isAdminRecipient = acc.module_type === 'Admin Recipient';
             
@@ -1223,15 +1225,9 @@ export default function Accounts() {
           <Column field="opening_balance" header="Opening Bal." body={acc => (
             <div style={{fontWeight: 700, color: '#64748b'}}>Rs. {parseFloat(acc.opening_balance || 0).toLocaleString()}</div>
           )} sortable />
-          <Column header="Current Bal." body={acc => {
-            let bal = checkIsCash(acc) ? (paymentSummary['Cash'] || 0) : (paymentSummary[acc.id] || 0);
-            if (acc.module_type === 'Admin Recipient') {
-              bal = getAdminBankBalance(acc);
-            } else if (bal < 0 && activeTab !== 'Retail 1') {
-              bal = 0;
-            }
-            return <div style={{fontWeight: 900, color: '#16a34a', fontSize: '1.1rem'}}>Rs. {bal.toLocaleString()}</div>
-          }} />
+          <Column header="Current Bal." body={acc => (
+            <div style={{fontWeight: 900, color: '#16a34a', fontSize: '1.1rem'}}>Rs. {acc.calculated_balance.toLocaleString()}</div>
+          )} />
           <Column header="" body={acc => {
             const isAdmin = user?.role === 'admin';
             return (
