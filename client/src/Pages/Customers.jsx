@@ -613,21 +613,17 @@ export default function Customers({ type }) {
             return;
           }
 
-          // Temporarily remove print-only class and style it so html2pdf can render it correctly off-screen
-          element.classList.remove('print-only');
-          const originalDisplay = element.style.display;
-          const originalPosition = element.style.position;
-          const originalLeft = element.style.left;
-          const originalWidth = element.style.width;
-          const originalBackground = element.style.background;
-          const originalColor = element.style.color;
-
-          element.style.display = 'block';
-          element.style.position = 'absolute';
-          element.style.left = '-9999px';
-          element.style.background = 'white';
-          element.style.color = 'black';
-          element.style.width = '1000px'; // Fit table nicely on A4 page
+          // Clone the element and prepare it for PDF rendering
+          const clone = element.cloneNode(true);
+          clone.classList.remove('print-only');
+          clone.style.position = 'fixed';
+          clone.style.left = '0';
+          clone.style.top = '0';
+          clone.style.zIndex = '1';
+          clone.style.background = 'white';
+          clone.style.color = 'black';
+          clone.style.width = '1000px'; // Fit table nicely on A4 page
+          document.body.appendChild(clone);
 
           const opt = {
             margin:       [10, 10, 10, 10],
@@ -638,20 +634,14 @@ export default function Customers({ type }) {
           };
 
           try {
-            // Generate PDF as base64 string
-            const pdfBase64 = await window.html2pdf().from(element).set(opt).outputPdf('datauristring');
+            // Generate PDF as base64 string from the clone
+            const pdfBase64 = await window.html2pdf().from(clone).set(opt).outputPdf('datauristring');
             
-            // Restore original styles and class
-            element.classList.add('print-only');
-            element.style.display = originalDisplay;
-            element.style.position = originalPosition;
-            element.style.left = originalLeft;
-            element.style.width = originalWidth;
-            element.style.background = originalBackground;
-            element.style.color = originalColor;
+            // Clean up the clone from the DOM
+            document.body.removeChild(clone);
 
             // Send base64 to backend
-            const res = await fetch(`${API_BASE_URL}/sales/send-document`, {
+            const res = await fetch(`http://localhost:5000/api/sales/send-document`, {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
@@ -672,14 +662,10 @@ export default function Customers({ type }) {
             }
           } catch (err) {
             console.error("PDF generation/send error:", err);
-            // Restore styles and class
-            element.classList.add('print-only');
-            element.style.display = originalDisplay;
-            element.style.position = originalPosition;
-            element.style.left = originalLeft;
-            element.style.width = originalWidth;
-            element.style.background = originalBackground;
-            element.style.color = originalColor;
+            // Clean up the clone in case of error
+            if (document.body.contains(clone)) {
+              document.body.removeChild(clone);
+            }
             alert("Error generating or sending Ledger PDF.");
           }
         };
