@@ -613,7 +613,8 @@ export default function Customers({ type }) {
             return;
           }
 
-          // Temporarily style it so html2pdf can render it correctly off-screen
+          // Temporarily remove print-only class and style it so html2pdf can render it correctly off-screen
+          element.classList.remove('print-only');
           const originalDisplay = element.style.display;
           const originalPosition = element.style.position;
           const originalLeft = element.style.left;
@@ -640,7 +641,8 @@ export default function Customers({ type }) {
             // Generate PDF as base64 string
             const pdfBase64 = await window.html2pdf().from(element).set(opt).outputPdf('datauristring');
             
-            // Restore original styles
+            // Restore original styles and class
+            element.classList.add('print-only');
             element.style.display = originalDisplay;
             element.style.position = originalPosition;
             element.style.left = originalLeft;
@@ -670,7 +672,8 @@ export default function Customers({ type }) {
             }
           } catch (err) {
             console.error("PDF generation/send error:", err);
-            // Restore styles
+            // Restore styles and class
+            element.classList.add('print-only');
             element.style.display = originalDisplay;
             element.style.position = originalPosition;
             element.style.left = originalLeft;
