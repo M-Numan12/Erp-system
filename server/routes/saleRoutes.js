@@ -810,4 +810,19 @@ router.post('/return', auth, async (req, res) => {
   }
 });
 
+// Send Custom WhatsApp Message
+router.post('/send-message', auth, async (req, res) => {
+  try {
+    const { to, body } = req.body;
+    if (!to || !body) {
+      return res.status(400).json({ error: 'Recipient phone (to) and message body (body) are required' });
+    }
+    await sendWhatsAppMessage(to, body);
+    res.json({ success: true, message: 'Message sent successfully via WhatsApp gateway' });
+  } catch (err) {
+    console.error('Send Custom WhatsApp Error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 module.exports = router;

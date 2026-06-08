@@ -588,7 +588,7 @@ export default function Customers({ type }) {
           ? (parseFloat(firstVisibleRow.running_balance || 0) - (parseFloat(firstVisibleRow.net_amount || 0) - parseFloat(firstVisibleRow.paid_amount || 0))) 
           : parseFloat(selectedCustomer?.balance || 0);
 
-        const sendToWhatsApp = () => {
+        const sendToWhatsApp = async () => {
           let phone = (selectedCustomer.phone || '').trim().replace(/[^\d+]/g, '');
           if (!phone) {
             alert("Customer has no phone number entered!");
@@ -640,8 +640,25 @@ export default function Customers({ type }) {
           msg += `*Outstanding Balance:* Rs. ${Math.abs(parseFloat(selectedCustomer.balance)).toLocaleString()} (${parseFloat(selectedCustomer.balance) > 0 ? 'Receivable' : 'Advance'})\n\n`;
           msg += `Thank you for your business!`;
 
-          const url = `https://wa.me/${phone}?text=${encodeURIComponent(msg)}`;
-          window.open(url, '_blank');
+          try {
+            const res = await fetch(`${API_BASE_URL}/sales/send-message`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${localStorage.getItem('token')}`
+              },
+              body: JSON.stringify({ to: phone, body: msg })
+            });
+            const data = await res.json();
+            if (res.ok && data.success) {
+              alert("Ledger report sent successfully via WhatsApp gateway!");
+            } else {
+              alert(`Failed to send WhatsApp: ${data.error || 'Unknown error'}`);
+            }
+          } catch (err) {
+            console.error(err);
+            alert("Error sending WhatsApp message.");
+          }
         };
 
         // Construct rows for PrimeReact DataTable

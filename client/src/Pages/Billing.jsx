@@ -662,7 +662,7 @@ export default function Billing({ type }) {
       ((p.name || '').toLowerCase().includes(search.toLowerCase()) || (p.brand || "").toLowerCase().includes(search.toLowerCase()));
   });
 
-  const sendLedgerToWhatsApp = () => {
+  const sendLedgerToWhatsApp = async () => {
     if (!selectedCustForLedger) return;
     
     const fullCustomer = customers.find(c => c.id === selectedCustForLedger.id) || selectedCustForLedger;
@@ -717,8 +717,25 @@ export default function Billing({ type }) {
     msg += `*Outstanding Balance:* Rs. ${parseFloat(fullCustomer.balance || 0).toLocaleString()}\n\n`;
     msg += `Thank you for your business!`;
     
-    const url = `https://wa.me/${phone}?text=${encodeURIComponent(msg)}`;
-    window.open(url, '_blank');
+    try {
+      const res = await fetch(`${API_BASE_URL}/sales/send-message`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({ to: phone, body: msg })
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        alert("Ledger report sent successfully via WhatsApp gateway!");
+      } else {
+        alert(`Failed to send WhatsApp: ${data.error || 'Unknown error'}`);
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Error sending WhatsApp message.");
+    }
   };
 
   return (
