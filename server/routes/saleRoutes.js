@@ -825,4 +825,19 @@ router.post('/send-message', auth, async (req, res) => {
   }
 });
 
+// Send Custom WhatsApp Document
+router.post('/send-document', auth, async (req, res) => {
+  try {
+    const { to, document, filename } = req.body;
+    if (!to || !document) {
+      return res.status(400).json({ error: 'Recipient phone (to) and document (base64) are required' });
+    }
+    await sendWhatsAppDocument(to, document, filename);
+    res.json({ success: true, message: 'Document sent successfully via WhatsApp gateway' });
+  } catch (err) {
+    console.error('Send Custom WhatsApp Document Error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 module.exports = router;
