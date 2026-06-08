@@ -428,7 +428,7 @@ export default function Salary({ type }) {
 
   return (
     <div className="module-page">
-      <div className="module-header">
+      <div className="module-header no-print">
         <div className="module-title">
           <div className="module-icon salary-icon" style={{background: '#eff6ff', color: '#3b82f6'}}><Users size={28} /></div>
           <div>
@@ -437,7 +437,7 @@ export default function Salary({ type }) {
           </div>
         </div>
 
-        <div className="module-actions no-print" style={{display:'flex', gap: '12px', alignItems:'center'}}>
+        <div style={{display:'flex', gap: '12px', alignItems:'center'}}>
             {user?.role === 'admin' && !user?.module_type && !type && (
             <div className="counter-switcher">
                 {['Wholesale', 'Retail 1', 'Retail 2'].map(tab => (
@@ -445,9 +445,6 @@ export default function Salary({ type }) {
                 ))}
             </div>
             )}
-            <button className="btn-secondary" onClick={() => window.print()} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 16px', borderRadius: '8px', cursor: 'pointer', fontWeight: 600, background: '#f1f5f9', border: '1px solid #e2e8f0', color: '#475569' }}>
-                <Printer size={18} /> Print Payroll
-            </button>
             <button className="btn-primary" style={{background: '#10b981', borderColor:'#10b981'}} onClick={() => openPaymentModal(null, "Salary")}>
                 <Banknote size={18} /> Pay Monthly Salary
             </button>
@@ -457,7 +454,7 @@ export default function Salary({ type }) {
         </div>
       </div>
 
-      <div className="stats-grid-pos">
+      <div className="stats-grid-pos no-print">
         <div className="pos-stat-card">
           <div className="icon blue"><Briefcase size={24} /></div>
           <div className="info">
@@ -488,7 +485,7 @@ export default function Salary({ type }) {
         </div>
       </div>
 
-      <div className="module-table-container">
+      <div className="module-table-container no-print">
         <table className="module-table">
           <thead>
             <tr>
@@ -1046,56 +1043,6 @@ export default function Salary({ type }) {
           </div>
       )}
 
-      <style jsx="true">{`
-        @media print {
-          /* Hide sidebar, overlay, mobile header, and print button itself */
-          .sidebar, .mobile-header, .sidebar-overlay, .no-print, .pos-table-actions {
-            display: none !important;
-          }
-
-          /* If printing voucher/receipt modal, hide everything else */
-          body:has(.receipt-preview-overlay) .module-page {
-            display: none !important;
-          }
-          body:has(.receipt-preview-overlay) .main-layout {
-            display: none !important;
-          }
-
-          /* If printing ledger modal, show only the ledger */
-          body:has(.p-dialog) .main-layout, body:has(.modal-overlay:not(.no-print)) .main-layout {
-            display: none !important;
-          }
-          body:has(.p-dialog) *, body:has(.modal-overlay:not(.no-print)) * {
-            visibility: hidden;
-          }
-          body:has(.p-dialog) .p-dialog, body:has(.p-dialog) .p-dialog *,
-          body:has(.modal-overlay:not(.no-print)) .modal, body:has(.modal-overlay:not(.no-print)) .modal * {
-            visibility: visible !important;
-          }
-
-          /* General layout reset for main page print */
-          body:not(:has(.receipt-preview-overlay)):not(:has(.p-dialog)):not(:has(.modal-overlay:not(.no-print))) .main-layout {
-            display: block !important;
-            padding: 0 !important;
-            margin: 0 !important;
-          }
-          body:not(:has(.receipt-preview-overlay)):not(:has(.p-dialog)):not(:has(.modal-overlay:not(.no-print))) .content-area {
-            width: 100% !important;
-            margin: 0 !important;
-            padding: 0 !important;
-          }
-          body:not(:has(.receipt-preview-overlay)):not(:has(.p-dialog)):not(:has(.modal-overlay:not(.no-print))) .module-page {
-            width: 100% !important;
-            max-width: 100% !important;
-            margin: 0 !important;
-            padding: 0 !important;
-            background: transparent !important;
-          }
-
-          .p-dialog-header, .p-dialog-footer { display: none !important; }
-          .p-dialog-content { padding: 0 !important; }
-        }
-      `}</style>
     </div>
   );
 }

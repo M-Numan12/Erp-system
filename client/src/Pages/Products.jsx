@@ -5,7 +5,7 @@ import React, { useState, useEffect, useContext } from "react";
 import { 
   Package, Plus, Pencil, Trash2, X, Search, ChevronLeft, 
   Layers, Database, Hash, BarChart3, Info, CircleDollarSign, Truck, Tag, Weight,
-  ShoppingCart, ShieldCheck, ClipboardList, Eye, ChevronRight, Printer
+  ShoppingCart, ShieldCheck, ClipboardList, Eye, ChevronRight
 } from "lucide-react";
 import { DataTable } from 'primereact/datatable';
 import { Column } from 'primereact/column';
@@ -224,12 +224,9 @@ export default function Products({ type }) {
           </div>
         )}
 
-        <div className="module-actions no-print" style={{display: 'flex', gap: '10px', alignItems: 'center'}}>
-          <Button label="Print Catalog" icon="pi pi-print" onClick={() => window.print()} className="p-button-outlined p-button-secondary" style={{borderRadius: '12px'}} />
-          {user?.role === 'admin' && (
-            <button className="btn-primary" onClick={() => openAdd()}><Plus size={18} /> Add New Product</button>
-          )}
-        </div>
+        {user?.role === 'admin' && (
+          <button className="btn-primary" onClick={() => openAdd()}><Plus size={18} /> Add New Product</button>
+        )}
       </div>
 
       <div className="pos-table-actions">
@@ -501,48 +498,6 @@ export default function Products({ type }) {
           </div>
         </div>
       )}
-      <style jsx="true">{`
-        @media print {
-          /* Hide sidebar, overlay, mobile header, and print button itself */
-          .sidebar, .mobile-header, .sidebar-overlay, .no-print, .pos-table-actions, .category-tabs {
-            display: none !important;
-          }
-
-          /* If a dialog is open, only print the dialog content and hide the main page layout */
-          body:has(.p-dialog) .main-layout {
-            display: none !important;
-          }
-          body:has(.p-dialog) * {
-            visibility: hidden;
-          }
-          body:has(.p-dialog) .p-dialog,
-          body:has(.p-dialog) .p-dialog * {
-            visibility: visible !important;
-          }
-
-          /* If printing the main page (no dialog is open), make sure main layout is fully visible */
-          body:not(:has(.p-dialog)) .main-layout {
-            display: block !important;
-            padding: 0 !important;
-            margin: 0 !important;
-          }
-          body:not(:has(.p-dialog)) .content-area {
-            width: 100% !important;
-            margin: 0 !important;
-            padding: 0 !important;
-          }
-          body:not(:has(.p-dialog)) .module-page {
-            width: 100% !important;
-            max-width: 100% !important;
-            margin: 0 !important;
-            padding: 0 !important;
-            background: transparent !important;
-          }
-
-          .p-dialog-header, .p-dialog-footer { display: none !important; }
-          .p-dialog-content { padding: 0 !important; }
-        }
-      `}</style>
     </div>
   );
 }

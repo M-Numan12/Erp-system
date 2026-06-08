@@ -6,7 +6,7 @@ import { Link } from "react-router-dom";
 import {
   Building2, Store, Package, Boxes, Receipt, Users as UsersIcon,
   Truck, Wallet, Banknote, LineChart, UserSquare2, Home,
-  TrendingUp, MoreHorizontal, ArrowRight, AlertTriangle, Printer
+  TrendingUp, MoreHorizontal, ArrowRight, AlertTriangle
 } from "lucide-react";
 import { AuthContext } from '../context/AuthContext';
 import "../Styles/Dashboard.scss";
@@ -121,27 +121,22 @@ export default function Dashboard() {
           <h1>Welcome back, <span className="user-name">{user?.name || 'User'}</span> 👋</h1>
           <p className="subtitle">Here's a quick overview of your building materials empire today.</p>
         </div>
-        <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-          <button className="btn-secondary no-print" onClick={() => window.print()} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 18px', borderRadius: '12px', background: '#f8fafc', border: '1px solid #e2e8f0', cursor: 'pointer', fontWeight: 600, color: '#475569' }}>
-            <Printer size={18} /> Print Page
-          </button>
-          <div className="current-time" style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            background: '#f8fafc',
-            padding: '10px 18px',
-            borderRadius: '12px',
-            fontWeight: 800,
-            color: '#0f172a',
-            border: '1px solid #e2e8f0',
-            boxShadow: '0 2px 4px rgba(0,0,0,0.02)'
-          }}>
-            <span style={{fontSize: '1.3rem', display: 'inline-block', animation: 'pulse 2s infinite'}}>⏰</span>
-            <span style={{fontSize: '0.95rem', fontFamily: 'monospace', fontWeight: 800}}>
-              {currentTime.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })} | {currentTime.toLocaleTimeString()}
-            </span>
-          </div>
+        <div className="current-time" style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px',
+          background: '#f8fafc',
+          padding: '10px 18px',
+          borderRadius: '12px',
+          fontWeight: 800,
+          color: '#0f172a',
+          border: '1px solid #e2e8f0',
+          boxShadow: '0 2px 4px rgba(0,0,0,0.02)'
+        }}>
+          <span style={{fontSize: '1.3rem', display: 'inline-block', animation: 'pulse 2s infinite'}}>⏰</span>
+          <span style={{fontSize: '0.95rem', fontFamily: 'monospace', fontWeight: 800}}>
+            {currentTime.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })} | {currentTime.toLocaleTimeString()}
+          </span>
         </div>
       </header>
 
@@ -242,33 +237,6 @@ export default function Dashboard() {
           ))}
         </div>
       </div>
-      <style jsx="true">{`
-        @media print {
-          /* Hide sidebar, overlay, mobile header, and print button itself */
-          .sidebar, .mobile-header, .sidebar-overlay, .no-print {
-            display: none !important;
-          }
-
-          /* General layout reset for main page print */
-          body, .main-layout {
-            display: block !important;
-            padding: 0 !important;
-            margin: 0 !important;
-          }
-          .content-area {
-            width: 100% !important;
-            margin: 0 !important;
-            padding: 0 !important;
-          }
-          .dashboard-container {
-            width: 100% !important;
-            max-width: 100% !important;
-            margin: 0 !important;
-            padding: 0 !important;
-            background: transparent !important;
-          }
-        }
-      `}</style>
     </div>
   );
 }

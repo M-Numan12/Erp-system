@@ -5,7 +5,7 @@ import React, { useState, useEffect, useContext } from "react";
 import {
   Boxes, Plus, Minus, Search, AlertTriangle, TrendingUp,
   Database, Info, X, ChevronRight, ChevronLeft, Hash, Truck, User,
-  CircleDollarSign, ArrowUpCircle, ArrowDownCircle, Tag, Printer
+  CircleDollarSign, ArrowUpCircle, ArrowDownCircle, Tag
 } from "lucide-react";
 import { DataTable } from 'primereact/datatable';
 import { Column } from 'primereact/column';
@@ -395,10 +395,7 @@ export default function Stock({ type }) {
           </div>
         )}
 
-        <div className="module-actions no-print" style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-          <button className="btn-secondary" onClick={() => window.print()} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 16px', borderRadius: '8px', cursor: 'pointer', fontWeight: 600, background: '#f1f5f9', border: '1px solid #e2e8f0', color: '#475569' }}>
-            <Printer size={18} /> Print Stock
-          </button>
+        <div className="module-actions" style={{ display: 'flex', gap: '10px' }}>
           <button className="btn-primary"
             onClick={() => setShowReturnModal(true)}
             style={{ background: '#f43f5e', border: 'none', color: 'white', padding: '8px 16px', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 600 }}>
@@ -1024,48 +1021,6 @@ export default function Stock({ type }) {
           </div>
         </div>
       )}
-      <style jsx="true">{`
-        @media print {
-          /* Hide sidebar, overlay, mobile header, and print button itself */
-          .sidebar, .mobile-header, .sidebar-overlay, .no-print, .pos-table-actions, .category-grid .category-card .category-footer {
-            display: none !important;
-          }
-
-          /* If a dialog is open, only print the dialog content and hide the main page layout */
-          body:has(.p-dialog) .main-layout, body:has(.modal-overlay) .main-layout {
-            display: none !important;
-          }
-          body:has(.p-dialog) *, body:has(.modal-overlay) * {
-            visibility: hidden;
-          }
-          body:has(.p-dialog) .p-dialog, body:has(.p-dialog) .p-dialog *,
-          body:has(.modal-overlay) .modal, body:has(.modal-overlay) .modal * {
-            visibility: visible !important;
-          }
-
-          /* General layout reset for main page print */
-          body:not(:has(.p-dialog)):not(:has(.modal-overlay)) .main-layout {
-            display: block !important;
-            padding: 0 !important;
-            margin: 0 !important;
-          }
-          body:not(:has(.p-dialog)):not(:has(.modal-overlay)) .content-area {
-            width: 100% !important;
-            margin: 0 !important;
-            padding: 0 !important;
-          }
-          body:not(:has(.p-dialog)):not(:has(.modal-overlay)) .module-page {
-            width: 100% !important;
-            max-width: 100% !important;
-            margin: 0 !important;
-            padding: 0 !important;
-            background: transparent !important;
-          }
-          
-          .p-dialog-header, .p-dialog-footer { display: none !important; }
-          .p-dialog-content { padding: 0 !important; }
-        }
-      `}</style>
     </div>
   );
 }

@@ -1046,7 +1046,7 @@ export default function Accounts() {
 
   return (
     <div className="module-page">
-      <div className="module-header">
+      <div className="module-header no-print">
         <div className="module-title">
           <div className="module-icon" style={{background: '#e0f2fe', color: '#0ea5e9'}}><Landmark size={28} /></div>
           <div>
@@ -1056,15 +1056,14 @@ export default function Accounts() {
         </div>
 
         {user?.role === 'admin' && user?.role === 'admin' && (
-          <div className="counter-switcher no-print">
+          <div className="counter-switcher">
             <button className={activeTab === 'Wholesale' ? 'active' : ''} onClick={() => setActiveTab('Wholesale')}>Wholesale</button>
             <button className={activeTab === 'Retail 1' ? 'active' : ''} onClick={() => setActiveTab('Retail 1')}>Retail 1</button>
             <button className={activeTab === 'Retail 2' ? 'active' : ''} onClick={() => setActiveTab('Retail 2')}>Retail 2</button>
           </div>
         )}
 
-        <div className="module-actions no-print" style={{display: 'flex', gap: '10px'}}>
-          <Button label="Print Page" icon="pi pi-print" onClick={() => window.print()} className="p-button-outlined p-button-secondary" style={{borderRadius: '12px'}} />
+        <div className="module-actions" style={{display: 'flex', gap: '10px'}}>
           <Button label="Transfer Funds" icon="pi pi-directions" onClick={handleOpenTransfer} className="p-button-secondary" style={{borderRadius: '12px', background: '#475569', borderColor: '#475569'}} />
           <Button label="Galla Closeout" icon="pi pi-lock" onClick={handleOpenCloseout} className="p-button-warning" style={{borderRadius: '12px'}} />
           {user?.role === 'admin' && (
@@ -1083,7 +1082,7 @@ export default function Accounts() {
 
 
       {/* Payment summary */}
-      <div>
+      <div className="no-print">
         {summarySection}
         
         <h3 style={{margin: '25px 0 15px 0', color: '#1e293b', fontWeight: 800, fontSize: '1.3rem'}}>All Accounts & Recent Activity</h3>
@@ -1202,7 +1201,7 @@ export default function Accounts() {
         </div>
       </div>
 
-      <div className="module-table-container" style={{padding: '20px', background: 'white', borderRadius: '16px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)'}}>
+      <div className="module-table-container no-print" style={{padding: '20px', background: 'white', borderRadius: '16px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)'}}>
         <DataTable value={filtered} emptyMessage="No accounts found." className="p-datatable-sm" stripedRows
           onRowClick={(e) => { setSelectedLedgerAccount(e.data); setDateFilter('All'); setShowLedger(true); }} rowHover style={{cursor: 'pointer'}}>
           <Column field="bank_name" header="Account Name" body={acc => (
@@ -1521,42 +1520,10 @@ export default function Accounts() {
 
       <style jsx="true">{`
         @media print {
-          /* Hide sidebar, overlay, mobile header, and print button itself */
-          .sidebar, .mobile-header, .sidebar-overlay, .no-print {
-            display: none !important;
-          }
-
-          /* If a dialog is open, only print the dialog content and hide the main page layout */
-          body:has(.p-dialog) .main-layout {
-            display: none !important;
-          }
-          body:has(.p-dialog) * {
-            visibility: hidden;
-          }
-          body:has(.p-dialog) .p-dialog,
-          body:has(.p-dialog) .p-dialog * {
-            visibility: visible !important;
-          }
-
-          /* If printing the main page (no dialog is open), make sure main layout is fully visible */
-          body:not(:has(.p-dialog)) .main-layout {
-            display: block !important;
-            padding: 0 !important;
-            margin: 0 !important;
-          }
-          body:not(:has(.p-dialog)) .content-area {
-            width: 100% !important;
-            margin: 0 !important;
-            padding: 0 !important;
-          }
-          body:not(:has(.p-dialog)) .module-page {
-            width: 100% !important;
-            max-width: 100% !important;
-            margin: 0 !important;
-            padding: 0 !important;
-            background: transparent !important;
-          }
-
+          body * { visibility: hidden; }
+          .ledger-dialog, .ledger-dialog * { visibility: visible; }
+          .bill-viewer-dialog, .bill-viewer-dialog *, .print-only, .print-only * { visibility: visible !important; }
+          
           body:has(.bill-viewer-dialog) .ledger-dialog,
           body:has(.bill-viewer-dialog) .ledger-dialog * {
             visibility: hidden !important;
@@ -1564,7 +1531,7 @@ export default function Accounts() {
           }
           
           .ledger-dialog, .bill-viewer-dialog { position: absolute; left: 0; top: 0; width: 100% !important; border: none !important; box-shadow: none !important; }
-          .p-dialog-header, .p-dialog-footer { display: none !important; }
+          .no-print, .p-dialog-header, .p-dialog-footer { display: none !important; }
           .p-dialog-content { padding: 0 !important; }
         }
         .print-only { display: none; }

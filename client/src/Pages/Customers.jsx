@@ -436,14 +436,9 @@ export default function Customers({ type }) {
           </div>
         )}
 
-        <div className="module-actions no-print" style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-          <button className="btn-secondary" onClick={() => window.print()} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 16px', borderRadius: '8px', cursor: 'pointer', fontWeight: 600, background: '#f1f5f9', border: '1px solid #e2e8f0', color: '#475569' }}>
-            <Printer size={18} /> Print CRM
-          </button>
-          <button className="btn-primary" onClick={openAdd}>
-            <Plus size={18} /> Add New Customer
-          </button>
-        </div>
+        <button className="btn-primary" onClick={openAdd}>
+          <Plus size={18} /> Add New Customer
+        </button>
       </div>
 
       <div className="stats-grid-pos">
@@ -1217,56 +1212,6 @@ export default function Customers({ type }) {
           </div>
       )}
 
-      <style jsx="true">{`
-        @media print {
-          /* Hide sidebar, overlay, mobile header, and print button itself */
-          .sidebar, .mobile-header, .sidebar-overlay, .no-print, .pos-table-actions {
-            display: none !important;
-          }
-
-          /* If printing payment receipt modal, hide everything else */
-          body:has(.payment-receipt) .module-page {
-            display: none !important;
-          }
-          body:has(.payment-receipt) .main-layout {
-            display: none !important;
-          }
-
-          /* If printing ledger modal, show only the ledger */
-          body:has(.p-dialog) .main-layout, body:has(.modal-overlay:not(.no-print)) .main-layout {
-            display: none !important;
-          }
-          body:has(.p-dialog) *, body:has(.modal-overlay:not(.no-print)) * {
-            visibility: hidden;
-          }
-          body:has(.p-dialog) .p-dialog, body:has(.p-dialog) .p-dialog *,
-          body:has(.modal-overlay:not(.no-print)) .modal, body:has(.modal-overlay:not(.no-print)) .modal * {
-            visibility: visible !important;
-          }
-
-          /* General layout reset for main page print */
-          body:not(:has(.payment-receipt)):not(:has(.p-dialog)):not(:has(.modal-overlay:not(.no-print))) .main-layout {
-            display: block !important;
-            padding: 0 !important;
-            margin: 0 !important;
-          }
-          body:not(:has(.payment-receipt)):not(:has(.p-dialog)):not(:has(.modal-overlay:not(.no-print))) .content-area {
-            width: 100% !important;
-            margin: 0 !important;
-            padding: 0 !important;
-          }
-          body:not(:has(.payment-receipt)):not(:has(.p-dialog)):not(:has(.modal-overlay:not(.no-print))) .module-page {
-            width: 100% !important;
-            max-width: 100% !important;
-            margin: 0 !important;
-            padding: 0 !important;
-            background: transparent !important;
-          }
-          
-          .p-dialog-header, .p-dialog-footer { display: none !important; }
-          .p-dialog-content { padding: 0 !important; }
-        }
-      `}</style>
     </div>
 
   );
