@@ -144,7 +144,7 @@ export default function Profit() {
             <p>{bgLoading ? 'Syncing fresh data...' : 'Click any counter card for full breakdown'}</p>
           </div>
         </div>
-        <button className="btn-primary" onClick={() => window.print()}>
+        <button className="btn-primary no-print" onClick={() => window.print()}>
           <Download size={18} /> Export Report
         </button>
       </div>
@@ -487,8 +487,49 @@ export default function Profit() {
         </div>
       </div>
 
-      <style>{`
+      <style jsx="true">{`
         @keyframes spin { to { transform: rotate(360deg); } }
+        
+        @media print {
+          /* Hide sidebar, overlay, mobile header, and print button itself */
+          .sidebar, .mobile-header, .sidebar-overlay, .no-print, .profit-filter-bar {
+            display: none !important;
+          }
+
+          /* If a dialog is open, only print the dialog content and hide the main page layout */
+          body:has(.p-dialog) .main-layout {
+            display: none !important;
+          }
+          body:has(.p-dialog) * {
+            visibility: hidden;
+          }
+          body:has(.p-dialog) .p-dialog,
+          body:has(.p-dialog) .p-dialog * {
+            visibility: visible !important;
+          }
+
+          /* If printing the main page (no dialog is open), make sure main layout is fully visible */
+          body:not(:has(.p-dialog)) .main-layout {
+            display: block !important;
+            padding: 0 !important;
+            margin: 0 !important;
+          }
+          body:not(:has(.p-dialog)) .content-area {
+            width: 100% !important;
+            margin: 0 !important;
+            padding: 0 !important;
+          }
+          body:not(:has(.p-dialog)) .profit-page {
+            width: 100% !important;
+            max-width: 100% !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            background: transparent !important;
+          }
+
+          .p-dialog-header, .p-dialog-footer { display: none !important; }
+          .p-dialog-content { padding: 0 !important; }
+        }
       `}</style>
     </div>
   );

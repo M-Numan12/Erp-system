@@ -432,7 +432,10 @@ export default function Labours({ type }) {
           </div>
         )}
 
-        <div style={{display: 'flex', gap: '10px'}}>
+        <div className="module-actions no-print" style={{display: 'flex', gap: '10px', alignItems: 'center'}}>
+          <button className="btn-secondary" onClick={() => window.print()} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 16px', borderRadius: '8px', cursor: 'pointer', fontWeight: 600, background: '#f1f5f9', border: '1px solid #e2e8f0', color: '#475569' }}>
+            <Printer size={18} /> Print Page
+          </button>
           {!selectedGroup && (
             <button className="btn-primary" style={{background: '#10b981', borderColor: '#10b981', display: 'flex', alignItems: 'center', gap: '6px'}} onClick={() => { setGlobalPayForm({ group_name: "", bill_id: "", amount: "", notes: "", payment_type: "Cash" }); setShowGlobalPayModal(true); }}>
               <Coins size={18} /> Send Labour Payment
@@ -998,6 +1001,56 @@ export default function Labours({ type }) {
           </div>
         </div>
       )}
+      <style jsx="true">{`
+        @media print {
+          /* Hide sidebar, overlay, mobile header, and print button itself */
+          .sidebar, .mobile-header, .sidebar-overlay, .no-print, .pos-table-actions, .profit-filter-bar {
+            display: none !important;
+          }
+
+          /* If printing voucher/receipt modal, hide everything else */
+          body:has(.print-only) .module-page {
+            display: none !important;
+          }
+          body:has(.print-only) .main-layout {
+            display: none !important;
+          }
+
+          /* If a dialog/modal is open, only print the dialog content and hide the main page layout */
+          body:has(.p-dialog) .main-layout, body:has(.modal-overlay:not(.no-print)) .main-layout {
+            display: none !important;
+          }
+          body:has(.p-dialog) *, body:has(.modal-overlay:not(.no-print)) * {
+            visibility: hidden;
+          }
+          body:has(.p-dialog) .p-dialog, body:has(.p-dialog) .p-dialog *,
+          body:has(.modal-overlay:not(.no-print)) .modal, body:has(.modal-overlay:not(.no-print)) .modal * {
+            visibility: visible !important;
+          }
+
+          /* General layout reset for main page print */
+          body:not(:has(.print-only)):not(:has(.p-dialog)):not(:has(.modal-overlay:not(.no-print))) .main-layout {
+            display: block !important;
+            padding: 0 !important;
+            margin: 0 !important;
+          }
+          body:not(:has(.print-only)):not(:has(.p-dialog)):not(:has(.modal-overlay:not(.no-print))) .content-area {
+            width: 100% !important;
+            margin: 0 !important;
+            padding: 0 !important;
+          }
+          body:not(:has(.print-only)):not(:has(.p-dialog)):not(:has(.modal-overlay:not(.no-print))) .module-page {
+            width: 100% !important;
+            max-width: 100% !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            background: transparent !important;
+          }
+
+          .p-dialog-header, .p-dialog-footer { display: none !important; }
+          .p-dialog-content { padding: 0 !important; }
+        }
+      `}</style>
     </div>
   );
 }

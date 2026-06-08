@@ -4,7 +4,7 @@ const API_BASE_URL = process.env.REACT_APP_API_URL ? `${process.env.REACT_APP_AP
 import React, { useState, useEffect, useContext, useMemo } from "react";
 import { 
   Home, Plus, Pencil, Trash2, X, CheckCircle, Clock, Search,
-  Calendar, User, Building, CircleDollarSign, Tag, Info
+  Calendar, User, Building, CircleDollarSign, Tag, Info, Printer
 } from "lucide-react";
 import { DataTable } from 'primereact/datatable';
 import { Column } from 'primereact/column';
@@ -180,9 +180,14 @@ export default function Rent({ type }) {
           </div>
         )}
 
-        <button className="btn-primary" onClick={() => { setForm(emptyForm); setEditId(null); setShowModal(true); }}>
-          <Plus size={18} /> Record Rent
-        </button>
+        <div className="module-actions no-print" style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+          <button className="btn-secondary" onClick={() => window.print()} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 16px', borderRadius: '8px', cursor: 'pointer', fontWeight: 600, background: '#f1f5f9', border: '1px solid #e2e8f0', color: '#475569' }}>
+            <Printer size={18} /> Print Page
+          </button>
+          <button className="btn-primary" onClick={() => { setForm(emptyForm); setEditId(null); setShowModal(true); }}>
+            <Plus size={18} /> Record Rent
+          </button>
+        </div>
       </div>
 
       <div className="stats-grid-pos">
@@ -332,6 +337,48 @@ export default function Rent({ type }) {
           </div>
         </div>
       )}
+      <style jsx="true">{`
+        @media print {
+          /* Hide sidebar, overlay, mobile header, and print button itself */
+          .sidebar, .mobile-header, .sidebar-overlay, .no-print, .pos-table-actions {
+            display: none !important;
+          }
+
+          /* If a dialog/modal is open, only print the dialog content and hide the main page layout */
+          body:has(.p-dialog) .main-layout, body:has(.modal-overlay) .main-layout {
+            display: none !important;
+          }
+          body:has(.p-dialog) *, body:has(.modal-overlay) * {
+            visibility: hidden;
+          }
+          body:has(.p-dialog) .p-dialog, body:has(.p-dialog) .p-dialog *,
+          body:has(.modal-overlay) .modal, body:has(.modal-overlay) .modal * {
+            visibility: visible !important;
+          }
+
+          /* If printing the main page (no dialog is open), make sure main layout is fully visible */
+          body:not(:has(.p-dialog)):not(:has(.modal-overlay)) .main-layout {
+            display: block !important;
+            padding: 0 !important;
+            margin: 0 !important;
+          }
+          body:not(:has(.p-dialog)):not(:has(.modal-overlay)) .content-area {
+            width: 100% !important;
+            margin: 0 !important;
+            padding: 0 !important;
+          }
+          body:not(:has(.p-dialog)):not(:has(.modal-overlay)) .module-page {
+            width: 100% !important;
+            max-width: 100% !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            background: transparent !important;
+          }
+
+          .p-dialog-header, .p-dialog-footer { display: none !important; }
+          .p-dialog-content { padding: 0 !important; }
+        }
+      `}</style>
     </div>
   );
 }

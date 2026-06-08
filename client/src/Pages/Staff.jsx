@@ -228,7 +228,7 @@ export default function Staff({ type }) {
 
   return (
     <div className="module-page">
-      <div className="module-header no-print">
+      <div className="module-header">
         <div className="module-title">
           <button className="btn-icon back-btn" onClick={() => window.history.back()} style={{marginRight: '15px', background: '#f1f5f9', border: '1px solid #e2e8f0', borderRadius: '50%', width: '36px', height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#475569', transition: 'all 0.2s'}}>
             <ChevronLeft size={20} />
@@ -240,12 +240,17 @@ export default function Staff({ type }) {
           </div>
         </div>
 
-        <button className="btn-primary" onClick={openAdd}>
-          <Plus size={18} /> Add New Staff
-        </button>
+        <div className="module-actions no-print" style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+          <button className="btn-secondary" onClick={() => window.print()} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 16px', borderRadius: '8px', cursor: 'pointer', fontWeight: 600, background: '#f1f5f9', border: '1px solid #e2e8f0', color: '#475569' }}>
+            <Printer size={18} /> Print Page
+          </button>
+          <button className="btn-primary" onClick={openAdd}>
+            <Plus size={18} /> Add New Staff
+          </button>
+        </div>
       </div>
 
-      <div className="stats-grid-pos no-print">
+      <div className="stats-grid-pos">
         <div className="pos-stat-card">
           <div className="icon blue"><UsersIcon size={24} /></div>
           <div className="info">
@@ -276,7 +281,7 @@ export default function Staff({ type }) {
         </div>
       </div>
 
-      <div className="module-table-container no-print" style={{padding: '20px', background: 'white', borderRadius: '16px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)'}}>
+      <div className="module-table-container" style={{padding: '20px', background: 'white', borderRadius: '16px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)'}}>
         <DataTable value={filtered} paginator rows={10} rowsPerPageOptions={[5, 10, 25, 50]} 
                    emptyMessage="No staff found." className="p-datatable-sm" stripedRows>
           <Column field="id" header="ID" body={(rec) => <span style={{fontWeight: 600, color: '#64748b'}}>#{rec.id}</span>} sortable style={{ width: '80px' }} />
@@ -610,6 +615,48 @@ export default function Staff({ type }) {
           </div>
         </div>
       )}
+      <style jsx="true">{`
+        @media print {
+          /* Hide sidebar, overlay, mobile header, and print button itself */
+          .sidebar, .mobile-header, .sidebar-overlay, .no-print, .pos-table-actions {
+            display: none !important;
+          }
+
+          /* If a dialog/modal is open, only print the dialog content and hide the main page layout */
+          body:has(.p-dialog) .main-layout, body:has(.modal-overlay) .main-layout {
+            display: none !important;
+          }
+          body:has(.p-dialog) *, body:has(.modal-overlay) * {
+            visibility: hidden;
+          }
+          body:has(.p-dialog) .p-dialog, body:has(.p-dialog) .p-dialog *,
+          body:has(.modal-overlay) .modal, body:has(.modal-overlay) .modal * {
+            visibility: visible !important;
+          }
+
+          /* If printing the main page (no dialog is open), make sure main layout is fully visible */
+          body:not(:has(.p-dialog)):not(:has(.modal-overlay)) .main-layout {
+            display: block !important;
+            padding: 0 !important;
+            margin: 0 !important;
+          }
+          body:not(:has(.p-dialog)):not(:has(.modal-overlay)) .content-area {
+            width: 100% !important;
+            margin: 0 !important;
+            padding: 0 !important;
+          }
+          body:not(:has(.p-dialog)):not(:has(.modal-overlay)) .module-page {
+            width: 100% !important;
+            max-width: 100% !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            background: transparent !important;
+          }
+
+          .p-dialog-header, .p-dialog-footer { display: none !important; }
+          .p-dialog-content { padding: 0 !important; }
+        }
+      `}</style>
     </div>
   );
 }

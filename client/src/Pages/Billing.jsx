@@ -684,7 +684,8 @@ export default function Billing({ type }) {
           </div>
         )}
 
-        <div className="module-nav" style={{ display: 'flex', gap: '12px' }}>
+        <div className="module-nav no-print" style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+          <Button label="Print" icon="pi pi-print" onClick={() => window.print()} className="p-button-outlined p-button-secondary" style={{borderRadius: '12px'}} />
           <button className={view === 'POS' ? 'active' : ''} onClick={() => setView('POS')}>
             {editId ? <><Pencil size={18}/> Editing Sale #{editId}</> : <><Plus size={18}/> New Sale</>}
           </button>
@@ -1996,6 +1997,56 @@ export default function Billing({ type }) {
           </div>
         </div>
       )}
+      <style jsx="true">{`
+        @media print {
+          /* Hide sidebar, overlay, mobile header, and print button itself */
+          .sidebar, .mobile-header, .sidebar-overlay, .no-print, .hub-top-nav, .pos-search, .category-tabs {
+            display: none !important;
+          }
+
+          /* If printing POS receipt, hide everything else */
+          body:has(.thermal-receipt) .module-page {
+            display: none !important;
+          }
+          body:has(.thermal-receipt) .main-layout {
+            display: none !important;
+          }
+          
+          /* If printing ledger modal, show only the ledger */
+          body:has(.p-dialog) .main-layout, body:has(.modal-overlay:not(.no-print)) .main-layout {
+            display: none !important;
+          }
+          body:has(.p-dialog) *, body:has(.modal-overlay:not(.no-print)) * {
+            visibility: hidden;
+          }
+          body:has(.p-dialog) .p-dialog, body:has(.p-dialog) .p-dialog *,
+          body:has(.modal-overlay:not(.no-print)) .modal, body:has(.modal-overlay:not(.no-print)) .modal * {
+            visibility: visible !important;
+          }
+
+          /* General layout reset for main page print */
+          body:not(:has(.thermal-receipt)):not(:has(.p-dialog)):not(:has(.modal-overlay:not(.no-print))) .main-layout {
+            display: block !important;
+            padding: 0 !important;
+            margin: 0 !important;
+          }
+          body:not(:has(.thermal-receipt)):not(:has(.p-dialog)):not(:has(.modal-overlay:not(.no-print))) .content-area {
+            width: 100% !important;
+            margin: 0 !important;
+            padding: 0 !important;
+          }
+          body:not(:has(.thermal-receipt)):not(:has(.p-dialog)):not(:has(.modal-overlay:not(.no-print))) .module-page {
+            width: 100% !important;
+            max-width: 100% !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            background: transparent !important;
+          }
+          
+          .p-dialog-header, .p-dialog-footer { display: none !important; }
+          .p-dialog-content { padding: 0 !important; }
+        }
+      `}</style>
     </div>
   );
 }
