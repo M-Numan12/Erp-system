@@ -90,6 +90,58 @@ async function sendWhatsAppMessage(to, body) {
 }
 
 /**
+ * Sends a PDF/Document via WhatsApp scan gateways (like UltraMsg) using base64.
+ */
+async function sendWhatsAppDocument(to, base64Data, filename = 'Ledger.pdf') {
+  const apiUrl = process.env.WHATSAPP_API_URL || 'https://api.ultramsg.com/instance174172/messages/chat';
+  const token = process.env.WHATSAPP_TOKEN || '4722xwbvpu3mdq18';
+
+  if (!to) {
+    console.log('❌ No recipient phone number provided for WhatsApp Document');
+    return;
+  }
+
+  // Sanitize phone number (remove spaces, plus, dashes)
+  let cleanPhone = String(to).replace(/[^0-9]/g, '');
+  if (cleanPhone.startsWith('0092')) {
+    cleanPhone = cleanPhone.substring(2);
+  } else if (cleanPhone.startsWith('0')) {
+    cleanPhone = '92' + cleanPhone.substring(1);
+  } else if (cleanPhone.length === 10 && cleanPhone.startsWith('3')) {
+    cleanPhone = '92' + cleanPhone;
+  }
+
+  // Generate document API URL (e.g. replacing 'chat' with 'document')
+  const docApiUrl = apiUrl.replace(/\/chat\/?$/, '/document').replace(/\/chat$/, '/document');
+
+  try {
+    if (docApiUrl.includes('ultramsg')) {
+      const params = new URLSearchParams();
+      params.append('token', token);
+      params.append('to', cleanPhone);
+      params.append('filename', filename);
+      params.append('document', base64Data);
+
+      await axios.post(docApiUrl, params, {
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+      });
+    } else {
+      await axios.post(docApiUrl, {
+        to: cleanPhone,
+        chatId: `${cleanPhone}@c.us`,
+        filename: filename,
+        document: base64Data,
+        token: token
+      });
+    }
+    console.log(`✅ Document WhatsApp successfully sent to ${cleanPhone}`);
+  } catch (err) {
+    console.error(`❌ Document WhatsApp failed to ${cleanPhone}:`, err.response?.data || err.message);
+    throw err;
+  }
+}
+
+/**
  * Formats and triggers billing receipts for both the Customer and Admin
  */
 async function sendWhatsAppBill(sale, items) {
@@ -131,4 +183,4 @@ async function sendWhatsAppBill(sale, items) {
   }
 }
 
-module.exports = { sendWhatsAppBill, sendWhatsAppMessage };
+module.exports = { sendWhatsAppBill, sendWhatsAppMessage, sendWhatsAppDocument };

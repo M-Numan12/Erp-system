@@ -601,63 +601,83 @@ export default function Customers({ type }) {
           }
           phone = phone.replace('+', '');
 
-          let msg = `*DATA WALEY CEMENT DEALER*\n`;
-          msg += `---------------------------------\n`;
-          msg += `*Customer Ledger Report*\n`;
-          msg += `*Customer:* ${selectedCustomer.name}\n`;
-          msg += `*Period:* ${ledgerFilter === 'all' ? 'All Time' : `${ledgerFrom} to ${ledgerTo}`}\n`;
-          msg += `*Date:* ${new Date().toLocaleDateString()}\n\n`;
+          if (!window.html2pdf) {
+            alert("PDF generation library is loading, please try again in a second.");
+            return;
+          }
 
-          msg += `*Transactions:*\n`;
-          msg += `---------------------------------\n`;
-          msg += `Opening Bal: Rs. ${Math.abs(periodOpeningBal).toLocaleString()} ${periodOpeningBal > 0 ? 'Dr' : 'Cr'}\n`;
+          // Select the print-only ledger element
+          const element = document.querySelector('.ledger-report');
+          if (!element) {
+            alert("Ledger report content not found in page!");
+            return;
+          }
 
-          sortedLedgerData.forEach((row, index) => {
-            const dateStr = new Date(row.created_at).toLocaleDateString('en-GB', {day: '2-digit', month: '2-digit', year: '2-digit'});
-            const ref = `SAL-${row.id}`;
+          // Temporarily style it so html2pdf can render it correctly off-screen
+          const originalDisplay = element.style.display;
+          const originalPosition = element.style.position;
+          const originalLeft = element.style.left;
+          const originalWidth = element.style.width;
+          const originalBackground = element.style.background;
+          const originalColor = element.style.color;
 
-            let details = "";
-            let items = [];
-            try { items = typeof row.items === 'string' ? JSON.parse(row.items) : (row.items || []); } catch(e){}
-            if (items.length > 0) {
-              details = items.map(i => `${i.name} (${i.qty})`).join(', ');
-            } else {
-              details = `Payment (${row.payment_type || 'Cash'})`;
-            }
+          element.style.display = 'block';
+          element.style.position = 'absolute';
+          element.style.left = '-9999px';
+          element.style.background = 'white';
+          element.style.color = 'black';
+          element.style.width = '1000px'; // Fit table nicely on A4 page
 
-            const debit = parseFloat(row.net_amount) > 0 ? `+Rs.${parseFloat(row.net_amount).toLocaleString()}` : '';
-            const credit = parseFloat(row.paid_amount) > 0 ? `-Rs.${parseFloat(row.paid_amount).toLocaleString()}` : '';
-            const amt = debit || credit;
-            const bal = `Bal: Rs. ${Math.abs(parseFloat(row.running_balance || 0)).toLocaleString()} ${parseFloat(row.running_balance || 0) > 0 ? 'Dr' : 'Cr'}`;
-
-            msg += `${index + 1}. ${dateStr} | ${ref}\n   _${details}_\n   *${amt}* | ${bal}\n`;
-          });
-
-          msg += `---------------------------------\n`;
-          msg += `*Summary:*\n`;
-          msg += `*Total Net Sales (Debit):* Rs. ${sortedLedgerData.reduce((sum, r) => sum + parseFloat(r.net_amount || 0), 0).toLocaleString()}\n`;
-          msg += `*Total Paid (Credit):* Rs. ${sortedLedgerData.reduce((sum, r) => sum + parseFloat(r.paid_amount || 0), 0).toLocaleString()}\n`;
-          msg += `*Outstanding Balance:* Rs. ${Math.abs(parseFloat(selectedCustomer.balance)).toLocaleString()} (${parseFloat(selectedCustomer.balance) > 0 ? 'Receivable' : 'Advance'})\n\n`;
-          msg += `Thank you for your business!`;
+          const opt = {
+            margin:       [10, 10, 10, 10],
+            filename:     `ledger_${selectedCustomer.name}.pdf`,
+            image:        { type: 'jpeg', quality: 0.98 },
+            html2canvas:  { scale: 2, useCORS: true, logging: false },
+            jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+          };
 
           try {
-            const res = await fetch(`${API_BASE_URL}/sales/send-message`, {
+            // Generate PDF as base64 string
+            const pdfBase64 = await window.html2pdf().from(element).set(opt).outputPdf('datauristring');
+            
+            // Restore original styles
+            element.style.display = originalDisplay;
+            element.style.position = originalPosition;
+            element.style.left = originalLeft;
+            element.style.width = originalWidth;
+            element.style.background = originalBackground;
+            element.style.color = originalColor;
+
+            // Send base64 to backend
+            const res = await fetch(`${API_BASE_URL}/sales/send-document`, {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${localStorage.getItem('token')}`
               },
-              body: JSON.stringify({ to: phone, body: msg })
+              body: JSON.stringify({
+                to: phone,
+                document: pdfBase64,
+                filename: `Ledger_${selectedCustomer.name.replace(/\s+/g, '_')}.pdf`
+              })
             });
+            
             const data = await res.json();
             if (res.ok && data.success) {
-              alert("Ledger report sent successfully via WhatsApp gateway!");
+              alert("Ledger PDF sent successfully via WhatsApp!");
             } else {
-              alert(`Failed to send WhatsApp: ${data.error || 'Unknown error'}`);
+              alert(`Failed to send WhatsApp PDF: ${data.error || 'Unknown error'}`);
             }
           } catch (err) {
-            console.error(err);
-            alert("Error sending WhatsApp message.");
+            console.error("PDF generation/send error:", err);
+            // Restore styles
+            element.style.display = originalDisplay;
+            element.style.position = originalPosition;
+            element.style.left = originalLeft;
+            element.style.width = originalWidth;
+            element.style.background = originalBackground;
+            element.style.color = originalColor;
+            alert("Error generating or sending Ledger PDF.");
           }
         };
 

@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const pool = require('../config/db');
 const auth = require('../middleware/auth');
-const { sendWhatsAppBill, sendWhatsAppMessage } = require('../utils/whatsapp');
+const { sendWhatsAppBill, sendWhatsAppMessage, sendWhatsAppDocument } = require('../utils/whatsapp');
 
 const isAdmin = (req) => req.user.role === 'admin';
 
