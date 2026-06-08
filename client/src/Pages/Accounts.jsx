@@ -1519,23 +1519,6 @@ export default function Accounts() {
       </Dialog>
 
       <style jsx="true">{`
-        @media print {
-          body * { visibility: hidden; }
-          .ledger-dialog, .ledger-dialog * { visibility: visible; }
-          .bill-viewer-dialog, .bill-viewer-dialog *, .print-only, .print-only * { visibility: visible !important; }
-          
-          body:has(.bill-viewer-dialog) .ledger-dialog,
-          body:has(.bill-viewer-dialog) .ledger-dialog * {
-            visibility: hidden !important;
-            display: none !important;
-          }
-          
-          .ledger-dialog, .bill-viewer-dialog { position: absolute; left: 0; top: 0; width: 100% !important; border: none !important; box-shadow: none !important; }
-          .no-print, .p-dialog-header, .p-dialog-footer { display: none !important; }
-          .p-dialog-content { padding: 0 !important; }
-        }
-        .print-only { display: none; }
-        @media print { .print-only { display: block; } }
         .bank-item-hover:hover {
           transform: translateY(-2px);
           background-color: #e2e8f0 !important;

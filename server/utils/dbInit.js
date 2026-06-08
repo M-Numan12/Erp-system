@@ -137,6 +137,8 @@ async function syncDatabaseSchema() {
     `ALTER TABLE salary ALTER COLUMN payment_type TYPE TEXT;`,
     `ALTER TABLE investments ALTER COLUMN payment_type TYPE TEXT;`,
     `ALTER TABLE staff_ledger ALTER COLUMN payment_method TYPE TEXT;`,
+    `ALTER TABLE sales ALTER COLUMN vehicle_number TYPE TEXT;`,
+    `ALTER TABLE sales ALTER COLUMN vehicle_number2 TYPE TEXT;`,
     // --- 13. STAFF LEDGER TABLES ---
     `CREATE TABLE IF NOT EXISTS staff (
       id SERIAL PRIMARY KEY,

@@ -12,13 +12,26 @@ code {
     monospace;
 }
 
+.print-only {
+  display: none;
+}
+
 @media print {
   @page {
-    margin: 0;
-    size: 80mm 297mm;
+    size: auto;
+    margin: 15mm;
   }
+  @page thermal {
+    size: 80mm 297mm;
+    margin: 0;
+  }
+  
+  .thermal-receipt {
+    page: thermal;
+  }
+
   /* Global Layout Resets to prevent flexbox, scrollbar clipping, and margin offsets when printing */
-  html, body, #root, .main-layout, .content-area, .module-page, .modal-overlay, .receipt-preview-overlay, .modal, .p-dialog-mask, .p-dialog {
+  html, body, #root, .main-layout, .content-area, .module-page, .billing-page, .modal-overlay, .receipt-preview-overlay, .modal, .p-dialog-mask, .p-dialog {
     display: block !important;
     position: static !important;
     margin: 0 !important;
@@ -27,7 +40,8 @@ code {
     height: auto !important;
     min-height: 0 !important;
     overflow: visible !important;
-    background: transparent !important;
+    background: #ffffff !important;
+    color: #000000 !important;
     box-shadow: none !important;
     border: none !important;
     transform: none !important;
@@ -35,6 +49,12 @@ code {
     backdrop-filter: none !important;
   }
 
+  body {
+    background: #ffffff !important;
+    color: #000000 !important;
+  }
+
+  /* Hide all non-printed UI components, navigation, sidebars, buttons, headers/footers */
   .no-print,
   .sidebar,
   .mobile-header,
@@ -42,7 +62,9 @@ code {
   button,
   .p-button,
   .p-dialog-header,
-  .p-dialog-footer {
+  .p-dialog-footer,
+  .p-dialog-header-icons,
+  .modal-actions {
     display: none !important;
   }
 
@@ -50,12 +72,210 @@ code {
     display: block !important;
   }
 
-  body {
-    background: white !important;
+  /* Portals / Dialogs Print Isolation:
+     If a ledger dialog or bill viewer dialog is present, we are printing a portal.
+     Hide the entire main application layout so only the portal content is printed. */
+  body:has(.bill-viewer-dialog, .ledger-dialog) #root {
+    display: none !important;
+  }
+
+  .ledger-dialog,
+  .bill-viewer-dialog {
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 100% !important;
+    border: none !important;
+    box-shadow: none !important;
+    background: #ffffff !important;
+  }
+
+  .ledger-dialog .p-dialog-content,
+  .bill-viewer-dialog .p-dialog-content {
+    padding: 0 !important;
+  }
+
+  /* Inline Print Targets Isolation:
+     If a receipt, return slip, or print bill box is present inside #root, hide its siblings
+     to avoid printing any background page sections. */
+  body:has(.thermal-receipt, #return-slip-print, .print-bill-box, .ledger-report) .main-layout > *:not(.content-area) {
+    display: none !important;
+  }
+  body:has(.thermal-receipt, #return-slip-print, .print-bill-box, .ledger-report) .content-area > *:not(.module-page) {
+    display: none !important;
+  }
+  body:has(.thermal-receipt, #return-slip-print, .print-bill-box, .ledger-report) .module-page > *:not(.thermal-receipt, #return-slip-print, .print-bill-box, .ledger-report) {
+    display: none !important;
+  }
+
+  /* Specific styles for thermal receipt, payment vouchers, and return receipts
+     (72mm width centered with 4mm margins to prevent edge-cutting on 80mm roll) */
+  .thermal-receipt,
+  #return-slip-print,
+  .print-bill-box {
+    position: absolute !important;
+    left: 4mm !important;
+    top: 0 !important;
+    display: block !important;
+    margin: 0 !important;
+    background: #ffffff !important;
+    overflow: visible !important;
+    width: 72mm !important;
+    max-width: 72mm !important;
+    font-family: 'Courier New', Courier, monospace !important;
+    line-height: 1.2 !important;
+    page-break-inside: avoid;
+    box-sizing: border-box !important;
+    padding: 6px !important;
+  }
+
+  /* Position ledger reports or generic print-areas absolute at top-left */
+  .print-only,
+  .ledger-report,
+  #print-area {
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    display: block !important;
+    margin: 0 !important;
+    background: #ffffff !important;
+    overflow: visible !important;
+  }
+
+  /* Make everything bold, clear, and perfectly sized on printed thermal bills */
+  .thermal-receipt,
+  .thermal-receipt *,
+  #return-slip-print,
+  #return-slip-print *,
+  .print-bill-box,
+  .print-bill-box * {
+    font-weight: 800 !important;
+    font-size: 12px !important;
+    color: #000000 !important;
+  }
+
+  /* Premium branding headers for thermal bills */
+  .receipt-header {
+    text-align: center;
+    margin-bottom: 10px;
+  }
+
+  .receipt-header h2,
+  #return-slip-print h2,
+  .print-bill-box h2 {
+    margin: 0 0 6px 0 !important;
+    font-size: 18px !important;
+    font-weight: 900 !important;
+    text-align: center !important;
+  }
+
+  .contact-info {
+    margin: 5px 0;
+  }
+
+  .contact-info p {
+    margin: 0;
+  }
+
+  .address {
+    margin: 5px 0;
+    text-align: center;
+  }
+
+  .dashed-line {
+    border-top: 1.5px dashed #000000 !important;
+    margin: 8px 0;
+  }
+
+  .mt-10 {
+    margin-top: 10px;
+  }
+
+  .bill-title {
+    text-align: center;
+    font-size: 16px !important;
+    margin: 8px 0;
+    font-weight: 900 !important;
+  }
+
+  .bill-info {
+    margin: 10px 0;
+  }
+
+  .info-row {
+    display: flex;
+  }
+
+  .info-row span:first-child {
+    width: 60px;
+  }
+
+  .items-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 5px;
+  }
+
+  .items-table th,
+  .items-table td {
+    padding: 2px 0;
+    text-align: left;
+  }
+
+  .items-table th {
+    font-weight: 900 !important;
+    border-bottom: 1.5px dashed #000000 !important;
+  }
+
+  .items-table .qty {
+    width: 15%;
+  }
+
+  .items-table .rate {
+    width: 20%;
+  }
+
+  .items-table .desc {
+    width: 45%;
+  }
+
+  .items-table .amt {
+    width: 20%;
+    text-align: right;
+  }
+
+  .dashed-cell {
+    border-top: 1.5px dashed #000000 !important;
+    padding: 0 !important;
+    height: 1px;
+  }
+
+  .total-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 14px !important;
+    font-weight: 900 !important;
+    margin: 5px 0;
+  }
+
+  .paid-status {
+    text-align: center;
+    font-size: 16px !important;
+    margin: 8px 0;
+    font-weight: 900 !important;
+  }
+
+  .receipt-footer {
+    text-align: center;
+    margin-top: 10px;
+  }
+
+  .receipt-footer p {
+    margin: 2px 0;
+  }
+
+  .terms {
+    font-size: 11px !important;
+    font-weight: 900 !important;
   }
 }
-
-.print-only {
-  display: none;
-}
-
