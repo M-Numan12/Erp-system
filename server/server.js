@@ -1,12 +1,23 @@
 process.env.TZ = 'Asia/Karachi'; // Enforce local time for all application logic
 const express = require('express');
 const cors = require('cors');
+const path = require('path');
+const fs = require('fs');
 require('dotenv').config();
 
 const app = express();
 
-// Init Middleware
-app.use(express.json({ extended: false }));
+// Ensure temp directory exists for PDF uploads
+const tempDir = path.join(__dirname, 'public', 'temp');
+if (!fs.existsSync(tempDir)) {
+  fs.mkdirSync(tempDir, { recursive: true });
+}
+
+// Serve temp PDF files publicly (for UltraMsg to fetch)
+app.use('/temp', express.static(path.join(__dirname, 'public', 'temp')));
+
+// Init Middleware - allow large base64 JSON payloads (PDFs can be 2-5MB encoded)
+app.use(express.json({ limit: '15mb' }));
 app.use(cors());
 
 // Define Routes

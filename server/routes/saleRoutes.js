@@ -2,7 +2,13 @@ const express = require('express');
 const router = express.Router();
 const pool = require('../config/db');
 const auth = require('../middleware/auth');
-const { sendWhatsAppBill, sendWhatsAppMessage, sendWhatsAppDocument } = require('../utils/whatsapp');
+const { sendWhatsAppBill, sendWhatsAppMessage } = require('../utils/whatsapp');
+const fs = require('fs');
+const path = require('path');
+const crypto = require('crypto');
+const https = require('https');
+const querystring = require('querystring');
+
 
 const isAdmin = (req) => req.user.role === 'admin';
 
@@ -826,17 +832,98 @@ router.post('/send-message', auth, async (req, res) => {
 });
 
 // Send Custom WhatsApp Document
+// Strategy: Save base64 PDF as a temp public file, send the URL to UltraMsg.
+// UltraMsg's /messages/document endpoint only accepts public file URLs, not raw base64.
 router.post('/send-document', auth, async (req, res) => {
   try {
-    const { to, document, filename } = req.body;
-    if (!to || !document) {
+    const { to, document: docBase64, filename } = req.body;
+    if (!to || !docBase64) {
       return res.status(400).json({ error: 'Recipient phone (to) and document (base64) are required' });
     }
-    await sendWhatsAppDocument(to, document, filename);
-    res.json({ success: true, message: 'Document sent successfully via WhatsApp gateway' });
+
+    // Sanitize phone number
+    let cleanPhone = String(to).replace(/[^0-9]/g, '');
+    if (cleanPhone.startsWith('0092')) cleanPhone = cleanPhone.substring(2);
+    else if (cleanPhone.startsWith('0')) cleanPhone = '92' + cleanPhone.substring(1);
+    else if (cleanPhone.length === 10 && cleanPhone.startsWith('3')) cleanPhone = '92' + cleanPhone;
+
+    // Strip data URI prefix to get raw base64
+    let rawBase64 = docBase64;
+    if (rawBase64.startsWith('data:')) {
+      rawBase64 = rawBase64.split(',')[1];
+    }
+    if (!rawBase64) {
+      return res.status(400).json({ error: 'Invalid base64 document data' });
+    }
+
+    // Save as temp file with unique name
+    const uniqueName = `ledger_${crypto.randomBytes(8).toString('hex')}.pdf`;
+    const tempDir = path.join(__dirname, '..', 'public', 'temp');
+    if (!fs.existsSync(tempDir)) fs.mkdirSync(tempDir, { recursive: true });
+    const tempFilePath = path.join(tempDir, uniqueName);
+    fs.writeFileSync(tempFilePath, Buffer.from(rawBase64, 'base64'));
+
+    // Auto-delete after 10 minutes
+    setTimeout(() => {
+      try { fs.unlinkSync(tempFilePath); } catch(e) {}
+    }, 10 * 60 * 1000);
+
+    // Build public URL (use BACKEND_URL from env, or default Render URL)
+    const backendUrl = process.env.BACKEND_URL || 'https://erp-backend-3rf8.onrender.com';
+    const fileUrl = `${backendUrl}/temp/${uniqueName}`;
+
+    // UltraMsg credentials
+    const token = process.env.WHATSAPP_TOKEN || '4722xwbvpu3mdq18';
+    const instanceUrl = process.env.WHATSAPP_API_URL || 'https://api.ultramsg.com/instance174172/messages/chat';
+    const docApiUrl = instanceUrl.replace(/\/messages\/chat(\/?)?$/, '/messages/document').replace(/\/chat(\/?)?$/, '/messages/document');
+
+    // Send to UltraMsg via URL
+    const sendResult = await new Promise((resolve, reject) => {
+      const postData = querystring.stringify({
+        token: token,
+        to: cleanPhone,
+        filename: filename || 'Ledger.pdf',
+        document: fileUrl
+      });
+
+      const urlObj = new URL(docApiUrl);
+      const options = {
+        hostname: urlObj.hostname,
+        path: urlObj.pathname + urlObj.search,
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'Content-Length': Buffer.byteLength(postData)
+        }
+      };
+
+      const httpreq = https.request(options, (httpsRes) => {
+        let data = '';
+        httpsRes.on('data', chunk => data += chunk);
+        httpsRes.on('end', () => {
+          try {
+            const parsed = JSON.parse(data);
+            console.log(`✅ UltraMsg Document Response: ${JSON.stringify(parsed)}`);
+            resolve(parsed);
+          } catch (e) {
+            console.error('UltraMsg raw response:', data);
+            reject(new Error(`UltraMsg response parse error: ${data}`));
+          }
+        });
+      });
+      httpreq.on('error', reject);
+      httpreq.write(postData);
+      httpreq.end();
+    });
+
+    if (sendResult.sent === 'true' || sendResult.sent === true) {
+      res.json({ success: true, message: 'Ledger sent successfully via WhatsApp' });
+    } else {
+      throw new Error(`UltraMsg rejected document: ${JSON.stringify(sendResult)}`);
+    }
   } catch (err) {
-    console.error('Send Custom WhatsApp Document Error:', err);
-    res.status(500).json({ error: err.message });
+    console.error('Send Custom WhatsApp Document Error:', err.message);
+    res.status(500).json({ error: `Failed to send WhatsApp PDF: ${err.message}` });
   }
 });
 
