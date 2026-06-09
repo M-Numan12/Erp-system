@@ -315,18 +315,18 @@ export default function Salary({ type }) {
 
   const applyLedgerFilter = (filterKey) => {
     setLedgerFilter(filterKey);
-    const today = new Date();
+    const today = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Karachi' }));
     if (filterKey === 'all') {
       setLedgerFrom(""); setLedgerTo("");
     } else if (filterKey === 'today') {
       const t = today.toLocaleDateString('en-CA');
       setLedgerFrom(t); setLedgerTo(t);
     } else if (filterKey === 'yesterday') {
-      const y = new Date(); y.setDate(today.getDate() - 1);
+      const y = new Date(today); y.setDate(today.getDate() - 1);
       const yt = y.toLocaleDateString('en-CA');
       setLedgerFrom(yt); setLedgerTo(yt);
     } else if (filterKey === 'week') {
-      const weekAgo = new Date(); weekAgo.setDate(today.getDate() - 7);
+      const weekAgo = new Date(today); weekAgo.setDate(today.getDate() - 7);
       setLedgerFrom(weekAgo.toLocaleDateString('en-CA'));
       setLedgerTo(today.toLocaleDateString('en-CA'));
     } else if (filterKey === 'month') {

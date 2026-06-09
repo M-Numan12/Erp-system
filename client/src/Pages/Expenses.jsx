@@ -18,7 +18,7 @@ const emptyForm = {
   expense_type: "Office",
   category: "General",
   amount: "",
-  expense_date: new Date().toLocaleDateString('en-CA'),
+  expense_date: new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Karachi' }),
   notes: "",
   payment_source: "Cash",
   bank_name: ""
@@ -213,13 +213,13 @@ const filtered = records.filter(r => {
                         (r.category || "").toLowerCase().includes(search.toLowerCase());
     
     let matchDate = true;
-    const todayStr = new Date().toLocaleDateString('en-CA');
-    const recDateStr = r.expense_date ? new Date(r.expense_date).toLocaleDateString('en-CA') : '';
+    const todayStr = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Karachi' });
+    const recDateStr = r.expense_date ? new Date(r.expense_date + 'T00:00:00').toLocaleDateString('en-CA') : '';
     
     if (dateFilter === "Today") {
       matchDate = recDateStr === todayStr;
     } else if (dateFilter === "Yesterday") {
-      const yesterday = new Date();
+      const yesterday = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Karachi' }));
       yesterday.setDate(yesterday.getDate() - 1);
       const yesterdayStr = yesterday.toLocaleDateString('en-CA');
       matchDate = recDateStr === yesterdayStr;
@@ -350,7 +350,13 @@ const filtered = records.filter(r => {
         
         <div className="filter-group">
            {["All", "Pending Only", "Supplier Vehicle", "Personal Vehicle", "Office", "House", "Galla Closeout", "Admin Payment"].map(t => (
-             <button key={t} className={`tab-btn ${filterType === t ? 'active' : ''}`} onClick={() => setFilterType(t)}>{t}</button>
+             <button key={t} className={`tab-btn ${filterType === t ? 'active' : ''}`} onClick={() => {
+               setFilterType(t);
+               // Auto-switch to All Time for vehicle/pending filters so historical records are visible
+               if (t === 'Supplier Vehicle' || t === 'Personal Vehicle' || t === 'Pending Only') {
+                 setDateFilter('All Time');
+               }
+             }}>{t}</button>
            ))}
         </div>
       </div>
@@ -660,13 +666,15 @@ const filtered = records.filter(r => {
 
                      // 2. Update Expense
                      const finalPaymentType = payForm.source === 'Bank' ? `Bank - ${payForm.bank}` : 'Cash';
+                     // Use Pakistan timezone date for payment date (fix for UTC offset issue)
+                     const todayPKT = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Karachi' });
                      const res = await fetch(`${API}/${selectedExpForPay.id}`, {
                        method: 'PUT',
                        headers: { 
                          "Content-Type": "application/json",
                          "Authorization": `Bearer ${localStorage.getItem('token')}`
                        },
-                       body: JSON.stringify({ ...selectedExpForPay, payment_type: finalPaymentType }),
+                       body: JSON.stringify({ ...selectedExpForPay, payment_type: finalPaymentType, expense_date: todayPKT }),
                      });
 
                      if (res.ok) {

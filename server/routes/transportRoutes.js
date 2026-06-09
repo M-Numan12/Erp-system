@@ -151,7 +151,7 @@ router.post('/payment', auth, async (req, res) => {
     if (payment_type !== 'Deduction') {
       await pool.query(
         `INSERT INTO expenses (description, amount, expense_type, category, payment_type, notes, user_id, module_type, vehicle_id, expense_date)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, CURRENT_DATE)`,
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, (CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Karachi')::date)`,
         [
           `Payment to Vehicle: ${vehicle.vehicle_number} - ${vehicle.driver_name}`,
           paid_amount,

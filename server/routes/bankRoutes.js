@@ -454,7 +454,7 @@ router.post('/closeout', auth, async (req, res) => {
     // Insert closeout expense to deduct balance by the amount sent to Admin
     const result = await pool.query(
       `INSERT INTO expenses (description, expense_type, category, amount, payment_type, expense_date, notes, user_id, module_type) 
-       VALUES ($1, $2, $3, $4, $5, CURRENT_DATE, $6, $7, $8) RETURNING *`,
+       VALUES ($1, $2, $3, $4, $5, (CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Karachi')::date, $6, $7, $8) RETURNING *`,
       [
         `Daily Galla Closeout: Handover to Admin`,
         'Galla Closeout',
@@ -482,7 +482,7 @@ router.post('/admin-payment', auth, async (req, res) => {
 
     const result = await pool.query(
       `INSERT INTO expenses (description, expense_type, category, amount, payment_type, expense_date, notes, user_id, module_type) 
-       VALUES ($1, $2, $3, $4, $5, CURRENT_DATE, $6, $7, $8) RETURNING *`,
+       VALUES ($1, $2, $3, $4, $5, (CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Karachi')::date, $6, $7, $8) RETURNING *`,
       [
         `Received Admin Payment`,
         'Admin Payment',
@@ -517,7 +517,7 @@ router.post('/transfer', auth, async (req, res) => {
     // 1. Insert Transfer Out (Deduction from Source)
     await client.query(
       `INSERT INTO expenses (description, expense_type, category, amount, payment_type, expense_date, notes, user_id, module_type) 
-       VALUES ($1, $2, $3, $4, $5, CURRENT_DATE, $6, $7, $8)`,
+       VALUES ($1, $2, $3, $4, $5, (CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Karachi')::date, $6, $7, $8)`,
       [
         `Transfer to ${destination_account}`,
         'Transfer Out',
@@ -533,7 +533,7 @@ router.post('/transfer', auth, async (req, res) => {
     // 2. Insert Transfer In (Addition to Destination)
     await client.query(
       `INSERT INTO expenses (description, expense_type, category, amount, payment_type, expense_date, notes, user_id, module_type) 
-       VALUES ($1, $2, $3, $4, $5, CURRENT_DATE, $6, $7, $8)`,
+       VALUES ($1, $2, $3, $4, $5, (CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Karachi')::date, $6, $7, $8)`,
       [
         `Transfer from ${source_account}`,
         'Transfer In',
