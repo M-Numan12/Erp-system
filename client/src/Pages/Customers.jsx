@@ -185,17 +185,17 @@ export default function Customers({ type }) {
 
   const applyLedgerFilter = (filterKey) => {
     let from = "", to = "";
-    const today = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Karachi' }));
+    const today = new Date();
     
     if (filterKey === 'today') {
       from = today.toLocaleDateString('en-CA');
       to = from;
     } else if (filterKey === 'yesterday') {
-      const yest = new Date(today); yest.setDate(today.getDate() - 1);
+      const yest = new Date(); yest.setDate(today.getDate() - 1);
       from = yest.toLocaleDateString('en-CA');
       to = from;
     } else if (filterKey === 'week') {
-      const weekAgo = new Date(today);
+      const weekAgo = new Date();
       weekAgo.setDate(today.getDate() - 7);
       from = weekAgo.toLocaleDateString('en-CA');
       to = today.toLocaleDateString('en-CA');

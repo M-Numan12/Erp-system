@@ -144,7 +144,7 @@ router.post('/', auth, async (req, res) => {
       // 5. Automatically record as an Expense with the correct type and link vehicle_id
       await client.query(
         `INSERT INTO expenses (description, expense_type, category, amount, expense_date, notes, user_id, module_type, payment_type, vehicle_id) 
-         VALUES ($1, $2, $3, $4, (CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Karachi')::date, $5, $6, $7, $8, $9)`,
+         VALUES ($1, $2, $3, $4, CURRENT_DATE, $5, $6, $7, $8, $9)`,
         [
           `Transport Fare: ${vehicle_number || 'Vehicle'}`,
           expenseType,
@@ -170,76 +170,7 @@ router.post('/', auth, async (req, res) => {
   }
 });
 
-// Add Transport Fare to an existing purchase (retroactively)
-router.post('/:id/add-fare', auth, async (req, res) => {
-  const client = await pool.connect();
-  try {
-    await client.query('BEGIN');
-    const { fare, fare_status } = req.body;
-    const purchaseId = req.params.id;
-
-    const fareAmount = parseFloat(fare) || 0;
-    if (fareAmount <= 0) return res.status(400).json({ error: 'Fare must be greater than 0' });
-
-    // Get purchase details
-    const pRes = await client.query('SELECT * FROM purchases WHERE id = $1', [purchaseId]);
-    if (pRes.rows.length === 0) return res.status(404).json({ error: 'Purchase not found' });
-    const purchase = pRes.rows[0];
-
-    // Update purchase with fare
-    await client.query(
-      'UPDATE purchases SET delivery_charges = $1, fare_payment_type = $2 WHERE id = $3',
-      [fareAmount, fare_status || 'Pending', purchaseId]
-    );
-
-    // Update vehicle earnings if vehicle is registered
-    if (purchase.vehicle_id) {
-      await client.query(
-        'UPDATE vehicles SET total_earnings = total_earnings + $1 WHERE id = $2',
-        [fareAmount, purchase.vehicle_id]
-      );
-    }
-
-    // Determine expense type from vehicle ownership
-    let expenseType = 'Supplier Vehicle';
-    if (purchase.vehicle_id) {
-      const vRes = await client.query('SELECT ownership_type FROM vehicles WHERE id = $1', [purchase.vehicle_id]);
-      if (vRes.rows.length > 0) {
-        const ownerType = String(vRes.rows[0].ownership_type || 'Personal').toLowerCase();
-        if (ownerType === 'personal') expenseType = 'Personal Vehicle';
-      }
-    }
-
-    // Create expense record linked to this purchase
-    const finalModule = isAdmin(req) ? (purchase.module_type || 'Wholesale') : (req.user.module_type || 'Retail 1');
-    await client.query(
-      `INSERT INTO expenses (description, expense_type, category, amount, expense_date, notes, user_id, module_type, payment_type, vehicle_id) 
-       VALUES ($1, $2, $3, $4, (CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Karachi')::date, $5, $6, $7, $8, $9)`,
-      [
-        `Transport Fare: ${purchase.vehicle_number || 'Vehicle'}`,
-        expenseType,
-        'Transport',
-        fareAmount,
-        JSON.stringify({ vehicle_id: purchase.vehicle_id, vehicle_number: purchase.vehicle_number, purchase_id: purchaseId }),
-        req.user.id,
-        finalModule,
-        fare_status === 'Paid' ? 'Cash' : 'Pending',
-        purchase.vehicle_id || null
-      ]
-    );
-
-    await client.query('COMMIT');
-    res.json({ success: true, message: 'Fare added successfully' });
-  } catch (err) {
-    await client.query('ROLLBACK');
-    console.error('Add Fare Error:', err);
-    res.status(500).json({ error: err.message });
-  } finally {
-    client.release();
-  }
-});
-
-
+// Make Payment to Supplier
 router.post('/payment', auth, async (req, res) => {
   const client = await pool.connect();
   try {
@@ -453,7 +384,7 @@ router.post('/return', auth, async (req, res) => {
 
       await client.query(
         `INSERT INTO expenses (description, expense_type, category, amount, expense_date, notes, user_id, module_type, payment_type, vehicle_id) 
-         VALUES ($1, $2, $3, $4, (CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Karachi')::date, $5, $6, $7, $8, $9)`,
+         VALUES ($1, $2, $3, $4, CURRENT_DATE, $5, $6, $7, $8, $9)`,
         [
           `Return Transport Fare: ${vehicle_number || 'Vehicle'}`,
           returnExpenseType,

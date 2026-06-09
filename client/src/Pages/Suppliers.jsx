@@ -53,17 +53,15 @@ export default function Suppliers({ type }) {
    const [ledgerData, setLedgerData] = useState([]);
   const [ledgerOpeningBalance, setLedgerOpeningBalance] = useState(0);
   const [adjForm, setAdjForm] = useState({ type: "Debit", amount: "", notes: "" });
-  const [showFareModal, setShowFareModal] = useState(false);
-  const [fareTargetRow, setFareTargetRow] = useState(null);
-  const [fareForm, setFareForm] = useState({ fare: "", fare_status: "Pending" });
 
   const sortedLedgerData = useMemo(() => {
     const sorted = [...ledgerData].sort((a, b) => new Date(a.purchase_date) - new Date(b.purchase_date));
     if (ledgerFilter === 'all') return sorted;
     
     return sorted.filter(row => {
-      const rowDateStr = row.purchase_date ? new Date(row.purchase_date + 'T00:00:00').toLocaleDateString('en-CA') : '';
-      const today = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Karachi' }));
+      const rowDate = new Date(row.purchase_date);
+      const rowDateStr = rowDate.toLocaleDateString('en-CA');
+      const today = new Date();
       const todayStr = today.toLocaleDateString('en-CA');
       
       if (ledgerFilter === 'custom' && ledgerFrom && ledgerTo) {
@@ -73,7 +71,7 @@ export default function Suppliers({ type }) {
         return rowDateStr === todayStr;
       }
       if (ledgerFilter === 'week') {
-        const weekAgo = new Date(today);
+        const weekAgo = new Date();
         weekAgo.setDate(today.getDate() - 7);
         const weekAgoStr = weekAgo.toLocaleDateString('en-CA');
         return rowDateStr >= weekAgoStr && rowDateStr <= todayStr;
@@ -255,7 +253,7 @@ export default function Suppliers({ type }) {
 
   const applyLedgerFilter = (filterKey) => {
     setLedgerFilter(filterKey);
-    const today = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Karachi' }));
+    const today = new Date();
     
     if (filterKey === 'all') {
       setLedgerFrom(""); setLedgerTo("");
@@ -263,41 +261,17 @@ export default function Suppliers({ type }) {
       const t = today.toLocaleDateString('en-CA');
       setLedgerFrom(t); setLedgerTo(t);
     } else if (filterKey === 'yesterday') {
-      const y = new Date(today); y.setDate(today.getDate() - 1);
+      const y = new Date(); y.setDate(today.getDate() - 1);
       const yt = y.toLocaleDateString('en-CA');
       setLedgerFrom(yt); setLedgerTo(yt);
     } else if (filterKey === 'week') {
-      const weekAgo = new Date(today); weekAgo.setDate(today.getDate() - 7);
+      const weekAgo = new Date(); weekAgo.setDate(today.getDate() - 7);
       setLedgerFrom(weekAgo.toLocaleDateString('en-CA'));
       setLedgerTo(today.toLocaleDateString('en-CA'));
     } else if (filterKey === 'month') {
       setLedgerFrom(new Date(today.getFullYear(), today.getMonth(), 1).toLocaleDateString('en-CA'));
       setLedgerTo(today.toLocaleDateString('en-CA'));
     }
-  };
-
-  const handleAddFare = async (e) => {
-    e.preventDefault();
-    if (!fareTargetRow || parseFloat(fareForm.fare) <= 0) return;
-    setLoading(true);
-    try {
-      const res = await fetch(`${API_BASE_URL}/purchases/${fareTargetRow.id}/add-fare`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('token')}` },
-        body: JSON.stringify({ fare: fareForm.fare, fare_status: fareForm.fare_status })
-      });
-      if (res.ok) {
-        setShowFareModal(false);
-        setFareTargetRow(null);
-        setFareForm({ fare: "", fare_status: "Pending" });
-        // Refresh ledger
-        await openLedger(selectedSupplier, ledgerFilter);
-      } else {
-        const err = await res.json();
-        alert(err.error || 'Failed to add fare');
-      }
-    } catch (err) { console.error(err); alert('Error adding fare'); }
-    setLoading(false);
   };
 
   const handlePostAdjustment = async (e) => {
@@ -958,25 +932,6 @@ export default function Suppliers({ type }) {
                       footerStyle={{ textAlign: 'right' }}
                       style={{ textAlign: 'right', width: '150px' }}
                     />
-                    {user?.role === 'admin' && (
-                      <Column
-                        header=""
-                        body={row => {
-                          if (row.isOpening || !row.vehicle_number) return null;
-                          const hasFare = parseFloat(row.delivery_charges || 0) > 0;
-                          if (hasFare) return null; // Already has fare
-                          return (
-                            <button
-                              onClick={(e) => { e.stopPropagation(); setFareTargetRow(row); setFareForm({ fare: '', fare_status: 'Pending' }); setShowFareModal(true); }}
-                              style={{ background: '#f97316', color: 'white', border: 'none', padding: '4px 10px', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }}
-                            >
-                              + Add Fare
-                            </button>
-                          );
-                        }}
-                        style={{ width: '100px', textAlign: 'center' }}
-                      />
-                    )}
                   </DataTable>
                 </div>
               )}
@@ -1036,58 +991,7 @@ export default function Suppliers({ type }) {
         );
       })()}
 
-      {/* Add Transport Fare Modal */}
-      {showFareModal && fareTargetRow && (
-        <div className="modal-overlay" onClick={() => setShowFareModal(false)}>
-          <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: '420px' }}>
-            <div className="modal-header">
-              <h3>🚛 Add Transport Fare</h3>
-              <button className="modal-close" onClick={() => setShowFareModal(false)}><X size={20} /></button>
-            </div>
-            <div style={{ padding: '16px 20px', background: '#fff7ed', borderBottom: '1px solid #fed7aa' }}>
-              <div style={{ fontWeight: 700, color: '#92400e', fontSize: '0.95rem' }}>{fareTargetRow.vehicle_number}</div>
-              <div style={{ color: '#78350f', fontSize: '0.85rem', marginTop: '4px' }}>
-                {fareTargetRow.brand || ''} {fareTargetRow.product_name} — {fareTargetRow.quantity} {fareTargetRow.unit} @ Rs. {parseFloat(fareTargetRow.rate || 0).toLocaleString()}
-              </div>
-            </div>
-            <form onSubmit={handleAddFare} className="custom-form">
-              <div className="form-group" style={{ marginBottom: '15px' }}>
-                <label>Fare Amount (Rs.) *</label>
-                <input
-                  type="number"
-                  step="0.01"
-                  required
-                  autoFocus
-                  value={fareForm.fare}
-                  onChange={e => setFareForm({ ...fareForm, fare: e.target.value })}
-                  placeholder="e.g. 96600"
-                  style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '1rem' }}
-                />
-              </div>
-              <div className="form-group" style={{ marginBottom: '20px' }}>
-                <label>Fare Status</label>
-                <select
-                  value={fareForm.fare_status}
-                  onChange={e => setFareForm({ ...fareForm, fare_status: e.target.value })}
-                  style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.9rem' }}
-                >
-                  <option value="Pending">Pending (Pay Later)</option>
-                  <option value="Paid">Paid (Cash)</option>
-                </select>
-              </div>
-              <div className="form-actions" style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
-                <button type="button" className="btn-secondary" onClick={() => setShowFareModal(false)}>Cancel</button>
-                <button type="submit" className="btn-primary" disabled={loading} style={{ background: '#f97316', borderColor: '#f97316' }}>
-                  {loading ? 'Adding...' : '+ Add Fare'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
       {/* Make Payment Modal */}
-
       {showPaymentModal && selectedSupplier && (() => {
         const supplierTargetAccount = paymentSource === "Bank" ? selectedBank : "Cash";
         const supplierAvailableBal = liveBalances[supplierTargetAccount] || 0;
