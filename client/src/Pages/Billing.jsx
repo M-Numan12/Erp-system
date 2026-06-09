@@ -885,12 +885,10 @@ export default function Billing({ type }) {
                   <div className="flex flex-column gap-2 mb-2">
                     <Dropdown value={transportType} options={
                       activeTab === 'Wholesale' ? [
-                        // {label: 'No Transport', value: ''},
                         { label: 'Personal', value: 'Personal' },
                         { label: 'Rent', value: 'Rent' },
                         { label: 'Supplier', value: 'Supplier' }
                       ] : [
-                        // {label: 'No Transport', value: ''},
                         { label: 'Personal', value: 'Personal' },
                         { label: 'Rent', value: 'Rent' }
                       ]
