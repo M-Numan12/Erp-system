@@ -588,7 +588,11 @@ export default function Accounts() {
   };
 
   const handleCashOpeningBalance = () => {
-    const cashAcc = accounts.find(a => a.bank_name.toLowerCase() === 'cash' || a.bank_name.toLowerCase() === 'cash account');
+    const targetModule = user?.role === 'admin' ? activeTab : (user?.module_type || 'Wholesale');
+    const cashAcc = accounts.find(a => 
+      (a.bank_name.toLowerCase() === 'cash' || a.bank_name.toLowerCase() === 'cash account') &&
+      (a.module_type || 'Wholesale') === targetModule
+    );
     if (cashAcc) {
       handleEdit(cashAcc);
     } else {
@@ -689,7 +693,7 @@ export default function Accounts() {
       
       if (s.isExpense) {
          acc[targetKey] -= amt;
-         const shouldClamp = activeTab !== 'Retail 1' || (thresholdIdx !== -1 && idx < thresholdIdx);
+         const shouldClamp = (thresholdIdx !== -1 && idx < thresholdIdx);
          if (targetKey === 'Cash' && acc[targetKey] < 0 && shouldClamp) acc[targetKey] = 0; 
       } else {
          acc[targetKey] += amt;
@@ -799,7 +803,7 @@ export default function Accounts() {
       const amt = getTransactionAmount(t);
       if (t.isExpense) {
         currentBal -= amt;
-        const shouldClamp = activeTab !== 'Retail 1' || (thresholdIdx !== -1 && idx < thresholdIdx);
+        const shouldClamp = (thresholdIdx !== -1 && idx < thresholdIdx);
         if (selectedLedgerAccount?.module_type !== 'Admin Recipient' && currentBal < 0 && shouldClamp) {
           currentBal = 0;
         }
@@ -1042,8 +1046,6 @@ export default function Accounts() {
       let bal = checkIsCash(acc) ? (paymentSummary['Cash'] || 0) : (paymentSummary[acc.id] || 0);
       if (acc.module_type === 'Admin Recipient') {
         bal = getAdminBankBalance(acc);
-      } else if (bal < 0 && activeTab !== 'Retail 1') {
-        bal = 0;
       }
       return { ...acc, calculated_balance: bal };
     });
@@ -1225,7 +1227,7 @@ export default function Accounts() {
           <Column field="opening_balance" header="Opening Bal." body={acc => (
             <div style={{fontWeight: 700, color: '#64748b'}}>Rs. {parseFloat(acc.opening_balance || 0).toLocaleString()}</div>
           )} sortable />
-          <Column header="Current Bal." body={acc => (
+          <Column header="Current Balance" body={acc => (
             <div style={{fontWeight: 900, color: '#16a34a', fontSize: '1.1rem'}}>Rs. {acc.calculated_balance.toLocaleString()}</div>
           )} />
           <Column header="" body={acc => {
@@ -1561,8 +1563,9 @@ export default function Accounts() {
                   <p style={{ margin: '4px 0 0 0', fontSize: '0.85rem', color: '#64748b' }}>{acc.account_title || 'Bank Account'} - {acc.account_number}</p>
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
-                  <span style={{ fontWeight: 800, color: '#2563eb', fontSize: '1rem' }}>Rs. {parseFloat(acc.opening_balance || 0).toLocaleString()}</span>
-                  <span style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: '2px' }}>Opening Balance</span>
+                  <span style={{ fontWeight: 800, color: '#16a34a', fontSize: '1rem' }}>Rs. {parseFloat(acc.calculated_balance || 0).toLocaleString()}</span>
+                  <span style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '2px' }}>Current Balance</span>
+                  <span style={{ fontWeight: 600, color: '#94a3b8', fontSize: '0.75rem', marginTop: '4px' }}>Opening: Rs. {parseFloat(acc.opening_balance || 0).toLocaleString()}</span>
                 </div>
               </div>
             ))}

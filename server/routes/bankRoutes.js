@@ -54,13 +54,12 @@ const checkAccountMatch = (paymentMethod, acc) => {
 // Get real-time balances for all accounts
 router.get('/balances', auth, async (req, res) => {
   try {
-    const userId = req.user.id;
     const isAdminUser = req.user.role === 'admin';
     const targetModule = req.query.type || req.user.module_type || 'Wholesale';
 
     // Fetch accounts relevant to the module only
-    let accountsQ = "SELECT id, bank_name, account_number, opening_balance FROM bank_accounts WHERE (user_id = $1 OR module_type = $2 OR module_type = 'Admin Recipient')";
-    const accountsRes = await pool.query(accountsQ, [userId, targetModule]);
+    let accountsQ = "SELECT id, bank_name, account_number, opening_balance FROM bank_accounts WHERE (COALESCE(module_type, 'Wholesale') = $1 OR module_type = 'Admin Recipient')";
+    const accountsRes = await pool.query(accountsQ, [targetModule]);
     
     // Ensure Cash is always present as a base
     const balances = {};
