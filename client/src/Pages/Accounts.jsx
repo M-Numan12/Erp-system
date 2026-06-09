@@ -84,6 +84,10 @@ export default function Accounts() {
   const [investments, setInvestments] = useState([]);
   const [otherExpenses, setOtherExpenses] = useState([]);
 
+  // All-module unified balances (admin only)
+  const [allModuleAccounts, setAllModuleAccounts] = useState([]);
+  const [allModuleLoading, setAllModuleLoading] = useState(false);
+
   // State for active switcher tab (For Admin)
   const [activeTab, setActiveTab] = useState(user?.role === 'admin' ? 'Wholesale' : (user?.module_type || 'Wholesale'));
 
@@ -508,6 +512,24 @@ export default function Accounts() {
     } catch (err) { console.error("Failed to fetch general expenses:", err); }
   };
 
+  // Fetch live balances for all modules (admin only)
+  const fetchAllModuleBalances = async () => {
+    if (!user || user.role !== 'admin') return;
+    setAllModuleLoading(true);
+    try {
+      const res = await fetch((API_BASE_URL + '/banks/all-balances'), {
+        headers: { "Authorization": `Bearer ${localStorage.getItem('token')}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setAllModuleAccounts(Array.isArray(data) ? data : []);
+      }
+    } catch (err) {
+      console.error('Failed to fetch all-module balances', err);
+    }
+    setAllModuleLoading(false);
+  };
+
   // Initialise data on mount
   useEffect(() => {
     try {
@@ -534,6 +556,7 @@ export default function Accounts() {
     fetchSales();
     fetchSupplierPayments();
     fetchOthers();
+    fetchAllModuleBalances();
   }, []);
 
   const handleSubmit = async (e) => {
@@ -1242,7 +1265,7 @@ export default function Accounts() {
                 }}
                 bypassConfirm={true}
                 extraItems={[
-                  { 
+                   { 
                     label: 'View Ledger', 
                     icon: 'pi pi-book', 
                     command: () => { setSelectedLedgerAccount(acc); setDateFilter('All'); setShowLedger(true); } 
@@ -1253,6 +1276,112 @@ export default function Accounts() {
           }} style={{ textAlign: 'center', width: '60px' }} />
         </DataTable>
       </div>
+
+      {/* ===== ALL ACCOUNTS SUMMARY (Admin Only) ===== */}
+      {user?.role === 'admin' && (
+        <div className="no-print" style={{ marginTop: '30px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
+            <h3 style={{ margin: 0, color: '#1e293b', fontWeight: 800, fontSize: '1.3rem' }}>
+              🏦 All Accounts — Current Balances
+            </h3>
+            <button
+              onClick={fetchAllModuleBalances}
+              disabled={allModuleLoading}
+              style={{
+                background: '#3b82f6', color: 'white', border: 'none',
+                borderRadius: '10px', padding: '8px 18px', fontWeight: 700,
+                fontSize: '0.85rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px'
+              }}
+            >
+              {allModuleLoading ? '⟳ Refreshing...' : '⟳ Refresh'}
+            </button>
+          </div>
+
+          {/* Module colour key */}
+          <div style={{ display: 'flex', gap: '10px', marginBottom: '14px', flexWrap: 'wrap' }}>
+            {[
+              { label: 'Wholesale', bg: '#eff6ff', color: '#1d4ed8', border: '#bfdbfe' },
+              { label: 'Retail 1',  bg: '#f0fdf4', color: '#15803d', border: '#bbf7d0' },
+              { label: 'Retail 2',  bg: '#fdf4ff', color: '#7e22ce', border: '#e9d5ff' },
+              { label: 'Admin',     bg: '#fef3c7', color: '#d97706', border: '#fde68a' },
+            ].map(m => (
+              <span key={m.label} style={{
+                background: m.bg, color: m.color, border: `1px solid ${m.border}`,
+                borderRadius: '20px', padding: '4px 14px', fontWeight: 700, fontSize: '0.8rem'
+              }}>{m.label}</span>
+            ))}
+          </div>
+
+          <div className="module-table-container" style={{ padding: '20px', background: 'white', borderRadius: '16px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
+            <DataTable
+              value={allModuleAccounts}
+              emptyMessage={allModuleLoading ? 'Loading...' : 'No accounts found.'}
+              className="p-datatable-sm"
+              stripedRows
+              sortField="module_type"
+              sortOrder={1}
+            >
+              <Column header="Module" field="module_type" body={acc => {
+                const map = {
+                  'Wholesale': { bg: '#eff6ff', color: '#1d4ed8', border: '#bfdbfe' },
+                  'Retail 1':  { bg: '#f0fdf4', color: '#15803d', border: '#bbf7d0' },
+                  'Retail 2':  { bg: '#fdf4ff', color: '#7e22ce', border: '#e9d5ff' },
+                  'Admin':     { bg: '#fef3c7', color: '#d97706', border: '#fde68a' },
+                };
+                const s = map[acc.module_type] || map['Wholesale'];
+                return (
+                  <span style={{
+                    background: s.bg, color: s.color, border: `1px solid ${s.border}`,
+                    borderRadius: '20px', padding: '3px 12px', fontWeight: 800, fontSize: '0.78rem',
+                    whiteSpace: 'nowrap'
+                  }}>{acc.module_type}</span>
+                );
+              }} sortable style={{ width: '120px' }} />
+
+              <Column header="Account" field="bank_name" body={acc => (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <div style={{
+                    padding: '5px', borderRadius: '8px',
+                    background: acc.is_cash ? '#f0fdf4' : '#eff6ff',
+                    color: acc.is_cash ? '#16a34a' : '#2563eb'
+                  }}>
+                    {acc.is_cash ? <CreditCard size={14}/> : <Landmark size={14}/>}
+                  </div>
+                  <div style={{ fontWeight: 700, color: '#1e293b' }}>{acc.bank_name}</div>
+                </div>
+              )} sortable />
+
+              <Column header="Title / A/C No." body={acc => (
+                <div>
+                  <div style={{ fontWeight: 600, color: '#334155' }}>{acc.account_title || '—'}</div>
+                  {acc.account_number && acc.account_number !== 'N/A' && (
+                    <div style={{ fontSize: '0.75rem', color: '#64748b' }}>A/C: {acc.account_number}</div>
+                  )}
+                </div>
+              )} />
+
+              <Column header="Opening Bal." field="opening_balance" body={acc => (
+                <span style={{ fontWeight: 600, color: '#64748b' }}>
+                  Rs. {parseFloat(acc.opening_balance || 0).toLocaleString()}
+                </span>
+              )} sortable />
+
+              <Column header="Current Balance" field="current_balance" body={acc => {
+                const bal = parseFloat(acc.current_balance || 0);
+                return (
+                  <span style={{
+                    fontWeight: 900,
+                    fontSize: '1.05rem',
+                    color: bal < 0 ? '#dc2626' : '#16a34a'
+                  }}>
+                    Rs. {bal.toLocaleString()}
+                  </span>
+                );
+              }} sortable />
+            </DataTable>
+          </div>
+        </div>
+      )}
 
       {/* Ledger Dialog */}
       <Dialog 
