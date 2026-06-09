@@ -625,45 +625,82 @@ router.post('/return', auth, async (req, res) => {
     // Check if already fully returned
     if (sale.status === 'Returned') throw new Error('This bill has already been fully returned');
 
-    // 0. Balance Check
+    // 0. Balance Check - use proper module-aware balance calculation
     const refAmt = parseFloat(refund_amount || 0);
     if (refAmt > 0) {
       const method = refund_method || 'Cash';
-      const searchPattern = method === 'Cash' ? 'Cash' : `%${method}%`;
-      
       const finalModule = isAdmin(req) ? (sale.sale_type || 'Wholesale') : (req.user.module_type || 'Retail 1');
 
-      const salesSum = await client.query("SELECT SUM(paid_amount) FROM sales WHERE payment_type LIKE $1 AND sale_type = $2", [searchPattern, finalModule]);
-      const expSum = await client.query("SELECT SUM(CASE WHEN expense_type = 'Admin Payment' THEN -amount ELSE amount END) FROM expenses WHERE payment_type LIKE $1 AND module_type = $2", [searchPattern, finalModule]);
-      
-      // Purchases table filtering by module_type
-      let supPaid = 0;
-      if (method === 'Cash') {
-        const supSum = await client.query("SELECT SUM(paid_amount) FROM purchases WHERE module_type = $1", [finalModule]);
-        supPaid = parseFloat(supSum.rows[0].sum || 0);
-      } else {
-        const supSum = await client.query("SELECT SUM(delivery_charges) FROM purchases WHERE fare_payment_type LIKE $1 AND module_type = $2", [searchPattern, finalModule]);
-        supPaid = parseFloat(supSum.rows[0].sum || 0);
-      }
-      
+      const isCashMethod = !method || method === 'Cash' || method.toLowerCase().startsWith('cash');
+      const searchPattern = isCashMethod ? 'Cash' : `%${method}%`;
+
+      // Get opening balance - filter by module_type to avoid cross-module contamination
       let openingBal = 0;
-      if (method !== 'Cash') {
-         // Bank accounts are usually per-user or shared. Filtering by user_id or bank_name.
-         // Since we don't have module_type in bank_accounts, we check the account name.
-         const bankRes = await client.query("SELECT SUM(opening_balance) FROM bank_accounts WHERE bank_name = $1", [method]);
-         openingBal = parseFloat(bankRes.rows[0].sum || 0);
+      if (isCashMethod) {
+        const bankRes = await client.query(
+          "SELECT SUM(opening_balance) FROM bank_accounts WHERE (bank_name ILIKE '%Cash%') AND (module_type = $1 OR module_type IS NULL)",
+          [finalModule]
+        );
+        openingBal = parseFloat(bankRes.rows[0].sum || 0);
       } else {
-         const bankRes = await client.query("SELECT SUM(opening_balance) FROM bank_accounts WHERE bank_name ILIKE '%Cash%'");
-         openingBal = parseFloat(bankRes.rows[0].sum || 0);
+        const bankRes = await client.query(
+          "SELECT SUM(opening_balance) FROM bank_accounts WHERE bank_name ILIKE $1 AND module_type = $2",
+          [`%${method.replace(/^bank\s*-\s*/i, '')}%`, finalModule]
+        );
+        openingBal = parseFloat(bankRes.rows[0].sum || 0);
       }
-      
-      const currentBalance = (parseFloat(salesSum.rows[0].sum || 0) + openingBal) - 
-                             (parseFloat(expSum.rows[0].sum || 0) + supPaid);
-                             
+
+      // Income: sales received in this method for this module
+      const salesSum = await client.query(
+        "SELECT COALESCE(SUM(paid_amount), 0) AS total FROM sales WHERE payment_type ILIKE $1 AND COALESCE(sale_type, 'Wholesale') = $2",
+        [searchPattern, finalModule]
+      );
+
+      // Income: investments
+      const invSum = await client.query(
+        "SELECT COALESCE(SUM(amount), 0) AS total FROM investment WHERE COALESCE(module_type, 'Wholesale') = $1",
+        [finalModule]
+      );
+
+      // Expenses: all outflows
+      const expSum = await client.query(
+        `SELECT COALESCE(SUM(
+           CASE WHEN expense_type IN ('Admin Payment', 'Transfer In') THEN -amount ELSE amount END
+         ), 0) AS total FROM expenses WHERE payment_type ILIKE $1 AND COALESCE(module_type, 'Wholesale') = $2`,
+        [searchPattern, finalModule]
+      );
+
+      // Supplier payments
+      let supPaid = 0;
+      if (isCashMethod) {
+        const supSum = await client.query(
+          "SELECT COALESCE(SUM(paid_amount), 0) AS total FROM purchases WHERE COALESCE(payment_type, 'Cash') ILIKE $1 AND COALESCE(module_type, 'Wholesale') = $2",
+          [searchPattern, finalModule]
+        );
+        supPaid = parseFloat(supSum.rows[0].total || 0);
+      } else {
+        const supSum = await client.query(
+          "SELECT COALESCE(SUM(paid_amount), 0) AS total FROM purchases WHERE payment_type ILIKE $1 AND COALESCE(module_type, 'Wholesale') = $2",
+          [searchPattern, finalModule]
+        );
+        supPaid = parseFloat(supSum.rows[0].total || 0);
+      }
+
+      // Salary payments
+      const salarySum = await client.query(
+        "SELECT COALESCE(SUM(amount), 0) AS total FROM salary_payments WHERE payment_type ILIKE $1 AND COALESCE(module_type, 'Wholesale') = $2",
+        [searchPattern, finalModule]
+      );
+
+      const totalIncome = parseFloat(salesSum.rows[0].total || 0) + openingBal + parseFloat(invSum.rows[0].total || 0);
+      const totalExpense = parseFloat(expSum.rows[0].total || 0) + supPaid + parseFloat(salarySum.rows[0].total || 0);
+      const currentBalance = totalIncome - totalExpense;
+
       if (refAmt > currentBalance) {
-        throw new Error(`Insufficient Balance in ${method}. Available: Rs. ${currentBalance.toLocaleString()}`);
+        throw new Error(`Insufficient Balance in Cash. Available: Rs. ${Math.max(0, currentBalance).toLocaleString()}`);
       }
     }
+
 
     // 2. Identify items to return
     let items;
