@@ -15,7 +15,7 @@ const isAdmin = (req) => req.user.role === 'admin';
 // Get all sales (with isolation)
 router.get('/', auth, async (req, res) => {
   try {
-    const { type } = req.query; // e.g. ?type=Wholesale
+    const { type } = req.query;
     let query = 'SELECT * FROM sales';
     let params = [];
 
@@ -40,11 +40,11 @@ router.post('/', auth, async (req, res) => {
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
-    
-    const { 
-      customer_name, customer_phone, total_amount, discount, 
-      delivery_charges, net_amount, paid_amount, balance_amount, 
-      payment_type, items, sale_type, vehicle_type, vehicle_id, labour_group 
+
+    const {
+      customer_name, customer_phone, total_amount, discount,
+      delivery_charges, net_amount, paid_amount, balance_amount,
+      payment_type, items, sale_type, vehicle_type, vehicle_id, labour_group
     } = req.body;
 
     const finalModule = isAdmin(req) ? (sale_type || 'Wholesale') : (req.user.module_type || 'Retail 1');
@@ -55,7 +55,7 @@ router.post('/', auth, async (req, res) => {
       let cQuery = 'SELECT id FROM customers WHERE name=$1 AND module_type=$2';
       let cParams = [customer_name, finalModule];
       if (customer_phone) { cQuery += ' AND phone=$3'; cParams.push(customer_phone); }
-      
+
       let c = await client.query(cQuery, cParams);
       if (c.rows.length > 0) {
         finalCustomerId = c.rows[0].id;
@@ -86,7 +86,7 @@ router.post('/', auth, async (req, res) => {
       const vRes = await client.query(`SELECT vehicle_number FROM vehicles WHERE id IN (${placeholders})`, vehicleIds);
       vehicleNumbers = vRes.rows.map(r => r.vehicle_number);
     }
-    
+
     const vNumber1 = (vehicle_type === 'Supplier' && req.body.vehicle_number) ? req.body.vehicle_number : (vehicleNumbers.join(', ') || null);
     const vId = vehicleIds[0] || null;
     const vId2 = vehicleIds[1] || null;
@@ -101,7 +101,7 @@ router.post('/', auth, async (req, res) => {
     );
     const saleId = saleResult.rows[0].id;
 
-    // 2. Inventory Pre-check (Single Query Optimization)
+    // 2. Inventory Pre-check
     const productIds = [...new Set(items.map(item => item.product_id || item.id))];
     if (productIds.length > 0) {
       const placeholders = productIds.map((_, i) => `$${i + 1}`).join(', ');
@@ -109,7 +109,7 @@ router.post('/', auth, async (req, res) => {
         `SELECT id, name, stock_quantity FROM products WHERE id IN (${placeholders})`,
         productIds
       );
-      
+
       const productMap = {};
       productsCheck.rows.forEach(p => { productMap[p.id] = p; });
 
@@ -117,7 +117,7 @@ router.post('/', auth, async (req, res) => {
         const prodId = item.product_id || item.id;
         const requestedQty = parseFloat(item.qty || 0);
         const pData = productMap[prodId];
-        
+
         if (pData) {
           const currentInv = parseFloat(pData.stock_quantity || 0);
           if (requestedQty > currentInv) {
@@ -127,7 +127,7 @@ router.post('/', auth, async (req, res) => {
       }
     }
 
-    // 3. Insert items and update stock (Parallelized Execution within transaction)
+    // 3. Insert items and update stock
     const operations = items.map(async (item) => {
       const prodId = item.product_id || item.id;
       const prodName = item.product_name || item.name;
@@ -143,10 +143,10 @@ router.post('/', auth, async (req, res) => {
         [item.qty, prodId]
       );
     });
-    
+
     await Promise.all(operations);
 
-    // 3. Update customer balance if it's a credit sale
+    // Update customer balance if credit sale
     if (finalCustomerId && balance_amount !== 0) {
       await client.query(
         'UPDATE customers SET balance = balance + $1 WHERE id = $2',
@@ -154,8 +154,7 @@ router.post('/', auth, async (req, res) => {
       );
     }
 
-    // 4. Automatic Transport Earnings Update if vehicle is selected
-    // 4. Automatic Transport Earnings Update if vehicle is selected
+    // Automatic Transport Earnings Update
     if (vehicle_type && vehicleIds.length > 0) {
       const fareAmount = parseFloat(delivery_charges) || 0;
       const farePerVehicle = fareAmount / vehicleIds.length;
@@ -167,7 +166,7 @@ router.post('/', auth, async (req, res) => {
       }
     }
 
-    // Fetch updated customer balance live inside the transaction
+    // Fetch updated customer balance
     let customerBalance = 0;
     if (finalCustomerId) {
       const custRes = await client.query('SELECT balance FROM customers WHERE id = $1', [finalCustomerId]);
@@ -178,7 +177,7 @@ router.post('/', auth, async (req, res) => {
 
     await client.query('COMMIT');
 
-    // Trigger WhatsApp notification asynchronously in the background so it is 100% instant!
+    // WhatsApp notification async
     const fullSale = {
       id: saleId,
       customer_name,
@@ -210,7 +209,7 @@ router.get('/:id', auth, async (req, res) => {
   try {
     const sale = await pool.query('SELECT * FROM sales WHERE id = $1 AND (user_id = $2 OR $3)', [req.params.id, req.user.id, isAdmin(req)]);
     if (sale.rows.length === 0) return res.status(404).json({ error: 'Sale not found' });
-    
+
     const items = await pool.query('SELECT * FROM sale_items WHERE sale_id = $1', [req.params.id]);
     res.json({ ...sale.rows[0], items: items.rows });
   } catch (err) { res.status(500).json({ error: err.message }); }
@@ -253,18 +252,15 @@ router.post('/payment', auth, async (req, res) => {
   try {
     await client.query('BEGIN');
     const { customer_id, amount, payment_reference, payment_type, module_type } = req.body;
-    
-    // Decrease Customer Balance
+
     await client.query(
       'UPDATE customers SET balance = balance - $1 WHERE id = $2',
       [amount, customer_id]
     );
 
-    // Get customer name
     const cust = await client.query('SELECT name FROM customers WHERE id=$1', [customer_id]);
     const custName = cust.rows[0]?.name || 'Unknown';
 
-    // Insert Payment Record as a Sale with net_amount=0
     const insertRes = await client.query(
       `INSERT INTO sales 
       (customer_id, customer_name, total_amount, net_amount, paid_amount, balance_amount, payment_type, sale_type, user_id) 
@@ -274,8 +270,6 @@ router.post('/payment', auth, async (req, res) => {
 
     await client.query('COMMIT');
 
-    // After successful payment, send WhatsApp notifications
-    // Fetch customer phone number
     const custPhoneRes = await pool.query('SELECT phone FROM customers WHERE id = $1', [customer_id]);
     const custPhone = custPhoneRes.rows[0]?.phone;
     const paymentMessage = `💰 *PAYMENT RECEIPT*\n` +
@@ -287,12 +281,8 @@ router.post('/payment', auth, async (req, res) => {
       `💳 *Payment Type:* ${payment_type || 'Cash'}\n` +
       `🗓️ *Date:* ${new Date().toLocaleString()}\n` +
       `-----------------------------------------`;
-    
-    // Send to customer if phone available
-    if (custPhone) {
-      await sendWhatsAppMessage(custPhone, paymentMessage);
-    }
-    // Send copy to admin
+
+    if (custPhone) await sendWhatsAppMessage(custPhone, paymentMessage);
     const adminPhone = process.env.ADMIN_PHONE || '923004269347';
     const adminMessage = `🚨 *ADMIN COPY: PAYMENT RECEIPT*\n\n${paymentMessage}`;
     await sendWhatsAppMessage(adminPhone, adminMessage);
@@ -315,22 +305,16 @@ router.post('/payment/undo', auth, async (req, res) => {
     const { payment_id } = req.body;
     if (!payment_id) throw new Error('payment_id is required');
 
-    // Fetch payment record
     const saleRes = await client.query('SELECT * FROM sales WHERE id = $1', [payment_id]);
     if (saleRes.rows.length === 0) throw new Error('Payment record not found');
     const sale = saleRes.rows[0];
     const { customer_id, paid_amount, payment_type, payment_reference } = sale;
 
-    // Revert customer balance
     await client.query('UPDATE customers SET balance = balance + $1 WHERE id = $2', [paid_amount, customer_id]);
-
-    // Delete the payment record
     await client.query('DELETE FROM sales WHERE id = $1', [payment_id]);
 
     await client.query('COMMIT');
 
-    // Send WhatsApp notifications about reversal
-    // Fetch customer phone
     const custRes = await pool.query('SELECT phone FROM customers WHERE id = $1', [customer_id]);
     const custPhone = custRes.rows[0]?.phone;
     const message = `⚠️ *PAYMENT REVERSED*\n` +
@@ -340,7 +324,7 @@ router.post('/payment/undo', auth, async (req, res) => {
       `📄 Reference: ${payment_reference || 'N/A'}\n` +
       `🕒 Date: ${new Date().toLocaleString()}\n` +
       `-----------------------------`;
-    
+
     if (custPhone) await sendWhatsAppMessage(custPhone, message);
     const adminPhone = process.env.ADMIN_PHONE || '923004269347';
     const adminMsg = `🚨 *ADMIN COPY: PAYMENT REVERSED*\n\n${message}`;
@@ -356,16 +340,16 @@ router.post('/payment/undo', auth, async (req, res) => {
   }
 });
 
-// Update a sale (Bill Edit)
+// Update a sale (Bill Edit) - Admin only
 router.put('/:id', auth, async (req, res) => {
   if (!isAdmin(req)) return res.status(403).json({ error: 'Access denied' });
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
-    const { 
-      customer_name, customer_phone, customer_address, total_amount, discount, 
-      delivery_charges, net_amount, paid_amount, balance_amount, 
-      payment_type, items, vehicle_id, vehicle_type 
+    const {
+      customer_name, customer_phone, customer_address, total_amount, discount,
+      delivery_charges, net_amount, paid_amount, balance_amount,
+      payment_type, items, vehicle_id, vehicle_type
     } = req.body;
 
     let vehicleIds = [];
@@ -382,38 +366,37 @@ router.put('/:id', auth, async (req, res) => {
       const vRes = await client.query(`SELECT vehicle_number FROM vehicles WHERE id IN (${placeholders})`, vehicleIds);
       vehicleNumbers = vRes.rows.map(r => r.vehicle_number);
     }
-    
+
     const vNumber1 = (vehicle_type === 'Supplier' && req.body.vehicle_number) ? req.body.vehicle_number : (vehicleNumbers.join(', ') || null);
     const vId = vehicleIds[0] || null;
     const vId2 = vehicleIds[1] || null;
     const vNumber2 = vehicleNumbers[1] || null;
     const vehicleIdsJSON = vehicleIds.length > 0 ? JSON.stringify(vehicleIds) : null;
 
-    // 1. Revert OLD stock
+    // Revert old stock
     const oldItems = await client.query('SELECT product_id, qty FROM sale_items WHERE sale_id = $1', [req.params.id]);
     for (const item of oldItems.rows) {
       await client.query('UPDATE products SET stock_quantity = stock_quantity + $1 WHERE id = $2', [item.qty, item.product_id]);
     }
 
-    // 2. Revert OLD customer balance and vehicle earnings
+    // Revert old customer balance and vehicle earnings
     const oldSaleRes = await client.query('SELECT customer_id, balance_amount, vehicle_id, vehicle_id2, vehicle_ids, delivery_charges, vehicle_type FROM sales WHERE id = $1', [req.params.id]);
     const oldSale = oldSaleRes.rows[0];
     if (oldSale && oldSale.customer_id && oldSale.balance_amount !== 0) {
       await client.query('UPDATE customers SET balance = balance - $1 WHERE id = $2', [oldSale.balance_amount, oldSale.customer_id]);
     }
-    
-    // Revert vehicle earnings of old vehicles
+
     if (oldSale && oldSale.vehicle_type && oldSale.vehicle_type !== '') {
       let oldVehicleIds = [];
       if (oldSale.vehicle_ids) {
         try {
           oldVehicleIds = typeof oldSale.vehicle_ids === 'string' ? JSON.parse(oldSale.vehicle_ids) : oldSale.vehicle_ids;
-        } catch (e) {}
+        } catch (e) { }
       } else if (oldSale.vehicle_id) {
         oldVehicleIds = [oldSale.vehicle_id];
       }
       oldVehicleIds = oldVehicleIds.filter(id => !isNaN(id) && id > 0);
-      
+
       if (oldVehicleIds.length > 0) {
         const oldFareAmount = parseFloat(oldSale.delivery_charges) || 0;
         const oldFarePerVehicle = oldFareAmount / oldVehicleIds.length;
@@ -426,10 +409,10 @@ router.put('/:id', auth, async (req, res) => {
       }
     }
 
-    // 3. Delete old items
+    // Delete old items
     await client.query('DELETE FROM sale_items WHERE sale_id = $1', [req.params.id]);
 
-    // 4. Update sales table
+    // Update sales table
     await client.query(
       `UPDATE sales SET 
         customer_name=$1, customer_phone=$2, customer_address=$3, total_amount=$4, 
@@ -441,7 +424,7 @@ router.put('/:id', auth, async (req, res) => {
       [customer_name, customer_phone, customer_address, total_amount, discount, delivery_charges, net_amount, paid_amount, balance_amount, payment_type, vId, vId2, vNumber1, vNumber2, vehicleIdsJSON, JSON.stringify(items), vehicle_type || null, req.params.id]
     );
 
-    // 5. Insert NEW items and update stock
+    // Insert new items and update stock
     for (const item of items) {
       const prodId = item.product_id || item.id;
       const prodName = item.product_name || item.name;
@@ -454,12 +437,12 @@ router.put('/:id', auth, async (req, res) => {
       await client.query('UPDATE products SET stock_quantity = stock_quantity - $1 WHERE id = $2', [item.qty, prodId]);
     }
 
-    // 6. Update NEW customer balance
+    // Update new customer balance
     if (oldSale && oldSale.customer_id && balance_amount !== 0) {
       await client.query('UPDATE customers SET balance = balance + $1 WHERE id = $2', [balance_amount, oldSale.customer_id]);
     }
 
-    // 6.5 Update NEW vehicle earnings
+    // Update new vehicle earnings
     if (vehicle_type && vehicleIds.length > 0) {
       const fareAmount = parseFloat(delivery_charges) || 0;
       const farePerVehicle = fareAmount / vehicleIds.length;
@@ -471,7 +454,6 @@ router.put('/:id', auth, async (req, res) => {
       }
     }
 
-    // Fetch updated customer balance live inside transaction
     let customerBalance = 0;
     if (oldSale && oldSale.customer_id) {
       const custRes = await client.query('SELECT balance FROM customers WHERE id = $1', [oldSale.customer_id]);
@@ -490,38 +472,36 @@ router.put('/:id', auth, async (req, res) => {
   }
 });
 
+// Delete a sale - Admin only
 router.delete('/:id', auth, async (req, res) => {
   if (!isAdmin(req)) return res.status(403).json({ error: 'Access denied' });
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
-    
-    // Revert stock before deleting
+
     const oldItems = await client.query('SELECT product_id, qty FROM sale_items WHERE sale_id = $1', [req.params.id]);
     for (const item of oldItems.rows) {
       await client.query('UPDATE products SET stock_quantity = stock_quantity + $1 WHERE id = $2', [item.qty, item.product_id]);
     }
 
-    // Revert customer balance and vehicle earnings
     const oldSaleRes = await client.query('SELECT customer_id, balance_amount, vehicle_id, vehicle_id2, vehicle_ids, delivery_charges, vehicle_type FROM sales WHERE id = $1', [req.params.id]);
     const oldSale = oldSaleRes.rows[0];
     if (oldSale) {
       if (oldSale.customer_id && oldSale.balance_amount !== 0) {
         await client.query('UPDATE customers SET balance = balance - $1 WHERE id = $2', [oldSale.balance_amount, oldSale.customer_id]);
       }
-      
-      // Revert vehicle earnings
+
       if (oldSale.vehicle_type && oldSale.vehicle_type !== '') {
         let oldVehicleIds = [];
         if (oldSale.vehicle_ids) {
           try {
             oldVehicleIds = typeof oldSale.vehicle_ids === 'string' ? JSON.parse(oldSale.vehicle_ids) : oldSale.vehicle_ids;
-          } catch (e) {}
+          } catch (e) { }
         } else if (oldSale.vehicle_id) {
           oldVehicleIds = [oldSale.vehicle_id];
         }
         oldVehicleIds = oldVehicleIds.filter(id => !isNaN(id) && id > 0);
-        
+
         if (oldVehicleIds.length > 0) {
           const oldFareAmount = parseFloat(oldSale.delivery_charges) || 0;
           const oldFarePerVehicle = oldFareAmount / oldVehicleIds.length;
@@ -537,7 +517,7 @@ router.delete('/:id', auth, async (req, res) => {
 
     await client.query('DELETE FROM sale_items WHERE sale_id = $1', [req.params.id]);
     await client.query('DELETE FROM sales WHERE id = $1', [req.params.id]);
-    
+
     await client.query('COMMIT');
     res.json({ message: 'Sale deleted' });
   } catch (err) {
@@ -548,7 +528,7 @@ router.delete('/:id', auth, async (req, res) => {
   }
 });
 
-// Update a specific item in a sale (from Ledger)
+// Update a specific item in a sale (from Ledger) - Admin only
 router.post('/update-item', auth, async (req, res) => {
   if (!isAdmin(req)) return res.status(403).json({ error: 'Only admins can edit ledger entries' });
   const client = await pool.connect();
@@ -556,31 +536,26 @@ router.post('/update-item', auth, async (req, res) => {
     await client.query('BEGIN');
     const { sale_id, item_id, new_qty, new_rate } = req.body;
 
-    // 1. Get original item details
     const oldItem = await client.query('SELECT * FROM sale_items WHERE id = $1', [item_id]);
     if (oldItem.rows.length === 0) throw new Error('Item not found');
     const { qty: old_qty, subtotal: old_subtotal, product_id } = oldItem.rows[0];
 
-    // 2. Calculate new subtotal
     const n_qty = parseFloat(new_qty);
     const n_rate = parseFloat(new_rate);
     const new_subtotal = n_qty * n_rate;
     const subtotal_diff = new_subtotal - parseFloat(old_subtotal);
     const qty_diff = n_qty - parseFloat(old_qty);
 
-    // 3. Update sale_items
     await client.query(
       'UPDATE sale_items SET qty = $1, rate = $2, subtotal = $3 WHERE id = $4',
       [n_qty, n_rate, new_subtotal, item_id]
     );
 
-    // 4. Update sales total and balance_amount
     await client.query(
       'UPDATE sales SET total_amount = total_amount + $1, net_amount = net_amount + $1, balance_amount = balance_amount + $1 WHERE id = $2',
       [subtotal_diff, sale_id]
     );
 
-    // 5. Update Customer Balance
     const sale = await client.query('SELECT customer_id FROM sales WHERE id = $1', [sale_id]);
     const customer_id = sale.rows[0].customer_id;
     if (customer_id) {
@@ -590,7 +565,6 @@ router.post('/update-item', auth, async (req, res) => {
       );
     }
 
-    // 6. Adjust Product Stock
     if (product_id) {
       await client.query(
         'UPDATE products SET stock_quantity = stock_quantity - $1 WHERE id = $2',
@@ -608,12 +582,16 @@ router.post('/update-item', auth, async (req, res) => {
   }
 });
 
-// Process a Sale Return (Full or Partial)
+// ✅ Process a Sale Return (Full or Partial) - FULLY FIXED (no refAmt)
 router.post('/return', auth, async (req, res) => {
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
-    const { sale_id, items_to_return, refund_amount, refund_method, vehicle_id, vehicle_type, delivery_charges } = req.body;
+
+    // Read refund_amount from frontend
+    const refundAmount = parseFloat(req.body.refund_amount) || 0;
+    const { sale_id, items_to_return, refund_method, vehicle_id, vehicle_type, delivery_charges } = req.body;
+
     const sId = parseInt(sale_id);
     if (isNaN(sId)) throw new Error('Invalid Bill Number');
 
@@ -621,8 +599,6 @@ router.post('/return', auth, async (req, res) => {
     const saleRes = await client.query('SELECT * FROM sales WHERE id = $1', [sId]);
     if (saleRes.rows.length === 0) throw new Error('Sale not found');
     const sale = saleRes.rows[0];
-
-    // Check if already fully returned
     if (sale.status === 'Returned') throw new Error('This bill has already been fully returned');
 
     // 2. Identify items to return
@@ -630,24 +606,17 @@ router.post('/return', auth, async (req, res) => {
     if (items_to_return && Array.isArray(items_to_return) && items_to_return.length > 0) {
       items = items_to_return;
     } else {
-      // Full return
       const itemsRes = await client.query('SELECT * FROM sale_items WHERE sale_id = $1', [sId]);
       items = itemsRes.rows;
     }
 
     let totalReturnedValue = 0;
-
     for (const item of items) {
       const prodId = item.product_id;
-      const qty = parseFloat(item.qty || 0);
+      const qty = parseFloat(item.return_qty || item.qty || 0);
       const rate = parseFloat(item.rate || 0);
-      
       if (prodId && qty > 0) {
-        // Restore stock
-        await client.query(
-          'UPDATE products SET stock_quantity = stock_quantity + $1 WHERE id = $2',
-          [qty, prodId]
-        );
+        await client.query('UPDATE products SET stock_quantity = stock_quantity + $1 WHERE id = $2', [qty, prodId]);
         totalReturnedValue += (qty * rate);
       }
     }
@@ -667,7 +636,7 @@ router.post('/return', auth, async (req, res) => {
       const vRes = await client.query(`SELECT vehicle_number FROM vehicles WHERE id IN (${placeholders})`, vehicleIds);
       vehicleNumbers = vRes.rows.map(r => r.vehicle_number);
     }
-    
+
     const vNumber1 = (req.body.vehicle_type === 'Supplier' && req.body.vehicle_number) ? req.body.vehicle_number : (vehicleNumbers.join(', ') || null);
     const vId = vehicleIds[0] || null;
     const vId2 = vehicleIds[1] || null;
@@ -682,23 +651,11 @@ router.post('/return', auth, async (req, res) => {
         payment_type, user_id, items, vehicle_id, vehicle_id2, vehicle_number, vehicle_number2, vehicle_ids, delivery_charges, created_at
       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, CURRENT_TIMESTAMP) RETURNING id`,
       [
-        sale.sale_type,
-        sale.customer_id,
-        sale.customer_name,
-        sale.customer_phone,
-        -totalReturnedValue,
-        -refAmt,
-        -(totalReturnedValue - refAmt),
-        'Returned',
-        refund_method || 'Cash',
-        req.user.id,
+        sale.sale_type, sale.customer_id, sale.customer_name, sale.customer_phone,
+        -totalReturnedValue, -refundAmount, -(totalReturnedValue - refundAmount),
+        'Returned', refund_method || 'Cash', req.user.id,
         JSON.stringify(items.map(i => ({ ...i, quantity: i.return_qty || i.qty, name: i.product_name || i.name }))),
-        vId,
-        vId2,
-        vNumber1,
-        vNumber2,
-        vehicleIdsJSON,
-        delivery_charges || 0
+        vId, vId2, vNumber1, vNumber2, vehicleIdsJSON, delivery_charges || 0
       ]
     );
     const newReturnId = returnBillResult.rows[0].id;
@@ -708,56 +665,45 @@ router.post('/return', auth, async (req, res) => {
       const fareAmount = parseFloat(delivery_charges) || 0;
       const farePerVehicle = fareAmount / vehicleIds.length;
       for (const id of vehicleIds) {
-        await client.query(
-          `UPDATE vehicles SET total_earnings = total_earnings + $1 WHERE id = $2`,
-          [farePerVehicle, id]
-        );
+        await client.query(`UPDATE vehicles SET total_earnings = total_earnings + $1 WHERE id = $2`, [farePerVehicle, id]);
       }
     }
 
-    // 4. Insert returned items into sale_items for the return bill
+    // 4. Insert returned items into sale_items for the return bill (negative qty)
     for (const item of items) {
+      const returnQty = -(item.return_qty || item.qty);
+      const subtotal = returnQty * (item.rate || 0);
       await client.query(
         `INSERT INTO sale_items (sale_id, product_id, product_name, qty, rate, subtotal) 
          VALUES ($1, $2, $3, $4, $5, $6)`,
-        [
-          newReturnId,
-          item.product_id,
-          item.product_name || item.name,
-          -(item.return_qty || item.qty),
-          item.rate,
-          -(item.return_qty || item.qty) * item.rate
-        ]
+        [newReturnId, item.product_id, item.product_name || item.name, returnQty, item.rate, subtotal]
       );
     }
 
-    // 5. Update Original Sale status if fully returned
-    if (!items_to_return) {
+    // 5. Update Original Sale status
+    if (!items_to_return || items_to_return.length === 0) {
       await client.query('UPDATE sales SET status = $1 WHERE id = $2', ['Returned', sId]);
     } else {
       await client.query("UPDATE sales SET status = 'Partially Returned' WHERE id = $1", [sId]);
     }
 
-    // 5. Adjust Customer Balance
+    // 6. Adjust Customer Balance
     if (sale.customer_id) {
-      const reduction = totalReturnedValue - refAmt;
+      const reduction = totalReturnedValue - refundAmount;
       if (reduction !== 0) {
-        await client.query(
-          'UPDATE customers SET balance = balance - $1 WHERE id = $2',
-          [reduction, sale.customer_id]
-        );
+        await client.query('UPDATE customers SET balance = balance - $1 WHERE id = $2', [reduction, sale.customer_id]);
       }
     }
 
-    // 6. Record Expense for Refund
-    if (refAmt > 0) {
+    // 7. Record Expense for Refund – CHANGED expense_type so banks.js does NOT skip it
+    if (refundAmount > 0) {
       await client.query(
         `INSERT INTO expenses (description, expense_type, amount, payment_type, user_id, module_type, created_at) 
          VALUES ($1, $2, $3, $4, $5, $6, CURRENT_TIMESTAMP)`,
         [
           `Sale Return Refund (Return Bill #${newReturnId}, Orig #${sId})`,
-          'Sale Return',
-          refAmt,
+          'Sale Return Refund',   // ✅ was 'Sale Return' (skipped), now correct
+          refundAmount,
           refund_method || 'Cash',
           req.user.id,
           sale.sale_type
@@ -791,9 +737,7 @@ router.post('/send-message', auth, async (req, res) => {
   }
 });
 
-// Send Custom WhatsApp Document
-// Strategy: Save base64 PDF as a temp public file, send the URL to UltraMsg.
-// UltraMsg's /messages/document endpoint only accepts public file URLs, not raw base64.
+// Send Custom WhatsApp Document (PDF)
 router.post('/send-document', auth, async (req, res) => {
   try {
     const { to, document: docBase64, filename } = req.body;
@@ -801,13 +745,11 @@ router.post('/send-document', auth, async (req, res) => {
       return res.status(400).json({ error: 'Recipient phone (to) and document (base64) are required' });
     }
 
-    // Sanitize phone number
     let cleanPhone = String(to).replace(/[^0-9]/g, '');
     if (cleanPhone.startsWith('0092')) cleanPhone = cleanPhone.substring(2);
     else if (cleanPhone.startsWith('0')) cleanPhone = '92' + cleanPhone.substring(1);
     else if (cleanPhone.length === 10 && cleanPhone.startsWith('3')) cleanPhone = '92' + cleanPhone;
 
-    // Strip data URI prefix to get raw base64
     let rawBase64 = docBase64;
     if (rawBase64.startsWith('data:')) {
       rawBase64 = rawBase64.split(',')[1];
@@ -816,28 +758,23 @@ router.post('/send-document', auth, async (req, res) => {
       return res.status(400).json({ error: 'Invalid base64 document data' });
     }
 
-    // Save as temp file with unique name
     const uniqueName = `ledger_${crypto.randomBytes(8).toString('hex')}.pdf`;
     const tempDir = path.join(__dirname, '..', 'public', 'temp');
     if (!fs.existsSync(tempDir)) fs.mkdirSync(tempDir, { recursive: true });
     const tempFilePath = path.join(tempDir, uniqueName);
     fs.writeFileSync(tempFilePath, Buffer.from(rawBase64, 'base64'));
 
-    // Auto-delete after 10 minutes
     setTimeout(() => {
-      try { fs.unlinkSync(tempFilePath); } catch(e) {}
+      try { fs.unlinkSync(tempFilePath); } catch (e) { }
     }, 10 * 60 * 1000);
 
-    // Build public URL (use BACKEND_URL from env, or default Render URL)
     const backendUrl = process.env.BACKEND_URL || 'https://erp-backend-3rf8.onrender.com';
     const fileUrl = `${backendUrl}/temp/${uniqueName}`;
 
-    // UltraMsg credentials
     const token = process.env.WHATSAPP_TOKEN || '4722xwbvpu3mdq18';
     const instanceUrl = process.env.WHATSAPP_API_URL || 'https://api.ultramsg.com/instance174172/messages/chat';
     const docApiUrl = instanceUrl.replace(/\/messages\/chat(\/?)?$/, '/messages/document').replace(/\/chat(\/?)?$/, '/messages/document');
 
-    // Send to UltraMsg via URL
     const sendResult = await new Promise((resolve, reject) => {
       const postData = querystring.stringify({
         token: token,
