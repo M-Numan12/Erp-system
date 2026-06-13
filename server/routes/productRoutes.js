@@ -44,8 +44,10 @@ router.post('/', auth, async (req, res) => {
       (name, brand, category, unit, price, cost_price, stock_quantity, minimum_stock, description, image_url, module_type, user_id) 
       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING *`,
       [
-        name, brand, category, unit, price || 0, cost_price || 0, 
-        stock_quantity || 0, minimum_stock || 0, description, image_url, finalModule, req.user.id
+        name, brand, category, unit, 
+        parseFloat(price) || 0, parseFloat(cost_price) || 0, 
+        parseFloat(stock_quantity) || 0, parseFloat(minimum_stock) || 0, 
+        description, image_url, finalModule, req.user.id
       ]
     );
     res.json(result.rows[0]);
@@ -69,8 +71,10 @@ router.put('/:id', auth, async (req, res) => {
         stock_quantity=$7, minimum_stock=$8, description=$9, image_url=$10 
       WHERE id=$11 AND (user_id=$12 OR $13) RETURNING *`,
       [
-        name, brand, category, unit, price, cost_price, 
-        stock_quantity, minimum_stock, description, image_url, 
+        name, brand, category, unit, 
+        parseFloat(price) || 0, parseFloat(cost_price) || 0, 
+        parseFloat(stock_quantity) || 0, parseFloat(minimum_stock) || 0, 
+        description, image_url, 
         req.params.id, req.user.id, isAdmin(req)
       ]
     );
@@ -87,12 +91,16 @@ router.post('/:id/stock', auth, async (req, res) => {
   try {
     await client.query('BEGIN');
     const { quantity, vehicle_number, module_type } = req.body;
+    const parsedQty = parseFloat(quantity);
+    if (isNaN(parsedQty)) {
+      return res.status(400).json({ error: "Invalid quantity provided" });
+    }
     
     // Update product stock
     const prodRes = await client.query(
       `UPDATE products SET stock_quantity = stock_quantity + $1 
        WHERE id=$2 AND (user_id=$3 OR $4) RETURNING *`,
-      [parseFloat(quantity), req.params.id, req.user.id, isAdmin(req)]
+      [parsedQty, req.params.id, req.user.id, isAdmin(req)]
     );
 
     if (prodRes.rows.length === 0) throw new Error("Product not found or unauthorized");

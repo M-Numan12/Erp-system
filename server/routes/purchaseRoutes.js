@@ -272,11 +272,11 @@ router.post('/update-ledger-entry', auth, async (req, res) => {
     const { quantity: old_qty, total_amount: old_total, supplier_id, product_id } = oldRes.rows[0];
 
     // 2. Calculate new totals
-    const n_qty = parseFloat(new_qty);
-    const n_rate = parseFloat(new_rate);
+    const n_qty = parseFloat(new_qty) || 0;
+    const n_rate = parseFloat(new_rate) || 0;
     const new_total = n_qty * n_rate;
-    const total_diff = new_total - parseFloat(old_total);
-    const qty_diff = n_qty - parseFloat(old_qty);
+    const total_diff = new_total - (parseFloat(old_total) || 0);
+    const qty_diff = n_qty - (parseFloat(old_qty) || 0);
 
     // 3. Update purchases record
     await client.query(

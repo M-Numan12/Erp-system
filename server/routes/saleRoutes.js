@@ -131,16 +131,18 @@ router.post('/', auth, async (req, res) => {
     const operations = items.map(async (item) => {
       const prodId = item.product_id || item.id;
       const prodName = item.product_name || item.name;
-      const rate = item.rate || item.price;
+      const rate = parseFloat(item.rate || item.price) || 0;
+      const parsedQty = parseFloat(item.qty) || 0;
+      const subtotal = parsedQty * rate;
 
       await client.query(
         'INSERT INTO sale_items (sale_id, product_id, product_name, qty, rate, subtotal) VALUES ($1, $2, $3, $4, $5, $6)',
-        [saleId, prodId, prodName, item.qty, rate, item.subtotal]
+        [saleId, prodId, prodName, parsedQty, rate, subtotal]
       );
 
       await client.query(
         'UPDATE products SET stock_quantity = stock_quantity - $1 WHERE id = $2',
-        [item.qty, prodId]
+        [parsedQty, prodId]
       );
     });
 
@@ -428,13 +430,15 @@ router.put('/:id', auth, async (req, res) => {
     for (const item of items) {
       const prodId = item.product_id || item.id;
       const prodName = item.product_name || item.name;
-      const rate = item.rate || item.price;
+      const rate = parseFloat(item.rate || item.price) || 0;
+      const parsedQty = parseFloat(item.qty) || 0;
+      const subtotal = parsedQty * rate;
 
       await client.query(
         'INSERT INTO sale_items (sale_id, product_id, product_name, qty, rate, subtotal) VALUES ($1, $2, $3, $4, $5, $6)',
-        [req.params.id, prodId, prodName, item.qty, rate, item.subtotal]
+        [req.params.id, prodId, prodName, parsedQty, rate, subtotal]
       );
-      await client.query('UPDATE products SET stock_quantity = stock_quantity - $1 WHERE id = $2', [item.qty, prodId]);
+      await client.query('UPDATE products SET stock_quantity = stock_quantity - $1 WHERE id = $2', [parsedQty, prodId]);
     }
 
     // Update new customer balance
@@ -540,11 +544,11 @@ router.post('/update-item', auth, async (req, res) => {
     if (oldItem.rows.length === 0) throw new Error('Item not found');
     const { qty: old_qty, subtotal: old_subtotal, product_id } = oldItem.rows[0];
 
-    const n_qty = parseFloat(new_qty);
-    const n_rate = parseFloat(new_rate);
+    const n_qty = parseFloat(new_qty) || 0;
+    const n_rate = parseFloat(new_rate) || 0;
     const new_subtotal = n_qty * n_rate;
-    const subtotal_diff = new_subtotal - parseFloat(old_subtotal);
-    const qty_diff = n_qty - parseFloat(old_qty);
+    const subtotal_diff = new_subtotal - (parseFloat(old_subtotal) || 0);
+    const qty_diff = n_qty - (parseFloat(old_qty) || 0);
 
     await client.query(
       'UPDATE sale_items SET qty = $1, rate = $2, subtotal = $3 WHERE id = $4',
@@ -671,12 +675,12 @@ router.post('/return', auth, async (req, res) => {
 
     // 4. Insert returned items into sale_items for the return bill (negative qty)
     for (const item of items) {
-      const returnQty = -(item.return_qty || item.qty);
-      const subtotal = returnQty * (item.rate || 0);
+      const returnQty = -parseFloat(item.return_qty || item.qty || 0);
+      const subtotal = returnQty * parseFloat(item.rate || 0);
       await client.query(
         `INSERT INTO sale_items (sale_id, product_id, product_name, qty, rate, subtotal) 
          VALUES ($1, $2, $3, $4, $5, $6)`,
-        [newReturnId, item.product_id, item.product_name || item.name, returnQty, item.rate, subtotal]
+        [newReturnId, item.product_id, item.product_name || item.name, returnQty, parseFloat(item.rate || 0), subtotal]
       );
     }
 
