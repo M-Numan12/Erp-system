@@ -647,7 +647,7 @@ export default function Accounts() {
       ...filteredSupplierPayments.filter(p => parseFloat(p.delivery_charges) > 0).map(p => ({
         ...p, isExpense: true, isTransportFare: true, amount: p.delivery_charges, payment_type: p.fare_payment_type || 'Cash'
       })),
-      ...filteredGeneralExpenses.filter(e => e.expense_type !== 'Galla Closeout' && e.expense_type !== 'Admin Payment' && e.expense_type !== 'Transfer In').map(e => ({ ...e, isExpense: true })),
+      ...filteredGeneralExpenses.filter(e => e.expense_type !== 'Galla Closeout' && e.expense_type !== 'Admin Payment' && e.expense_type !== 'Transfer In' && e.expense_type !== 'Sale Return' && e.expense_type !== 'Sale Return Refund').map(e => ({ ...e, isExpense: true })),
       ...filteredGeneralExpenses.filter(e => e.expense_type === 'Admin Payment' || e.expense_type === 'Transfer In').map(e => ({ ...e, isIncome: true, payment_type: e.payment_type })),
       ...filteredSalaries.map(s => ({ ...s, isExpense: true, payment_type: 'Cash' })),
       ...filteredRents.map(r => ({ ...r, isExpense: true, payment_type: 'Cash' })),
@@ -730,7 +730,7 @@ export default function Accounts() {
         ...p, isExpense: true, isTransportFare: true, amount: p.delivery_charges, payment_type: p.fare_payment_type || 'Cash',
         created_at: p.created_at || p.purchase_date, isTransportFare: true
       })),
-      ...filteredGeneralExpenses.map(e => {
+      ...filteredGeneralExpenses.filter(e => e.expense_type !== 'Sale Return' && e.expense_type !== 'Sale Return Refund').map(e => {
         if (e.expense_type === 'Admin Payment' || e.expense_type === 'Transfer In') {
           return {
             ...e,
@@ -870,7 +870,7 @@ export default function Accounts() {
         amount: p.delivery_charges, payment_type: p.fare_payment_type || 'Cash',
         created_at: p.created_at || p.purchase_date, isTransportFare: true
       })),
-      ...filteredGeneralExpenses.map(e => {
+      ...filteredGeneralExpenses.filter(e => e.expense_type !== 'Sale Return' && e.expense_type !== 'Sale Return Refund').map(e => {
         if (e.expense_type === 'Admin Payment') {
           return {
             ...e,

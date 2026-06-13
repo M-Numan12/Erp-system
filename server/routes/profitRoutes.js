@@ -38,7 +38,7 @@ const buildSummary = async (fromDate, toDate) => {
   const fetchCounterData = async (c) => {
     const [sales, expenses, rent, salary, other, supply] = await Promise.all([
       getSum('sales', 'paid_amount', c, 'sale_type', 'created_at', fromDate, toDate),
-      getSum('expenses',       'amount',      c, 'module_type',  'created_at',    fromDate, toDate, "payment_type != 'Pending' AND expense_type NOT IN ('Galla Closeout', 'Admin Payment')"),
+      getSum('expenses',       'amount',      c, 'module_type',  'created_at',    fromDate, toDate, "payment_type != 'Pending' AND expense_type NOT IN ('Galla Closeout', 'Admin Payment', 'Sale Return', 'Sale Return Refund')"),
       getSum('rent',           'amount',      c, 'module_type',  'rent_date',     fromDate, toDate),
       getSum('salary',         'amount',      c, 'module_type',  'payment_date',  fromDate, toDate),
       getSum('other_expenses', 'amount',      c, 'module_type',  'date',          fromDate, toDate),

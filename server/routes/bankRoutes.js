@@ -109,7 +109,7 @@ router.get('/balances', auth, async (req, res) => {
     });
     expensesRes.rows.forEach(e => {
         // Skip Sale Return expenses — already handled by the return bill's negative paid_amount
-        if (e.expense_type === 'Sale Return') return;
+        if (e.expense_type === 'Sale Return' || e.expense_type === 'Sale Return Refund') return;
         const isIncome = e.expense_type === 'Admin Payment' || e.expense_type === 'Transfer In';
         transactions.push({ id: e.id, type: isIncome ? 'income' : 'expense', payment_type: e.payment_type, amount: parseFloat(e.amount) || 0, date: new Date(e.created_at) });
     });
@@ -216,7 +216,7 @@ router.get('/all-balances', auth, async (req, res) => {
       });
       expenses.rows.forEach(e => {
         // Skip Sale Return expenses — already handled by return bill's negative paid_amount
-        if (e.expense_type === 'Sale Return') return;
+        if (e.expense_type === 'Sale Return' || e.expense_type === 'Sale Return Refund') return;
         const isIncome = e.expense_type === 'Admin Payment' || e.expense_type === 'Transfer In';
         txns.push({ type: isIncome ? 'income' : 'expense', pt: e.payment_type, amt: parseFloat(e.amount) || 0 });
       });
@@ -498,6 +498,8 @@ router.get('/balance/:method', auth, async (req, res) => {
     });
 
     expensesRes.rows.forEach(e => {
+      // Skip Sale Return expenses — already handled by the return bill's negative paid_amount
+      if (e.expense_type === 'Sale Return' || e.expense_type === 'Sale Return Refund') return;
       const isIncome = e.expense_type === 'Admin Payment' || e.expense_type === 'Transfer In';
       transactions.push({
         type: isIncome ? 'income' : 'expense',
