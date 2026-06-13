@@ -51,9 +51,131 @@ const checkAccountMatch = (paymentMethod, acc) => {
   return false;
 };
 
+async function updateBankAccountsCurrentBalances(poolOrClient) {
+  try {
+    const colCheck = await poolOrClient.query(`
+      SELECT column_name 
+      FROM information_schema.columns 
+      WHERE table_name = 'bank_accounts' 
+        AND (column_name = 'Current Balance' OR column_name = 'current_balance')
+      LIMIT 1
+    `);
+    
+    if (colCheck.rows.length === 0) {
+      return;
+    }
+    
+    const colName = colCheck.rows[0].column_name;
+    const safeColName = colName.includes(' ') || colName !== colName.toLowerCase() ? `"${colName}"` : colName;
+
+    const allAccountsRes = await poolOrClient.query(
+      "SELECT id, bank_name, account_title, account_number, opening_balance, module_type FROM bank_accounts"
+    );
+    const allAccounts = allAccountsRes.rows;
+    
+    const MODULES = ['Wholesale', 'Retail 1', 'Retail 2'];
+    const updates = [];
+
+    for (const mod of MODULES) {
+      const modAccounts = allAccounts.filter(a =>
+        (a.module_type || 'Wholesale') === mod && a.module_type !== 'Admin Recipient'
+      );
+
+      const cashAcc = modAccounts.find(a =>
+        a.bank_name.toLowerCase() === 'cash' || a.bank_name.toLowerCase() === 'cash account'
+      );
+      const cashOpeningBal = cashAcc ? (parseFloat(cashAcc.opening_balance) || 0) : 0;
+
+      const balMap = { Cash: cashOpeningBal };
+      modAccounts.forEach(a => { balMap[a.id] = parseFloat(a.opening_balance) || 0; });
+
+      const findKey = (methodName, accounts) => {
+        if (!methodName) return 'Cash';
+        const cl = methodName.replace(/^bank\s*-\s*/i, '').toLowerCase().trim();
+        if (cl === '' || cl.startsWith('cash') || cl.startsWith('credit')) return 'Cash';
+        const match = accounts.find(a => checkAccountMatch(methodName, a));
+        return match ? match.id : 'GHOST';
+      };
+
+      const [sales, purchases, expenses, salaries, rents, investments, otherExp] = await Promise.all([
+        poolOrClient.query("SELECT paid_amount, payment_type FROM sales WHERE COALESCE(sale_type, 'Wholesale') = $1", [mod]),
+        poolOrClient.query("SELECT paid_amount, payment_type, delivery_charges, fare_payment_type FROM purchases WHERE COALESCE(module_type, 'Wholesale') = $1", [mod]),
+        poolOrClient.query("SELECT amount, payment_type, expense_type FROM expenses WHERE COALESCE(module_type, 'Wholesale') = $1", [mod]),
+        poolOrClient.query("SELECT amount, payment_type FROM salary_payments WHERE COALESCE(module_type, 'Wholesale') = $1", [mod]),
+        poolOrClient.query("SELECT amount FROM rent WHERE COALESCE(module_type, 'Wholesale') = $1", [mod]),
+        poolOrClient.query("SELECT amount FROM investment WHERE COALESCE(module_type, 'Wholesale') = $1", [mod]),
+        poolOrClient.query("SELECT amount, payment_method FROM other_expenses WHERE COALESCE(module_type, 'Wholesale') = $1", [mod]),
+      ]);
+
+      const txns = [];
+      sales.rows.forEach(s => txns.push({ type: 'income', pt: s.payment_type, amt: parseFloat(s.paid_amount) || 0 }));
+      purchases.rows.forEach(p => {
+        txns.push({ type: 'expense', pt: p.payment_type, amt: parseFloat(p.paid_amount) || 0 });
+        const fare = parseFloat(p.delivery_charges) || 0;
+        if (fare > 0) txns.push({ type: 'expense', pt: p.fare_payment_type || 'Cash', amt: fare });
+      });
+      expenses.rows.forEach(e => {
+        if (e.expense_type === 'Sale Return' || e.expense_type === 'Sale Return Refund') return;
+        const isIncome = e.expense_type === 'Admin Payment' || e.expense_type === 'Transfer In';
+        txns.push({ type: isIncome ? 'income' : 'expense', pt: e.payment_type, amt: parseFloat(e.amount) || 0 });
+      });
+      salaries.rows.forEach(s => txns.push({ type: 'expense', pt: s.payment_type || 'Cash', amt: parseFloat(s.amount) || 0 }));
+      rents.rows.forEach(r => txns.push({ type: 'expense', pt: 'Cash', amt: parseFloat(r.amount) || 0 }));
+      investments.rows.forEach(i => txns.push({ type: 'income', pt: 'Cash', amt: parseFloat(i.amount) || 0 }));
+      otherExp.rows.forEach(o => txns.push({ type: 'expense', pt: o.payment_method || 'Cash', amt: parseFloat(o.amount) || 0 }));
+
+      try {
+        const transfersRes = await poolOrClient.query("SELECT amount, from_account, to_account FROM bank_transfers WHERE COALESCE(module_type, 'Wholesale') = $1", [mod]);
+        transfersRes.rows.forEach(t => {
+          txns.push({ type: 'expense', pt: t.from_account, amt: parseFloat(t.amount) || 0 });
+          txns.push({ type: 'income', pt: t.to_account, amt: parseFloat(t.amount) || 0 });
+        });
+      } catch (_) {}
+
+      txns.forEach(t => {
+        const key = findKey(t.pt, modAccounts);
+        if (balMap[key] === undefined) balMap[key] = 0;
+        if (t.type === 'income') balMap[key] += t.amt;
+        else balMap[key] -= t.amt;
+      });
+
+      modAccounts.forEach(acc => {
+        const isCash = acc.bank_name.toLowerCase() === 'cash' || acc.bank_name.toLowerCase() === 'cash account';
+        const currentBal = isCash ? (balMap['Cash'] || 0) : (balMap[acc.id] || 0);
+        updates.push({ id: acc.id, balance: currentBal });
+      });
+    }
+
+    const adminAccounts = allAccounts.filter(a => a.module_type === 'Admin Recipient');
+    if (adminAccounts.length > 0) {
+      const allExpenses = await poolOrClient.query("SELECT amount, expense_type, notes FROM expenses WHERE expense_type IN ('Galla Closeout', 'Admin Payment') OR notes LIKE '%Recipient Bank%'");
+      adminAccounts.forEach(acc => {
+        const opening = parseFloat(acc.opening_balance) || 0;
+        const received = allExpenses.rows
+          .filter(e => (e.expense_type === 'Galla Closeout' || (e.notes || '').includes('Recipient Bank')) && (e.notes || '').includes(acc.bank_name) && (e.notes || '').includes(acc.account_number))
+          .reduce((s, e) => s + (parseFloat(e.amount) || 0), 0);
+        const paid = allExpenses.rows
+          .filter(e => e.expense_type === 'Admin Payment' && (e.notes || '').includes(acc.bank_name) && (e.notes || '').includes(acc.account_number))
+          .reduce((s, e) => s + (parseFloat(e.amount) || 0), 0);
+        updates.push({ id: acc.id, balance: opening + received - paid });
+      });
+    }
+
+    for (const item of updates) {
+      await poolOrClient.query(
+        `UPDATE bank_accounts SET ${safeColName} = $1 WHERE id = $2`,
+        [item.balance, item.id]
+      );
+    }
+  } catch (err) {
+    console.error('Error updating bank accounts current balances in DB:', err);
+  }
+}
+
 // Get real-time balances for all accounts
 router.get('/balances', auth, async (req, res) => {
   try {
+    await updateBankAccountsCurrentBalances(pool);
     const isAdminUser = req.user.role === 'admin';
     const targetModule = req.query.type || req.user.module_type || 'Wholesale';
 
@@ -160,6 +282,7 @@ router.get('/balances', auth, async (req, res) => {
 // Get real-time balances for ALL modules at once (Admin only)
 router.get('/all-balances', auth, async (req, res) => {
   try {
+    await updateBankAccountsCurrentBalances(pool);
     if (req.user.role !== 'admin') {
       return res.status(403).json({ error: 'Admin only' });
     }
@@ -290,6 +413,7 @@ router.get('/all-balances', auth, async (req, res) => {
 // Get all banks
 router.get('/', auth, async (req, res) => {
   try {
+    await updateBankAccountsCurrentBalances(pool);
     const includeRecipients = req.query.include_recipients === 'true';
     const isAdminUser = req.user.role === 'admin';
     let result;
@@ -344,6 +468,7 @@ router.post('/', auth, async (req, res) => {
       'INSERT INTO bank_accounts (bank_name, account_title, account_number, opening_balance, user_id, module_type) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
       [bank_name, account_title, account_number, finalOpeningBalance, targetUserId, targetModule]
     );
+    await updateBankAccountsCurrentBalances(pool);
     res.json(result.rows[0]);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -366,6 +491,7 @@ router.put('/:id', auth, async (req, res) => {
         [bank_name, account_title, account_number, opening_balance || 0, req.params.id, req.user.id]
       );
     }
+    await updateBankAccountsCurrentBalances(pool);
     res.json(result.rows[0]);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -380,6 +506,7 @@ router.delete('/:id', auth, async (req, res) => {
     } else {
       await pool.query('DELETE FROM bank_accounts WHERE id=$1 AND user_id=$2', [req.params.id, req.user.id]);
     }
+    await updateBankAccountsCurrentBalances(pool);
     res.json({ message: 'Bank deleted' });
   } catch (err) {
     res.status(500).json({ error: err.message });
