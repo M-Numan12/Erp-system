@@ -125,6 +125,10 @@ async function syncDatabaseSchema() {
     // --- 11. REPAIR CUSTOMER PAYMENTS RECONCILIATION FOR CASH ACCOUNT ---
     `UPDATE sales SET payment_type = 'Cash (dukan pe)' WHERE payment_type = 'dukan pe';`,
 
+    // --- 11.5. BANK ACCOUNTS CURRENT BALANCE COLUMN ---
+    `ALTER TABLE bank_accounts ADD COLUMN IF NOT EXISTS current_balance DECIMAL(15, 2) DEFAULT 0;`,
+    `UPDATE bank_accounts SET current_balance = opening_balance WHERE current_balance IS NULL OR current_balance = 0;`,
+
     // --- 12. UNLIMITED PAYMENT REFERENCE CHARACTER SIZE ---
     `ALTER TABLE sales ALTER COLUMN payment_type TYPE TEXT;`,
     `ALTER TABLE purchases ALTER COLUMN payment_type TYPE TEXT;`,

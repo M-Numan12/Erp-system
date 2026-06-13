@@ -53,20 +53,8 @@ const checkAccountMatch = (paymentMethod, acc) => {
 
 async function updateBankAccountsCurrentBalances(poolOrClient) {
   try {
-    const colCheck = await poolOrClient.query(`
-      SELECT column_name 
-      FROM information_schema.columns 
-      WHERE table_name = 'bank_accounts' 
-        AND (column_name = 'Current Balance' OR column_name = 'current_balance')
-      LIMIT 1
-    `);
-    
-    if (colCheck.rows.length === 0) {
-      return;
-    }
-    
-    const colName = colCheck.rows[0].column_name;
-    const safeColName = colName.includes(' ') || colName !== colName.toLowerCase() ? `"${colName}"` : colName;
+    // Always use lowercase 'current_balance' — guaranteed by dbInit migration
+    const safeColName = 'current_balance';
 
     const allAccountsRes = await poolOrClient.query(
       "SELECT id, bank_name, account_title, account_number, opening_balance, module_type FROM bank_accounts"
