@@ -47,26 +47,30 @@ export default function Customers({ type }) {
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState(null);
   const [ledgerData, setLedgerData] = useState([]);
+  const liveBalance = useMemo(() => {
+    const bal = parseFloat(selectedCustomer?.balance);
+    return isNaN(bal) ? 0 : bal;
+  }, [selectedCustomer?.balance]);
+
   const sortedLedgerData = useMemo(() => {
     // 1. Sort chronologically ascending (oldest first)
     const sortedAsc = [...ledgerData].sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
 
     // 2. Backtrack starting balance: Current Balance - Total Period Movements
-    const currentLiveBalance = parseFloat(selectedCustomer?.balance || 0);
-    const historySum = sortedAsc.reduce((sum, r) => sum + (parseFloat(r.net_amount || 0) - parseFloat(r.paid_amount || 0)), 0);
+    const historySum = sortedAsc.reduce((sum, r) => sum + ((parseFloat(r.net_amount) || 0) - (parseFloat(r.paid_amount) || 0)), 0);
 
     // The starting point before all available history
-    const absoluteBaseOpeningBal = currentLiveBalance - historySum;
+    const absoluteBaseOpeningBal = liveBalance - historySum;
 
     // 3. Generate running balance per row
     let running = absoluteBaseOpeningBal;
     return sortedAsc.map(row => {
-      const debit = parseFloat(row.net_amount || 0);
-      const credit = parseFloat(row.paid_amount || 0);
+      const debit = parseFloat(row.net_amount) || 0;
+      const credit = parseFloat(row.paid_amount) || 0;
       running += (debit - credit);
       return { ...row, running_balance: running };
     });
-  }, [ledgerData, selectedCustomer?.balance]);
+  }, [ledgerData, liveBalance]);
   const [paymentAmount, setPaymentAmount] = useState("");
   const [paymentRef, setPaymentRef] = useState("");
   const [paymentType, setPaymentType] = useState("Cash");
@@ -283,7 +287,7 @@ export default function Customers({ type }) {
       const resData = await res.json();
       if (res.ok && resData.success) {
         setShowPaymentModal(false);
-        const previousBal = parseFloat(selectedCustomer.balance || 0);
+        const previousBal = liveBalance;
         const amt = parseFloat(paymentAmount);
         const remBal = previousBal - amt;
 
@@ -554,7 +558,7 @@ export default function Customers({ type }) {
         const firstVisibleRow = sortedLedgerData[0];
         const periodOpeningBal = firstVisibleRow
           ? (parseFloat(firstVisibleRow.running_balance || 0) - (parseFloat(firstVisibleRow.net_amount || 0) - parseFloat(firstVisibleRow.paid_amount || 0)))
-          : parseFloat(selectedCustomer?.balance || 0);
+          : liveBalance;
 
         const sendToWhatsApp = async () => {
           let phone = (selectedCustomer.phone || '').trim().replace(/[^\d+]/g, '');
@@ -786,8 +790,8 @@ export default function Customers({ type }) {
                       <td style={{ border: '1px solid #cbd5e1', padding: '8px', textAlign: 'right', color: 'green' }}>
                         Rs. {sortedLedgerData.reduce((sum, r) => sum + parseFloat(r.paid_amount || 0), 0).toLocaleString()}
                       </td>
-                      <td style={{ border: '1px solid #cbd5e1', padding: '8px', textAlign: 'right', color: parseFloat(selectedCustomer.balance) > 0 ? 'red' : 'green' }}>
-                        Rs. {Math.abs(parseFloat(selectedCustomer.balance)).toLocaleString()} ({parseFloat(selectedCustomer.balance) > 0 ? 'Receivable' : 'Advance'})
+                      <td style={{ border: '1px solid #cbd5e1', padding: '8px', textAlign: 'right', color: liveBalance > 0 ? 'red' : 'green' }}>
+                        Rs. {Math.abs(liveBalance).toLocaleString()} ({liveBalance > 0 ? 'Receivable' : 'Advance'})
                       </td>
                     </tr>
                   </tfoot>
@@ -844,11 +848,11 @@ export default function Customers({ type }) {
                     <div style={{ fontSize: '0.75rem', color: '#64748b', textTransform: 'uppercase', fontWeight: 600 }}>Total Billed Value</div>
                     <div style={{ fontSize: '1.25rem', color: '#0f172a', fontWeight: 700 }}>Rs. {sortedLedgerData.reduce((sum, item) => sum + parseFloat(item.total_amount), 0).toLocaleString()}</div>
                   </div>
-                  <div className="stat-item" style={{ background: parseFloat(selectedCustomer.balance) > 0 ? '#fff1f2' : '#f0fdf4', padding: '16px', borderRadius: '12px', border: '1px solid #f1f5f9' }}>
+                  <div className="stat-item" style={{ background: liveBalance > 0 ? '#fff1f2' : '#f0fdf4', padding: '16px', borderRadius: '12px', border: '1px solid #f1f5f9' }}>
                     <div style={{ fontSize: '0.75rem', color: '#64748b', textTransform: 'uppercase', fontWeight: 600 }}>Current Live Balance</div>
-                    <div style={{ fontSize: '1.25rem', color: parseFloat(selectedCustomer.balance) > 0 ? '#e11d48' : '#16a34a', fontWeight: 700 }}>
-                      Rs. {Math.abs(parseFloat(selectedCustomer.balance)).toLocaleString()}
-                      <span style={{ fontSize: '0.8rem', marginLeft: '8px' }}>({parseFloat(selectedCustomer.balance) > 0 ? 'Receivable' : 'Advance'})</span>
+                    <div style={{ fontSize: '1.25rem', color: liveBalance > 0 ? '#e11d48' : '#16a34a', fontWeight: 700 }}>
+                      Rs. {Math.abs(liveBalance).toLocaleString()}
+                      <span style={{ fontSize: '0.8rem', marginLeft: '8px' }}>({liveBalance > 0 ? 'Receivable' : 'Advance'})</span>
                     </div>
                   </div>
                 </div>
@@ -1069,8 +1073,8 @@ export default function Customers({ type }) {
                         }}
                         footer={
                           <div>
-                            <div style={{ fontWeight: '800', fontSize: '0.95rem', color: parseFloat(selectedCustomer.balance) > 0 ? '#e11d48' : '#16a34a' }}>
-                              Rs. {Math.abs(parseFloat(selectedCustomer.balance)).toLocaleString()}
+                            <div style={{ fontWeight: '800', fontSize: '0.95rem', color: liveBalance > 0 ? '#e11d48' : '#16a34a' }}>
+                              Rs. {Math.abs(liveBalance).toLocaleString()}
                             </div>
                             <small style={{ fontSize: '0.6rem', fontWeight: 'normal', color: '#64748b' }}>Live Balance</small>
                           </div>
@@ -1105,14 +1109,14 @@ export default function Customers({ type }) {
                 <div style={{ fontSize: '1.1rem', fontWeight: 700, color: '#1e293b' }}>{selectedCustomer.name}</div>
                 <div style={{ marginTop: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <span style={{ fontSize: '0.85rem', color: '#64748b' }}>Current Balance:</span>
-                  <span style={{ fontWeight: 700, color: parseFloat(selectedCustomer.balance) > 0 ? '#e11d48' : parseFloat(selectedCustomer.balance) < 0 ? '#3b82f6' : '#64748b' }}>
-                    Rs. {Math.abs(parseFloat(selectedCustomer.balance)).toLocaleString()}
-                    {parseFloat(selectedCustomer.balance) > 0 ? ' (Receivable)' : parseFloat(selectedCustomer.balance) < 0 ? ' (Advance)' : ' (Settled)'}
+                  <span style={{ fontWeight: 700, color: liveBalance > 0 ? '#e11d48' : liveBalance < 0 ? '#3b82f6' : '#64748b' }}>
+                    Rs. {Math.abs(liveBalance).toLocaleString()}
+                    {liveBalance > 0 ? ' (Receivable)' : liveBalance < 0 ? ' (Advance)' : ' (Settled)'}
                   </span>
                 </div>
-                {parseFloat(selectedCustomer.balance) < 0 && (
+                {liveBalance < 0 && (
                   <div style={{ marginTop: '8px', fontSize: '0.75rem', color: '#3b82f6', background: '#eff6ff', padding: '6px', borderRadius: '4px' }}>
-                    ⚡ Customer has advance balance of Rs. {Math.abs(parseFloat(selectedCustomer.balance)).toLocaleString()}
+                    ⚡ Customer has advance balance of Rs. {Math.abs(liveBalance).toLocaleString()}
                   </div>
                 )}
               </div>

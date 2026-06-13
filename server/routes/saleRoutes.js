@@ -149,10 +149,11 @@ router.post('/', auth, async (req, res) => {
     await Promise.all(operations);
 
     // Update customer balance if credit sale
-    if (finalCustomerId && balance_amount !== 0) {
+    const balAmt = parseFloat(balance_amount);
+    if (finalCustomerId && !isNaN(balAmt) && balAmt !== 0) {
       await client.query(
         'UPDATE customers SET balance = balance + $1 WHERE id = $2',
-        [balance_amount, finalCustomerId]
+        [balAmt, finalCustomerId]
       );
     }
 
@@ -254,10 +255,14 @@ router.post('/payment', auth, async (req, res) => {
   try {
     await client.query('BEGIN');
     const { customer_id, amount, payment_reference, payment_type, module_type } = req.body;
+    const parsedAmount = parseFloat(amount);
+    if (isNaN(parsedAmount) || parsedAmount <= 0) {
+      return res.status(400).json({ error: 'Invalid payment amount' });
+    }
 
     await client.query(
       'UPDATE customers SET balance = balance - $1 WHERE id = $2',
-      [amount, customer_id]
+      [parsedAmount, customer_id]
     );
 
     const cust = await client.query('SELECT name FROM customers WHERE id=$1', [customer_id]);
@@ -311,8 +316,12 @@ router.post('/payment/undo', auth, async (req, res) => {
     if (saleRes.rows.length === 0) throw new Error('Payment record not found');
     const sale = saleRes.rows[0];
     const { customer_id, paid_amount, payment_type, payment_reference } = sale;
+    const parsedPaidAmount = parseFloat(paid_amount);
+    if (isNaN(parsedPaidAmount)) {
+      throw new Error('Invalid paid amount in record');
+    }
 
-    await client.query('UPDATE customers SET balance = balance + $1 WHERE id = $2', [paid_amount, customer_id]);
+    await client.query('UPDATE customers SET balance = balance + $1 WHERE id = $2', [parsedPaidAmount, customer_id]);
     await client.query('DELETE FROM sales WHERE id = $1', [payment_id]);
 
     await client.query('COMMIT');
@@ -384,8 +393,9 @@ router.put('/:id', auth, async (req, res) => {
     // Revert old customer balance and vehicle earnings
     const oldSaleRes = await client.query('SELECT customer_id, balance_amount, vehicle_id, vehicle_id2, vehicle_ids, delivery_charges, vehicle_type FROM sales WHERE id = $1', [req.params.id]);
     const oldSale = oldSaleRes.rows[0];
-    if (oldSale && oldSale.customer_id && oldSale.balance_amount !== 0) {
-      await client.query('UPDATE customers SET balance = balance - $1 WHERE id = $2', [oldSale.balance_amount, oldSale.customer_id]);
+    const oldBalanceAmt = parseFloat(oldSale?.balance_amount);
+    if (oldSale && oldSale.customer_id && !isNaN(oldBalanceAmt) && oldBalanceAmt !== 0) {
+      await client.query('UPDATE customers SET balance = balance - $1 WHERE id = $2', [oldBalanceAmt, oldSale.customer_id]);
     }
 
     if (oldSale && oldSale.vehicle_type && oldSale.vehicle_type !== '') {
@@ -442,8 +452,9 @@ router.put('/:id', auth, async (req, res) => {
     }
 
     // Update new customer balance
-    if (oldSale && oldSale.customer_id && balance_amount !== 0) {
-      await client.query('UPDATE customers SET balance = balance + $1 WHERE id = $2', [balance_amount, oldSale.customer_id]);
+    const newBalanceAmt = parseFloat(balance_amount);
+    if (oldSale && oldSale.customer_id && !isNaN(newBalanceAmt) && newBalanceAmt !== 0) {
+      await client.query('UPDATE customers SET balance = balance + $1 WHERE id = $2', [newBalanceAmt, oldSale.customer_id]);
     }
 
     // Update new vehicle earnings
@@ -491,8 +502,9 @@ router.delete('/:id', auth, async (req, res) => {
     const oldSaleRes = await client.query('SELECT customer_id, balance_amount, vehicle_id, vehicle_id2, vehicle_ids, delivery_charges, vehicle_type FROM sales WHERE id = $1', [req.params.id]);
     const oldSale = oldSaleRes.rows[0];
     if (oldSale) {
-      if (oldSale.customer_id && oldSale.balance_amount !== 0) {
-        await client.query('UPDATE customers SET balance = balance - $1 WHERE id = $2', [oldSale.balance_amount, oldSale.customer_id]);
+      const oldBalanceAmt = parseFloat(oldSale.balance_amount);
+      if (oldSale.customer_id && !isNaN(oldBalanceAmt) && oldBalanceAmt !== 0) {
+        await client.query('UPDATE customers SET balance = balance - $1 WHERE id = $2', [oldBalanceAmt, oldSale.customer_id]);
       }
 
       if (oldSale.vehicle_type && oldSale.vehicle_type !== '') {
@@ -562,7 +574,7 @@ router.post('/update-item', auth, async (req, res) => {
 
     const sale = await client.query('SELECT customer_id FROM sales WHERE id = $1', [sale_id]);
     const customer_id = sale.rows[0].customer_id;
-    if (customer_id) {
+    if (customer_id && !isNaN(subtotal_diff) && subtotal_diff !== 0) {
       await client.query(
         'UPDATE customers SET balance = balance + $1 WHERE id = $2',
         [subtotal_diff, customer_id]
@@ -694,7 +706,7 @@ router.post('/return', auth, async (req, res) => {
     // 6. Adjust Customer Balance
     if (sale.customer_id) {
       const reduction = totalReturnedValue - refundAmount;
-      if (reduction !== 0) {
+      if (reduction !== 0 && !isNaN(reduction)) {
         await client.query('UPDATE customers SET balance = balance - $1 WHERE id = $2', [reduction, sale.customer_id]);
       }
     }

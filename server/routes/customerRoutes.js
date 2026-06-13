@@ -32,10 +32,12 @@ router.post('/', auth, async (req, res) => {
   try {
     const { name, phone, email, address, balance, module_type } = req.body;
     const finalModule = isAdmin(req) ? (module_type || 'Wholesale') : (req.user.module_type || 'Retail 1');
+    const parsedBalance = parseFloat(balance);
+    const finalBalance = isNaN(parsedBalance) ? 0 : parsedBalance;
     
     const result = await pool.query(
-      'INSERT INTO customers (name,phone,email,address,balance,user_id,module_type) VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING *',
-      [name, phone, email, address, balance || 0, req.user.id, finalModule]
+      'INSERT INTO customers (name,phone,email,address,balance,opening_balance,user_id,module_type) VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING *',
+      [name, phone, email, address, finalBalance, finalBalance, req.user.id, finalModule]
     );
     res.json(result.rows[0]);
   } catch (err) { res.status(500).json({ error: err.message }); }
@@ -44,9 +46,12 @@ router.post('/', auth, async (req, res) => {
 router.put('/:id', auth, async (req, res) => {
   try {
     const { name, phone, email, address, balance } = req.body;
+    const parsedBalance = parseFloat(balance);
+    const finalBalance = isNaN(parsedBalance) ? 0 : parsedBalance;
+
     const result = await pool.query(
       'UPDATE customers SET name=$1,phone=$2,email=$3,address=$4,balance=$5 WHERE id=$6 AND (user_id=$7 OR $8) RETURNING *',
-      [name, phone, email, address, balance, req.params.id, req.user.id, isAdmin(req)]
+      [name, phone, email, address, finalBalance, req.params.id, req.user.id, isAdmin(req)]
     );
     res.json(result.rows[0]);
   } catch (err) { res.status(500).json({ error: err.message }); }

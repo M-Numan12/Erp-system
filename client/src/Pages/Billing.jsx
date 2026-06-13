@@ -865,11 +865,15 @@ export default function Billing({ type }) {
                         <InputText placeholder="Address" value={customerAddress} onChange={(e) => setCustomerAddress(e.target.value)} />
                       </div>
                     </div>
-                    {selectedCustomer && (
-                      <div className="p-message p-message-info p-2 mt-1" style={{ fontSize: '0.75rem' }}>
-                        Previous Balance: Rs. {parseFloat(selectedCustomer.balance).toLocaleString()} {parseFloat(selectedCustomer.balance) > 0 ? '(Pending)' : '(Clear)'}
-                      </div>
-                    )}
+                    {selectedCustomer && (() => {
+                      const prevBalRaw = parseFloat(selectedCustomer.balance);
+                      const prevBal = isNaN(prevBalRaw) ? 0 : prevBalRaw;
+                      return (
+                        <div className="p-message p-message-info p-2 mt-1" style={{ fontSize: '0.75rem' }}>
+                          Previous Balance: Rs. {prevBal.toLocaleString()} {prevBal > 0 ? '(Pending)' : '(Clear)'}
+                        </div>
+                      );
+                    })()}
                   </>
                 )}
               </div>

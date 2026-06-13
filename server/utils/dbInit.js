@@ -167,7 +167,11 @@ async function syncDatabaseSchema() {
       user_id INT,
       module_type VARCHAR(100),
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    );`
+    );`,
+    // --- 14. AUTO-HEAL SPECIFIC NaN BALANCES ---
+    `UPDATE customers SET opening_balance = 20000.00 WHERE id = 350 AND (opening_balance IS NULL OR opening_balance = 0);`,
+    `UPDATE customers SET balance = 31070.00 WHERE id = 350 AND (balance IS NULL OR balance::text = 'NaN');`,
+    `UPDATE customers SET balance = COALESCE(opening_balance, 0) WHERE balance::text = 'NaN' OR balance IS NULL;`
   ];
 
   let totalExecuted = 0;
