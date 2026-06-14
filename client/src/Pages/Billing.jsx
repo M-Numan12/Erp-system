@@ -83,6 +83,15 @@ export default function Billing({ type }) {
   const [showPaymentSection, setShowPaymentSection] = useState(true);
   const [receiptData, setReceiptData] = useState(null);
   const [editId, setEditId] = useState(null);
+  const [originalItems, setOriginalItems] = useState({});
+
+  const getEffectiveStock = (productId) => {
+    const p = products.find(x => String(x.id) === String(productId));
+    const currentStock = p ? parseFloat(p.stock_quantity || 0) : 0;
+    if (!editId) return currentStock;
+    const originalQty = originalItems[productId] ? parseFloat(originalItems[productId]) : 0;
+    return currentStock + originalQty;
+  };
   const [showLedgerModal, setShowLedgerModal] = useState(false);
   const [ledgerData, setLedgerData] = useState([]);
   const calculatedLedgerData = useMemo(() => {
@@ -336,6 +345,8 @@ export default function Billing({ type }) {
     };
     setHeldBills([...heldBills, billToHold]);
     // Clear current state
+    setEditId(null);
+    setOriginalItems({});
     setCart([]);
     setCustomerName('');
     setCustomerPhone('');
@@ -457,8 +468,7 @@ export default function Billing({ type }) {
     let exceedsLimit = false;
     let brokenItemName = "";
     cart.forEach(item => {
-      const p = products.find(x => String(x.id) === String(item.id));
-      const stock = p ? parseFloat(p.stock_quantity || 0) : 0;
+      const stock = getEffectiveStock(item.id);
       if (parseFloat(item.qty || 0) > stock) {
         exceedsLimit = true;
         brokenItemName = item.name;
@@ -577,6 +587,7 @@ export default function Billing({ type }) {
         setShowSuccess(true);
         setCart([]);
         setEditId(null);
+        setOriginalItems({});
         setDiscount(0);
         setDelivery(0);
         setPaidAmount(0);
@@ -788,6 +799,7 @@ export default function Billing({ type }) {
           {editId && (
             <button className="btn-secondary" onClick={() => {
               setEditId(null);
+              setOriginalItems({});
               setCart([]);
               setCustomerName('');
               setCustomerPhone('');
@@ -933,8 +945,7 @@ export default function Billing({ type }) {
             <div className="sidebar-cart-scrollable">
               <div className="cart-list">
                 {cart.map(item => {
-                  const pInfo = products.find(p => String(p.id) === String(item.id));
-                  const maxStock = pInfo ? parseFloat(pInfo.stock_quantity || 0) : 0;
+                  const maxStock = getEffectiveStock(item.id);
                   const isOver = parseFloat(item.qty || 0) > maxStock;
 
 
@@ -1091,7 +1102,7 @@ export default function Billing({ type }) {
                   </div>
 
                   <Button label={loading ? "Processing..." : "Complete Sale"} icon="pi pi-check" onClick={handleCheckout}
-                    disabled={loading || cart.length === 0 || cart.some(item => { const p = products.find(x => String(x.id) === String(item.id)); return parseFloat(item.qty || 0) > parseFloat(p ? p.stock_quantity : 0); })} className="w-full mt-3 p-button-lg shadow-2" />
+                    disabled={loading || cart.length === 0 || cart.some(item => parseFloat(item.qty || 0) > getEffectiveStock(item.id))} className="w-full mt-3 p-button-lg shadow-2" />
                 </>
               )}
             </div>
@@ -1227,6 +1238,17 @@ export default function Billing({ type }) {
               <ActionMenu
                 onEdit={user?.role === 'admin' ? () => {
                   const items = typeof s.items === 'string' ? JSON.parse(s.items) : (s.items || []);
+                  
+                  // Keep track of original quantities for stock validation adjustment
+                  const origMap = {};
+                  items.forEach(i => {
+                    const prodId = i.id || i.product_id;
+                    if (prodId) {
+                      origMap[prodId] = parseFloat(i.qty || 0);
+                    }
+                  });
+                  setOriginalItems(origMap);
+
                   setCart(items.map(i => ({
                     id: i.id || i.product_id,
                     name: i.name || i.product_name,
