@@ -10,8 +10,12 @@ const checkAccountMatch = (paymentMethod, acc) => {
   if (!paymentMethod || !acc) return false;
   const cl = paymentMethod.replace(/^bank\s*-\s*/i, '').toLowerCase().trim();
   
+  const bName = (acc.bank_name || '').toLowerCase().trim();
+  const accNum = (acc.account_number || '').toLowerCase().trim();
+  const accTitle = (acc.account_title || '').toLowerCase().trim();
+
   const isCashPT = cl === '' || cl.startsWith('cash') || cl.startsWith('credit') || cl === 'cash account';
-  const isCashAcc = (acc.bank_name || '').toLowerCase().trim() === 'cash' || (acc.bank_name || '').toLowerCase().trim() === 'cash account';
+  const isCashAcc = bName === 'cash' || bName === 'cash account' || accNum === 'cash' || accNum === 'cash account' || accTitle === 'main counter' || accTitle === 'cash' || accTitle === 'cash account';
   
   if (isCashPT) {
     return isCashAcc;
@@ -28,16 +32,14 @@ const checkAccountMatch = (paymentMethod, acc) => {
     return digits === paymentDigits;
   }
 
-  const bl = (acc.bank_name || '').toLowerCase().trim();
-  
   // Exact or contains match
-  if (cl.includes(bl) || bl.includes(cl)) {
+  if (bName && (cl.includes(bName) || bName.includes(cl))) {
     return true;
   }
 
   // Normalize strings by removing non-alphanumeric characters
   const normCl = cl.replace(/[^a-z0-9]/g, '');
-  const normBl = bl.replace(/[^a-z0-9]/g, '');
+  const normBl = bName.replace(/[^a-z0-9]/g, '');
   
   if (normCl && normBl && (normCl.includes(normBl) || normBl.includes(normCl))) {
     return true;
@@ -69,9 +71,12 @@ async function updateBankAccountsCurrentBalances(poolOrClient) {
         (a.module_type || 'Wholesale') === mod && a.module_type !== 'Admin Recipient'
       );
 
-      const cashAcc = modAccounts.find(a =>
-        a.bank_name.toLowerCase() === 'cash' || a.bank_name.toLowerCase() === 'cash account'
-      );
+      const cashAcc = modAccounts.find(a => {
+        const bName = (a.bank_name || '').toLowerCase().trim();
+        const accNum = (a.account_number || '').toLowerCase().trim();
+        const accTitle = (a.account_title || '').toLowerCase().trim();
+        return bName === 'cash' || bName === 'cash account' || accNum === 'cash' || accNum === 'cash account' || accTitle === 'main counter' || accTitle === 'cash' || accTitle === 'cash account';
+      });
       const cashOpeningBal = cashAcc ? (parseFloat(cashAcc.opening_balance) || 0) : 0;
 
       const balMap = { Cash: cashOpeningBal };
@@ -128,7 +133,10 @@ async function updateBankAccountsCurrentBalances(poolOrClient) {
       });
 
       modAccounts.forEach(acc => {
-        const isCash = acc.bank_name.toLowerCase() === 'cash' || acc.bank_name.toLowerCase() === 'cash account';
+        const bName = (acc.bank_name || '').toLowerCase().trim();
+        const accNum = (acc.account_number || '').toLowerCase().trim();
+        const accTitle = (acc.account_title || '').toLowerCase().trim();
+        const isCash = bName === 'cash' || bName === 'cash account' || accNum === 'cash' || accNum === 'cash account' || accTitle === 'main counter' || accTitle === 'cash' || accTitle === 'cash account';
         const currentBal = isCash ? (balMap['Cash'] || 0) : (balMap[acc.id] || 0);
         updates.push({ id: acc.id, balance: currentBal });
       });
@@ -291,9 +299,12 @@ router.get('/all-balances', auth, async (req, res) => {
       );
 
       // Build initial balances map keyed by account id, plus 'Cash'
-      const cashAcc = modAccounts.find(a =>
-        a.bank_name.toLowerCase() === 'cash' || a.bank_name.toLowerCase() === 'cash account'
-      );
+      const cashAcc = modAccounts.find(a => {
+        const bName = (a.bank_name || '').toLowerCase().trim();
+        const accNum = (a.account_number || '').toLowerCase().trim();
+        const accTitle = (a.account_title || '').toLowerCase().trim();
+        return bName === 'cash' || bName === 'cash account' || accNum === 'cash' || accNum === 'cash account' || accTitle === 'main counter' || accTitle === 'cash' || accTitle === 'cash account';
+      });
       const cashOpeningBal = cashAcc ? (parseFloat(cashAcc.opening_balance) || 0) : 0;
 
       const balMap = { Cash: cashOpeningBal };
@@ -353,7 +364,10 @@ router.get('/all-balances', auth, async (req, res) => {
 
       // Build result rows for this module
       modAccounts.forEach(acc => {
-        const isCash = acc.bank_name.toLowerCase() === 'cash' || acc.bank_name.toLowerCase() === 'cash account';
+        const bName = (acc.bank_name || '').toLowerCase().trim();
+        const accNum = (acc.account_number || '').toLowerCase().trim();
+        const accTitle = (acc.account_title || '').toLowerCase().trim();
+        const isCash = bName === 'cash' || bName === 'cash account' || accNum === 'cash' || accNum === 'cash account' || accTitle === 'main counter' || accTitle === 'cash' || accTitle === 'cash account';
         const currentBal = isCash ? (balMap['Cash'] || 0) : (balMap[acc.id] || 0);
         result.push({
           id: acc.id,

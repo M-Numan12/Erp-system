@@ -16,9 +16,17 @@ export default function Accounts() {
 
   const checkIsCash = (acc) => {
     if (!acc) return false;
+    const bName = (acc.bank_name || '').toLowerCase().trim();
+    const accNum = (acc.account_number || '').toLowerCase().trim();
+    const accTitle = (acc.account_title || '').toLowerCase().trim();
     return !!(acc.isCash ||
-      acc.bank_name?.toLowerCase() === 'cash' ||
-      acc.bank_name?.toLowerCase() === 'cash account');
+      bName === 'cash' ||
+      bName === 'cash account' ||
+      accNum === 'cash' ||
+      accNum === 'cash account' ||
+      accTitle === 'main counter' ||
+      accTitle === 'cash' ||
+      accTitle === 'cash account');
   };
 
   const checkAccountMatch = (cleanMethod, bankAccount) => {
@@ -45,7 +53,7 @@ export default function Accounts() {
     const bl = (bankAccount.bank_name || '').toLowerCase().trim();
 
     // Exact or contains match
-    if (cl.includes(bl) || bl.includes(cl)) {
+    if (bl && (cl.includes(bl) || bl.includes(cl))) {
       return true;
     }
 
@@ -583,10 +591,13 @@ export default function Accounts() {
 
   const handleCashOpeningBalance = () => {
     const targetModule = user?.role === 'admin' ? activeTab : (user?.module_type || 'Wholesale');
-    const cashAcc = accounts.find(a =>
-      (a.bank_name.toLowerCase() === 'cash' || a.bank_name.toLowerCase() === 'cash account') &&
-      (a.module_type || 'Wholesale') === targetModule
-    );
+    const cashAcc = accounts.find(a => {
+      const bName = (a.bank_name || '').toLowerCase().trim();
+      const accNum = (a.account_number || '').toLowerCase().trim();
+      const accTitle = (a.account_title || '').toLowerCase().trim();
+      return (bName === 'cash' || bName === 'cash account' || accNum === 'cash' || accNum === 'cash account' || accTitle === 'main counter' || accTitle === 'cash' || accTitle === 'cash account') &&
+        (a.module_type || 'Wholesale') === targetModule;
+    });
     if (cashAcc) {
       handleEdit(cashAcc);
     } else {
@@ -654,7 +665,12 @@ export default function Accounts() {
       ...filteredOtherExpenses.map(o => ({ ...o, isExpense: true, payment_type: o.payment_method }))
     ].sort((a, b) => new Date(a.created_at || a.expense_date || a.purchase_date || a.date) - new Date(b.created_at || b.expense_date || b.purchase_date || b.date));
 
-    const realCashAcc = filteredAccounts.find(b => (b.bank_name.toLowerCase() === 'cash' || b.bank_name.toLowerCase() === 'cash account') && b.module_type !== 'Admin Recipient');
+    const realCashAcc = filteredAccounts.find(b => {
+      const bName = (b.bank_name || '').toLowerCase().trim();
+      const accNum = (b.account_number || '').toLowerCase().trim();
+      const accTitle = (b.account_title || '').toLowerCase().trim();
+      return (bName === 'cash' || bName === 'cash account' || accNum === 'cash' || accNum === 'cash account' || accTitle === 'main counter' || accTitle === 'cash' || accTitle === 'cash account') && b.module_type !== 'Admin Recipient';
+    });
     const cashOpeningBal = realCashAcc ? (parseFloat(realCashAcc.opening_balance) || 0) : 0;
 
     const initial = filteredAccounts.filter(b => b.module_type !== 'Admin Recipient').reduce((acc, b) => {
@@ -1026,7 +1042,12 @@ export default function Accounts() {
 
   // Combine Bank Accounts with a virtual "Cash" account ONLY if no real Cash account exists
   const displayAccounts = useMemo(() => {
-    const hasRealCash = filteredAccounts.some(a => (a.bank_name.toLowerCase() === 'cash' || a.bank_name.toLowerCase() === 'cash account') && a.module_type !== 'Admin Recipient');
+    const hasRealCash = filteredAccounts.some(a => {
+      const bName = (a.bank_name || '').toLowerCase().trim();
+      const accNum = (a.account_number || '').toLowerCase().trim();
+      const accTitle = (a.account_title || '').toLowerCase().trim();
+      return (bName === 'cash' || bName === 'cash account' || accNum === 'cash' || accNum === 'cash account' || accTitle === 'main counter' || accTitle === 'cash' || accTitle === 'cash account') && a.module_type !== 'Admin Recipient';
+    });
     const baseAccounts = hasRealCash ? filteredAccounts : [
       { id: 'cash-id', bank_name: 'Cash Account', account_title: 'Main Counter', account_number: 'N/A', isCash: true, opening_balance: 0 },
       ...filteredAccounts
