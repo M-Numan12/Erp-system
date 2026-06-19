@@ -204,10 +204,9 @@ router.get('/debug-cash-wholesale', async (req, res) => {
       return match ? match.id : 'GHOST';
     };
 
-    const [sales, purchasesAll, purchasesFiltered, expenses, salaries, rents, investments, otherExp] = await Promise.all([
+    const [sales, purchases, expenses, salaries, rents, investments, otherExp] = await Promise.all([
       pool.query("SELECT id, paid_amount, payment_type, created_at FROM sales WHERE COALESCE(sale_type, 'Wholesale') = $1", [mod]),
-      pool.query("SELECT id, paid_amount, payment_type, purchase_date, product_id FROM purchases WHERE COALESCE(module_type, 'Wholesale') = $1", [mod]),
-      pool.query("SELECT id, paid_amount, payment_type, purchase_date, product_id FROM purchases WHERE COALESCE(module_type, 'Wholesale') = $1 AND product_id IS NULL", [mod]),
+      pool.query("SELECT id, paid_amount, payment_type, purchase_date FROM purchases WHERE COALESCE(module_type, 'Wholesale') = $1 AND product_id IS NULL", [mod]),
       pool.query("SELECT id, amount, payment_type, expense_type, created_at FROM expenses WHERE COALESCE(module_type, 'Wholesale') = $1", [mod]),
       pool.query("SELECT id, amount, payment_type, created_at FROM salary_payments WHERE COALESCE(module_type, 'Wholesale') = $1", [mod]),
       pool.query("SELECT id, amount, created_at FROM rent WHERE COALESCE(module_type, 'Wholesale') = $1", [mod]),
@@ -215,53 +214,71 @@ router.get('/debug-cash-wholesale', async (req, res) => {
       pool.query("SELECT id, amount, payment_method, created_at, date FROM other_expenses WHERE COALESCE(module_type, 'Wholesale') = $1", [mod]),
     ]);
 
-    const stats = {
-      cashOpeningBal,
-      sales: {
-        total: sales.rows.reduce((sum, s) => sum + (parseFloat(s.paid_amount) || 0), 0),
-        cashCount: sales.rows.filter(s => findKey(s.payment_type, modAccounts) === 'Cash').length,
-        cashSum: sales.rows.filter(s => findKey(s.payment_type, modAccounts) === 'Cash').reduce((sum, s) => sum + (parseFloat(s.paid_amount) || 0), 0),
-      },
-      purchasesAll: {
-        count: purchasesAll.rows.length,
-        total: purchasesAll.rows.reduce((sum, p) => sum + (parseFloat(p.paid_amount) || 0), 0),
-        cashCount: purchasesAll.rows.filter(p => findKey(p.payment_type, modAccounts) === 'Cash').length,
-        cashSum: purchasesAll.rows.filter(p => findKey(p.payment_type, modAccounts) === 'Cash').reduce((sum, p) => sum + (parseFloat(p.paid_amount) || 0), 0),
-        hasProductIdCount: purchasesAll.rows.filter(p => p.product_id !== null).length,
-        hasProductIdCashSum: purchasesAll.rows.filter(p => p.product_id !== null && findKey(p.payment_type, modAccounts) === 'Cash').reduce((sum, p) => sum + (parseFloat(p.paid_amount) || 0), 0),
-      },
-      purchasesFiltered: {
-        count: purchasesFiltered.rows.length,
-        total: purchasesFiltered.rows.reduce((sum, p) => sum + (parseFloat(p.paid_amount) || 0), 0),
-        cashCount: purchasesFiltered.rows.filter(p => findKey(p.payment_type, modAccounts) === 'Cash').length,
-        cashSum: purchasesFiltered.rows.filter(p => findKey(p.payment_type, modAccounts) === 'Cash').reduce((sum, p) => sum + (parseFloat(p.paid_amount) || 0), 0),
-      },
-      expenses: {
-        total: expenses.rows.reduce((sum, e) => sum + (parseFloat(e.amount) || 0), 0),
-        cashCount: expenses.rows.filter(e => findKey(e.payment_type, modAccounts) === 'Cash').length,
-        cashSum: expenses.rows.filter(e => findKey(e.payment_type, modAccounts) === 'Cash').reduce((sum, e) => sum + (parseFloat(e.amount) || 0), 0),
-      },
-      salaries: {
-        total: salaries.rows.reduce((sum, s) => sum + (parseFloat(s.amount) || 0), 0),
-        cashCount: salaries.rows.filter(s => findKey(s.payment_type || 'Cash', modAccounts) === 'Cash').length,
-        cashSum: salaries.rows.filter(s => findKey(s.payment_type || 'Cash', modAccounts) === 'Cash').reduce((sum, s) => sum + (parseFloat(s.amount) || 0), 0),
-      },
-      rents: {
-        total: rents.rows.reduce((sum, r) => sum + (parseFloat(r.amount) || 0), 0),
-        cashSum: rents.rows.reduce((sum, r) => sum + (parseFloat(r.amount) || 0), 0),
-      },
-      investments: {
-        total: investments.rows.reduce((sum, i) => sum + (parseFloat(i.amount) || 0), 0),
-        cashSum: investments.rows.reduce((sum, i) => sum + (parseFloat(i.amount) || 0), 0),
-      },
-      otherExp: {
-        total: otherExp.rows.reduce((sum, o) => sum + (parseFloat(o.amount) || 0), 0),
-        cashCount: otherExp.rows.filter(o => findKey(o.payment_method || 'Cash', modAccounts) === 'Cash').length,
-        cashSum: otherExp.rows.filter(o => findKey(o.payment_method || 'Cash', modAccounts) === 'Cash').reduce((sum, o) => sum + (parseFloat(o.amount) || 0), 0),
-      }
-    };
+    const txns = [];
+    sales.rows.forEach(s => txns.push({ id: s.id, source: 'sale', type: 'income', pt: s.payment_type, amt: parseFloat(s.paid_amount) || 0, date: new Date(s.created_at) }));
+    purchases.rows.forEach(p => txns.push({ id: p.id, source: 'purchase', type: 'expense', pt: p.payment_type, amt: parseFloat(p.paid_amount) || 0, date: new Date(p.purchase_date) }));
+    expenses.rows.forEach(e => {
+      if (e.expense_type === 'Sale Return' || e.expense_type === 'Sale Return Refund') return;
+      const isIncome = e.expense_type === 'Admin Payment' || e.expense_type === 'Transfer In';
+      txns.push({ id: e.id, source: isIncome ? 'admin_pay_in' : 'expense', type: isIncome ? 'income' : 'expense', pt: e.payment_type, amt: parseFloat(e.amount) || 0, date: new Date(e.created_at), expense_type: e.expense_type });
+    });
+    salaries.rows.forEach(s => txns.push({ id: s.id, source: 'salary', type: 'expense', pt: s.payment_type || 'Cash', amt: parseFloat(s.amount) || 0, date: new Date(s.created_at) }));
+    rents.rows.forEach(r => txns.push({ id: r.id, source: 'rent', type: 'expense', pt: 'Cash', amt: parseFloat(r.amount) || 0, date: new Date(r.created_at) }));
+    investments.rows.forEach(i => txns.push({ id: i.id, source: 'investment', type: 'income', pt: 'Cash', amt: parseFloat(i.amount) || 0, date: new Date(i.created_at || i.date) }));
+    otherExp.rows.forEach(o => txns.push({ id: o.id, source: 'other_expense', type: 'expense', pt: o.payment_method || 'Cash', amt: parseFloat(o.amount) || 0, date: new Date(o.created_at || o.date) }));
 
-    res.json(stats);
+    try {
+      const transfersRes = await pool.query("SELECT amount, from_account, to_account, created_at FROM bank_transfers WHERE COALESCE(module_type, 'Wholesale') = $1", [mod]);
+      transfersRes.rows.forEach(t => {
+        txns.push({ source: 'transfer_out', type: 'expense', pt: t.from_account, amt: parseFloat(t.amount) || 0, date: new Date(t.created_at) });
+        txns.push({ source: 'transfer_in', type: 'income', pt: t.to_account, amt: parseFloat(t.amount) || 0, date: new Date(t.created_at) });
+      });
+    } catch (_) {}
+
+    txns.sort((a, b) => a.date - b.date);
+
+    const thresholdIdx = txns.findIndex(t => Number(t.id) === 218);
+
+    let balance = cashOpeningBal;
+    const history = [];
+
+    txns.forEach((t, idx) => {
+      if (t.pt === 'Deduction') return;
+      const key = findKey(t.pt, modAccounts);
+      if (key === 'Cash') {
+        const amt = t.amt;
+        const prevBal = balance;
+        if (t.type === 'income') {
+          balance += amt;
+        } else {
+          balance -= amt;
+          const shouldClamp = mod !== 'Retail 1' || (thresholdIdx !== -1 && idx < thresholdIdx);
+          if (balance < 0 && shouldClamp) {
+            balance = 0;
+          }
+        }
+        history.push({
+          idx,
+          id: t.id,
+          source: t.source,
+          expense_type: t.expense_type,
+          type: t.type,
+          payment_type: t.pt,
+          amount: amt,
+          prevBal,
+          balance,
+          date: t.date.toLocaleDateString()
+        });
+      }
+    });
+
+    res.json({
+      cashOpeningBal,
+      finalCalculatedBalance: balance,
+      thresholdIdx,
+      historyCount: history.length,
+      historyTail: history.slice(-30) // Show last 30 transactions to keep output size readable
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
