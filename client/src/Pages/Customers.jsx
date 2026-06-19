@@ -5,7 +5,7 @@ import React, { useState, useEffect, useContext, useMemo } from "react";
 import {
   Users as UsersIcon, Plus, Pencil, Trash2, X, Search, Phone, Mail,
   MapPin, ChevronLeft, CreditCard, Banknote, UserPlus, Info, FileText, Printer,
-  MessageCircle
+  MessageCircle, ClipboardList
 } from "lucide-react";
 import { DataTable } from 'primereact/datatable';
 import { Column } from 'primereact/column';
@@ -78,6 +78,7 @@ export default function Customers({ type }) {
   const [selectedBank, setSelectedBank] = useState("");
   // Loading state for undo payment action (admin only)
   const [undoLoading, setUndoLoading] = useState(false);
+  const [adjForm, setAdjForm] = useState({ type: "Debit", amount: "", notes: "" });
 
 
   // Receipt Generator 
@@ -253,6 +254,38 @@ export default function Customers({ type }) {
     } finally {
       setUndoLoading(false);
     }
+  };
+
+  const handlePostAdjustment = async (e) => {
+    e.preventDefault();
+    if (!adjForm.amount || parseFloat(adjForm.amount) <= 0) return;
+    
+    setLoading(true);
+    try {
+      const res = await fetch(`${API_BASE_URL}/sales/adjustment`, {
+        method: "POST",
+        headers: { 
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({
+          customer_id: selectedCustomer.id,
+          amount: adjForm.amount,
+          notes: adjForm.notes,
+          type: adjForm.type,
+          module_type: activeTab
+        })
+      });
+      if (res.ok) {
+        setAdjForm({ type: "Debit", amount: "", notes: "" });
+        const updatedRecords = await fetchRecords();
+        const updatedCust = (updatedRecords || []).find(c => c.id === selectedCustomer.id);
+        if (updatedCust) setSelectedCustomer(updatedCust);
+        // Refetch ledger using existing state values
+        openLedger(updatedCust || selectedCustomer, ledgerFrom, ledgerTo, ledgerFilter);
+      }
+    } catch (err) { console.error("Adjustment post failed", err); }
+    setLoading(false);
   };
 
   const handlePayment = async (e) => {
@@ -759,7 +792,9 @@ export default function Customers({ type }) {
                                 }
                                 return details;
                               })()
-                              : `Payment Received (${row.payment_type || 'Cash'})`
+                              : row.payment_type && (row.payment_type.includes('Adjustment') || row.payment_type.includes('Manual Adjustment'))
+                                ? row.payment_type
+                                : `Payment Received (${row.payment_type || 'Cash'})`
                             }
                           </td>
                           <td style={{ border: '1px solid #cbd5e1', padding: '8px' }}>
@@ -931,6 +966,10 @@ export default function Customers({ type }) {
                               </div>
                             );
                           }
+                          const isAdjustment = row.payment_type && (row.payment_type.includes('Adjustment') || row.payment_type.includes('Manual Adjustment'));
+                          if (isAdjustment) {
+                            return <strong style={{ color: '#0284c7', fontSize: '0.85rem', whiteSpace: 'nowrap' }}><ClipboardList size={13} style={{ display: 'inline', verticalAlign: 'middle', marginRight: '4px' }} />{row.payment_type}</strong>;
+                          }
                           return <strong style={{ color: '#10b981', fontSize: '0.85rem', whiteSpace: 'nowrap' }}><CreditCard size={13} style={{ display: 'inline', verticalAlign: 'middle', marginRight: '4px' }} />Payment Received ({row.payment_type || 'Cash'})</strong>;
                         }}
                         style={{ minWidth: '180px' }}
@@ -1083,6 +1122,54 @@ export default function Customers({ type }) {
                         style={{ textAlign: 'right', width: '120px' }}
                       />
                     </DataTable>
+                  </div>
+                )}
+
+                {/* Bottom Manual Ledger Adjustment Panel (Admin only) */}
+                {user?.role === 'admin' && (
+                  <div className="ledger-adjustment-panel" style={{marginTop: '18px', background: '#f8fafc', padding: '16px', borderRadius: '12px', border: '1px dashed #cbd5e1'}}>
+                    <h4 style={{margin: '0 0 12px 0', color: '#1e293b', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.95rem'}}>
+                      <Plus size={16} color="#3b82f6" /> Add Manual Ledger Entry (Adjustment)
+                    </h4>
+                    <form onSubmit={handlePostAdjustment} style={{display: 'flex', gap: '12px', alignItems: 'flex-end', flexWrap: 'wrap'}}>
+                      <div className="form-group" style={{flex: '1', minWidth: '140px', margin: 0}}>
+                        <label style={{fontSize: '0.75rem', fontWeight: 600, marginBottom: '4px', display: 'block', color: '#64748b'}}>Adjustment Type</label>
+                        <select 
+                          value={adjForm.type} 
+                          onChange={e => setAdjForm({...adjForm, type: e.target.value})}
+                          style={{width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', outline: 'none', fontSize: '0.85rem'}}
+                        >
+                          <option value="Debit">Debit (+ Increases Balance)</option>
+                          <option value="Credit">Credit (- Decreases Balance)</option>
+                        </select>
+                      </div>
+                      <div className="form-group" style={{flex: '2', minWidth: '200px', margin: 0}}>
+                        <label style={{fontSize: '0.75rem', fontWeight: 600, marginBottom: '4px', display: 'block', color: '#64748b'}}>Memo / Description</label>
+                        <input 
+                          type="text" 
+                          value={adjForm.notes} 
+                          onChange={e => setAdjForm({...adjForm, notes: e.target.value})} 
+                          placeholder="e.g. Claim adjustment, discount, manual discount" 
+                          required
+                          style={{width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.85rem'}}
+                        />
+                      </div>
+                      <div className="form-group" style={{flex: '1', minWidth: '150px', margin: 0}}>
+                        <label style={{fontSize: '0.75rem', fontWeight: 600, marginBottom: '4px', display: 'block', color: '#64748b'}}>Adjustment Amount (Rs.)</label>
+                        <input 
+                          type="number" 
+                          step="0.01"
+                          required 
+                          value={adjForm.amount} 
+                          onChange={e => setAdjForm({...adjForm, amount: e.target.value})} 
+                          placeholder="0.00" 
+                          style={{width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.85rem'}}
+                        />
+                      </div>
+                      <button type="submit" className="btn-primary" style={{height: '36px', background: '#2563eb', padding: '0 20px', fontSize: '0.85rem', border: 'none'}} disabled={loading}>
+                        {loading ? "Posting..." : "Save Entry"}
+                      </button>
+                    </form>
                   </div>
                 )}
               </div>

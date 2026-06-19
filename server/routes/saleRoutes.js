@@ -351,6 +351,64 @@ router.post('/payment/undo', auth, async (req, res) => {
   }
 });
 
+// Post Manual Ledger Adjustment (Debit or Credit) for Customer
+router.post('/adjustment', auth, async (req, res) => {
+  if (!isAdmin(req)) {
+    return res.status(403).json({ error: 'Unauthorized: Admin role required for ledger adjustments' });
+  }
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const { customer_id, amount, notes, type, module_type } = req.body;
+    const amt = parseFloat(amount) || 0;
+    const finalModule = isAdmin(req) ? (module_type || 'Wholesale') : (req.user.module_type || 'Retail 1');
+
+    let netAmount = 0;
+    let paidAmount = 0;
+    let balanceImpact = 0;
+
+    if (type === 'Debit') {
+      // Debit Adjustment: Increases what they owe us (Debit increases Receivable).
+      netAmount = amt;
+      paidAmount = 0;
+      balanceImpact = amt;
+    } else {
+      // Credit Adjustment: Decreases what they owe us (like a payment).
+      netAmount = 0;
+      paidAmount = amt;
+      balanceImpact = -amt;
+    }
+
+    const desc = `[${type} Adjustment] ${notes || ''}`;
+
+    const cust = await client.query('SELECT name FROM customers WHERE id=$1', [customer_id]);
+    const custName = cust.rows[0]?.name || 'Unknown';
+
+    // 1. Insert Adjustment into Sales Table
+    const adjustRes = await client.query(
+      `INSERT INTO sales 
+      (customer_id, customer_name, total_amount, net_amount, paid_amount, balance_amount, payment_type, sale_type, user_id, vehicle_number) 
+      VALUES ($1, $2, 0, $3, $4, $5, $6, $7, $8, NULL) RETURNING *`,
+      [customer_id, custName, netAmount, paidAmount, balanceImpact, desc, finalModule, req.user.id]
+    );
+
+    // 2. Update Customer Running Balance
+    await client.query(
+      `UPDATE customers SET balance = balance + $1 WHERE id = $2`,
+      [balanceImpact, customer_id]
+    );
+
+    await client.query('COMMIT');
+    res.json(adjustRes.rows[0]);
+  } catch (err) {
+    await client.query('ROLLBACK');
+    console.error('Customer Adjustment Error:', err);
+    res.status(500).json({ error: err.message });
+  } finally {
+    client.release();
+  }
+});
+
 // Update a sale (Bill Edit) - Admin only
 router.put('/:id', auth, async (req, res) => {
   if (!isAdmin(req)) return res.status(403).json({ error: 'Access denied' });
