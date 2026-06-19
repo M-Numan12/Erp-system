@@ -177,6 +177,96 @@ async function updateBankAccountsCurrentBalances(poolOrClient) {
   }
 }
 
+// DEBUG ROUTE FOR WHOLESALE CASH
+router.get('/debug-cash-wholesale', async (req, res) => {
+  try {
+    const mod = 'Wholesale';
+    const allAccountsRes = await pool.query(
+      "SELECT id, bank_name, account_title, account_number, opening_balance, module_type FROM bank_accounts"
+    );
+    const allAccounts = allAccountsRes.rows;
+    const modAccounts = allAccounts.filter(a =>
+      (a.module_type || 'Wholesale') === mod && a.module_type !== 'Admin Recipient'
+    );
+    const cashAcc = modAccounts.find(a => {
+      const bName = (a.bank_name || '').toLowerCase().trim();
+      const accNum = (a.account_number || '').toLowerCase().trim();
+      const accTitle = (a.account_title || '').toLowerCase().trim();
+      return bName === 'cash' || bName === 'cash account' || accNum === 'cash' || accNum === 'cash account' || accTitle === 'main counter' || accTitle === 'cash' || accTitle === 'cash account';
+    });
+    const cashOpeningBal = cashAcc ? (parseFloat(cashAcc.opening_balance) || 0) : 0;
+
+    const findKey = (methodName, accounts) => {
+      if (!methodName) return 'Cash';
+      const cl = methodName.replace(/^bank\s*-\s*/i, '').toLowerCase().trim();
+      if (cl === '' || cl.startsWith('cash') || cl.startsWith('credit') || cl === 'cash account') return 'Cash';
+      const match = accounts.find(a => checkAccountMatch(methodName, a));
+      return match ? match.id : 'GHOST';
+    };
+
+    const [sales, purchasesAll, purchasesFiltered, expenses, salaries, rents, investments, otherExp] = await Promise.all([
+      pool.query("SELECT id, paid_amount, payment_type, created_at FROM sales WHERE COALESCE(sale_type, 'Wholesale') = $1", [mod]),
+      pool.query("SELECT id, paid_amount, payment_type, purchase_date, product_id FROM purchases WHERE COALESCE(module_type, 'Wholesale') = $1", [mod]),
+      pool.query("SELECT id, paid_amount, payment_type, purchase_date, product_id FROM purchases WHERE COALESCE(module_type, 'Wholesale') = $1 AND product_id IS NULL", [mod]),
+      pool.query("SELECT id, amount, payment_type, expense_type, created_at FROM expenses WHERE COALESCE(module_type, 'Wholesale') = $1", [mod]),
+      pool.query("SELECT id, amount, payment_type, created_at FROM salary_payments WHERE COALESCE(module_type, 'Wholesale') = $1", [mod]),
+      pool.query("SELECT id, amount, created_at FROM rent WHERE COALESCE(module_type, 'Wholesale') = $1", [mod]),
+      pool.query("SELECT id, amount, created_at, date FROM investment WHERE COALESCE(module_type, 'Wholesale') = $1", [mod]),
+      pool.query("SELECT id, amount, payment_method, created_at, date FROM other_expenses WHERE COALESCE(module_type, 'Wholesale') = $1", [mod]),
+    ]);
+
+    const stats = {
+      cashOpeningBal,
+      sales: {
+        total: sales.rows.reduce((sum, s) => sum + (parseFloat(s.paid_amount) || 0), 0),
+        cashCount: sales.rows.filter(s => findKey(s.payment_type, modAccounts) === 'Cash').length,
+        cashSum: sales.rows.filter(s => findKey(s.payment_type, modAccounts) === 'Cash').reduce((sum, s) => sum + (parseFloat(s.paid_amount) || 0), 0),
+      },
+      purchasesAll: {
+        count: purchasesAll.rows.length,
+        total: purchasesAll.rows.reduce((sum, p) => sum + (parseFloat(p.paid_amount) || 0), 0),
+        cashCount: purchasesAll.rows.filter(p => findKey(p.payment_type, modAccounts) === 'Cash').length,
+        cashSum: purchasesAll.rows.filter(p => findKey(p.payment_type, modAccounts) === 'Cash').reduce((sum, p) => sum + (parseFloat(p.paid_amount) || 0), 0),
+        hasProductIdCount: purchasesAll.rows.filter(p => p.product_id !== null).length,
+        hasProductIdCashSum: purchasesAll.rows.filter(p => p.product_id !== null && findKey(p.payment_type, modAccounts) === 'Cash').reduce((sum, p) => sum + (parseFloat(p.paid_amount) || 0), 0),
+      },
+      purchasesFiltered: {
+        count: purchasesFiltered.rows.length,
+        total: purchasesFiltered.rows.reduce((sum, p) => sum + (parseFloat(p.paid_amount) || 0), 0),
+        cashCount: purchasesFiltered.rows.filter(p => findKey(p.payment_type, modAccounts) === 'Cash').length,
+        cashSum: purchasesFiltered.rows.filter(p => findKey(p.payment_type, modAccounts) === 'Cash').reduce((sum, p) => sum + (parseFloat(p.paid_amount) || 0), 0),
+      },
+      expenses: {
+        total: expenses.rows.reduce((sum, e) => sum + (parseFloat(e.amount) || 0), 0),
+        cashCount: expenses.rows.filter(e => findKey(e.payment_type, modAccounts) === 'Cash').length,
+        cashSum: expenses.rows.filter(e => findKey(e.payment_type, modAccounts) === 'Cash').reduce((sum, e) => sum + (parseFloat(e.amount) || 0), 0),
+      },
+      salaries: {
+        total: salaries.rows.reduce((sum, s) => sum + (parseFloat(s.amount) || 0), 0),
+        cashCount: salaries.rows.filter(s => findKey(s.payment_type || 'Cash', modAccounts) === 'Cash').length,
+        cashSum: salaries.rows.filter(s => findKey(s.payment_type || 'Cash', modAccounts) === 'Cash').reduce((sum, s) => sum + (parseFloat(s.amount) || 0), 0),
+      },
+      rents: {
+        total: rents.rows.reduce((sum, r) => sum + (parseFloat(r.amount) || 0), 0),
+        cashSum: rents.rows.reduce((sum, r) => sum + (parseFloat(r.amount) || 0), 0),
+      },
+      investments: {
+        total: investments.rows.reduce((sum, i) => sum + (parseFloat(i.amount) || 0), 0),
+        cashSum: investments.rows.reduce((sum, i) => sum + (parseFloat(i.amount) || 0), 0),
+      },
+      otherExp: {
+        total: otherExp.rows.reduce((sum, o) => sum + (parseFloat(o.amount) || 0), 0),
+        cashCount: otherExp.rows.filter(o => findKey(o.payment_method || 'Cash', modAccounts) === 'Cash').length,
+        cashSum: otherExp.rows.filter(o => findKey(o.payment_method || 'Cash', modAccounts) === 'Cash').reduce((sum, o) => sum + (parseFloat(o.amount) || 0), 0),
+      }
+    };
+
+    res.json(stats);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // Get real-time balances for all accounts
 router.get('/balances', auth, async (req, res) => {
   try {
