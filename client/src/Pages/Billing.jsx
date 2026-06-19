@@ -1,7 +1,7 @@
 // DYNAMIC API PATCH
 const API_BASE_URL = process.env.REACT_APP_API_URL ? `${process.env.REACT_APP_API_URL}/api` : 'https://erp-backend-3rf8.onrender.com/api';
 
-import React, { useState, useEffect, useContext, useMemo } from "react";
+import React, { useState, useEffect, useContext, useMemo, useRef } from "react";
 import {
   ShoppingCart, Search, Trash2, User, Plus, Minus,
   Printer, CreditCard, Banknote, Truck, Tag, X, CheckCircle, Pencil,
@@ -29,6 +29,7 @@ const CATEGORIES = ["All", "Cement", "Steel", "Crush", "Bricks", "Sand", "Tiles 
 
 export default function Billing({ type }) {
   const { user } = useContext(AuthContext);
+  const ledgerReportRef = useRef(null);
   const [activeTab, setActiveTab] = useState(type || (user?.role === 'admin' ? "" : user?.module_type || "Wholesale"));
 
   useEffect(() => {
@@ -696,7 +697,7 @@ export default function Billing({ type }) {
     }
 
     // Select the print-only ledger element
-    const element = document.querySelector('.ledger-report');
+    const element = ledgerReportRef.current;
     if (!element) {
       alert("Ledger report content not found in page!");
       return;
@@ -1518,7 +1519,7 @@ export default function Billing({ type }) {
               </div>
             </div>
 
-            <div className="ledger-report print-only" style={{ padding: '20px', color: 'black' }}>
+            <div ref={ledgerReportRef} className="ledger-report print-only" style={{ padding: '20px', color: 'black' }}>
               <div style={{ textAlign: 'center', marginBottom: '20px', borderBottom: '2px solid #000', paddingBottom: '10px' }}>
                 {activeTab === 'Retail 2' ? (
                   <>
