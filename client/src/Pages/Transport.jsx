@@ -240,8 +240,42 @@ export default function Transport({ type }) {
     }
   };
 
+  const processedLedgerData = useMemo(() => {
+    let arr = Array.isArray(ledgerData) ? [...ledgerData] : [];
+    
+    // Reverse to get oldest first for running balance calculation
+    const reversed = [...arr].reverse();
+    
+    let balance = 0;
+    const mapped = reversed.map(row => {
+      const amt = parseFloat(row.amount || 0);
+      const isEarning = row.trip_type === 'Outward (Sale)' || row.trip_type === 'Inward (Stock)';
+      
+      let earning = 0;
+      let expense = 0;
+      
+      if (isEarning) {
+        earning = amt;
+        balance += amt;
+      } else {
+        expense = amt;
+        balance -= amt;
+      }
+      
+      return {
+        ...row,
+        earning,
+        expense,
+        runningBalance: balance
+      };
+    });
+    
+    // Reverse back to newest first
+    return mapped.reverse();
+  }, [ledgerData]);
+
   const filteredLedgerData = useMemo(() => {
-    let arr = Array.isArray(ledgerData) ? ledgerData : [];
+    let arr = processedLedgerData;
     if (ledgerFilter === 'all') return arr;
     if (ledgerFilter === 'custom' && (!ledgerFrom || !ledgerTo)) return arr;
     return arr.filter(row => {
@@ -249,20 +283,14 @@ export default function Transport({ type }) {
       const rowDateStr = new Date(row.date).toLocaleDateString('en-CA');
       return rowDateStr >= ledgerFrom && rowDateStr <= ledgerTo;
     });
-  }, [ledgerData, ledgerFilter, ledgerFrom, ledgerTo]);
+  }, [processedLedgerData, ledgerFilter, ledgerFrom, ledgerTo]);
 
   const filteredEarnings = useMemo(() => {
     if (ledgerFilter === 'all') {
       return parseFloat(selectedVehicle?.total_earnings || 0);
     }
     return filteredLedgerData.reduce((sum, r) => {
-      const type = r.trip_type || '';
-      const amt = parseFloat(r.amount || 0);
-      if (type.includes('Inward') || type.includes('Outward')) {
-        return sum + amt;
-      } else {
-        return sum - amt;
-      }
+      return sum + r.earning - r.expense;
     }, 0);
   }, [filteredLedgerData, ledgerFilter, selectedVehicle?.total_earnings]);
 
@@ -550,24 +578,37 @@ export default function Transport({ type }) {
                   <tr style={{background: '#f1f5f9'}}>
                     <th style={{border: '1px solid #cbd5e1', padding: '8px', textAlign: 'left'}}>Date</th>
                     <th style={{border: '1px solid #cbd5e1', padding: '8px', textAlign: 'left'}}>Customer / Bill</th>
-                    <th style={{border: '1px solid #cbd5e1', padding: '8px', textAlign: 'right'}}>Fare (Earnings)</th>
-                    <th style={{border: '1px solid #cbd5e1', padding: '8px', textAlign: 'left'}}>Status</th>
+                    <th style={{border: '1px solid #cbd5e1', padding: '8px', textAlign: 'left'}}>Trip Type</th>
+                    <th style={{border: '1px solid #cbd5e1', padding: '8px', textAlign: 'right'}}>Earnings (+)</th>
+                    <th style={{border: '1px solid #cbd5e1', padding: '8px', textAlign: 'right'}}>Expenses (-)</th>
+                    <th style={{border: '1px solid #cbd5e1', padding: '8px', textAlign: 'right'}}>Current Balance</th>
                   </tr>
                 </thead>
                 <tbody>
                   {filteredLedgerData.map((row, idx) => (
                     <tr key={idx}>
                       <td style={{border: '1px solid #cbd5e1', padding: '8px'}}>{row.date ? new Date(row.date).toLocaleDateString() : 'N/A'}</td>
-                      <td style={{border: '1px solid #cbd5e1', padding: '8px'}}>{row.party_name || 'N/A'}</td>
-                      <td style={{border: '1px solid #cbd5e1', padding: '8px', textAlign: 'right'}}>{parseFloat(row.amount || 0).toLocaleString()}</td>
-                      <td style={{border: '1px solid #cbd5e1', padding: '8px'}}>{row.payment_type || 'N/A'}</td>
+                      <td style={{border: '1px solid #cbd5e1', padding: '8px'}}>
+                        {row.party_name || 'N/A'}
+                        {row.payment_type && <span style={{fontSize: '11px', color: '#64748b', display: 'block'}}>Method: {row.payment_type}</span>}
+                      </td>
+                      <td style={{border: '1px solid #cbd5e1', padding: '8px'}}>{row.trip_type || 'N/A'}</td>
+                      <td style={{border: '1px solid #cbd5e1', padding: '8px', textAlign: 'right', color: row.earning > 0 ? '#15803d' : '#64748b'}}>
+                        {row.earning > 0 ? `Rs. ${row.earning.toLocaleString()}` : '-'}
+                      </td>
+                      <td style={{border: '1px solid #cbd5e1', padding: '8px', textAlign: 'right', color: row.expense > 0 ? '#b91c1c' : '#64748b'}}>
+                        {row.expense > 0 ? `Rs. ${row.expense.toLocaleString()}` : '-'}
+                      </td>
+                      <td style={{border: '1px solid #cbd5e1', padding: '8px', textAlign: 'right', fontWeight: 600}}>
+                        Rs. {row.runningBalance.toLocaleString()}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
                 <tfoot>
                    <tr style={{fontWeight: 700}}>
-                     <td colSpan="2" style={{border: '1px solid #cbd5e1', padding: '8px', textAlign: 'right'}}>Total Earnings (Filtered):</td>
-                     <td colSpan="2" style={{border: '1px solid #cbd5e1', padding: '8px', color: '#15803d'}}>
+                     <td colSpan="3" style={{border: '1px solid #cbd5e1', padding: '8px', textAlign: 'right'}}>Net Balance (Filtered):</td>
+                     <td colSpan="3" style={{border: '1px solid #cbd5e1', padding: '8px', color: filteredEarnings >= 0 ? '#15803d' : '#b91c1c'}}>
                         Rs. {filteredEarnings.toLocaleString()}
                      </td>
                    </tr>
@@ -596,13 +637,14 @@ export default function Transport({ type }) {
                       <th>Date</th>
                       <th>Trip Type</th>
                       <th>Party / Details</th>
-                      <th>Earnings (Fare)</th>
-                      <th>Payment</th>
+                      <th style={{textAlign: 'right'}}>Earnings (+)</th>
+                      <th style={{textAlign: 'right'}}>Expenses (-)</th>
+                      <th style={{textAlign: 'right'}}>Current Balance</th>
                     </tr>
                   </thead>
                   <tbody className="list-body">
                     {(!Array.isArray(filteredLedgerData) || filteredLedgerData.length === 0) ? (
-                      <tr><td colSpan="5" style={{padding: '20px', textAlign: 'center', color: '#64748b'}}>No records found for this vehicle.</td></tr>
+                      <tr><td colSpan="6" style={{padding: '20px', textAlign: 'center', color: '#64748b'}}>No records found for this vehicle.</td></tr>
                     ) : (
                       filteredLedgerData.map((row, idx) => (
                         <tr key={idx}>
@@ -614,10 +656,17 @@ export default function Transport({ type }) {
                           </td>
                           <td>
                             <strong>{row.party_name || 'N/A'}</strong>
-                            <br/><small style={{color:'#64748b'}}>ID: #{row.id || idx}</small>
+                            {row.payment_type && <div style={{fontSize: '0.75rem', color: '#64748b', marginTop: '2px'}}>Method: {row.payment_type}</div>}
                           </td>
-                          <td className="bold text-green">Rs. {parseFloat(row.amount || 0).toLocaleString()}</td>
-                          <td><span className="status-badge paid">{row.payment_type || 'Cash'}</span></td>
+                          <td style={{textAlign: 'right', color: row.earning > 0 ? '#16a34a' : '#64748b'}} className="bold">
+                            {row.earning > 0 ? `Rs. ${row.earning.toLocaleString()}` : '-'}
+                          </td>
+                          <td style={{textAlign: 'right', color: row.expense > 0 ? '#dc2626' : '#64748b'}} className="bold">
+                            {row.expense > 0 ? `Rs. ${row.expense.toLocaleString()}` : '-'}
+                          </td>
+                          <td style={{textAlign: 'right'}} className="bold">
+                            Rs. {row.runningBalance.toLocaleString()}
+                          </td>
                         </tr>
                       ))
                     )}
