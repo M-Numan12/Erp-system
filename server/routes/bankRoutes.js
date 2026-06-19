@@ -177,6 +177,36 @@ async function updateBankAccountsCurrentBalances(poolOrClient) {
   }
 }
 
+// DEBUG ROUTE FOR RAW DATA
+router.get('/debug-raw-data', async (req, res) => {
+  try {
+    const mod = 'Wholesale';
+    const [sales, purchases, expenses, salaries, rents, investments, otherExp, accounts] = await Promise.all([
+      pool.query("SELECT * FROM sales WHERE COALESCE(sale_type, 'Wholesale') = $1", [mod]),
+      pool.query("SELECT * FROM purchases WHERE COALESCE(module_type, 'Wholesale') = $1", [mod]),
+      pool.query("SELECT * FROM expenses WHERE COALESCE(module_type, 'Wholesale') = $1", [mod]),
+      pool.query("SELECT * FROM salary_payments WHERE COALESCE(module_type, 'Wholesale') = $1", [mod]),
+      pool.query("SELECT * FROM rent WHERE COALESCE(module_type, 'Wholesale') = $1", [mod]),
+      pool.query("SELECT * FROM investment WHERE COALESCE(module_type, 'Wholesale') = $1", [mod]),
+      pool.query("SELECT * FROM other_expenses WHERE COALESCE(module_type, 'Wholesale') = $1", [mod]),
+      pool.query("SELECT * FROM bank_accounts"),
+    ]);
+
+    res.json({
+      accounts: accounts.rows,
+      sales: sales.rows,
+      purchases: purchases.rows,
+      expenses: expenses.rows,
+      salaries: salaries.rows,
+      rents: rents.rows,
+      investments: investments.rows,
+      otherExp: otherExp.rows,
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // DEBUG ROUTE FOR WHOLESALE CASH
 router.get('/debug-cash-wholesale', async (req, res) => {
   try {
