@@ -181,7 +181,7 @@ async function updateBankAccountsCurrentBalances(poolOrClient) {
 router.get('/debug-raw-data', async (req, res) => {
   try {
     const mod = 'Wholesale';
-    const [sales, purchases, expenses, salaries, rents, investments, otherExp, accounts] = await Promise.all([
+    const [sales, purchases, expenses, salaries, rents, investments, otherExp, accounts, products] = await Promise.all([
       pool.query("SELECT * FROM sales WHERE COALESCE(sale_type, 'Wholesale') = $1", [mod]),
       pool.query("SELECT * FROM purchases WHERE COALESCE(module_type, 'Wholesale') = $1", [mod]),
       pool.query("SELECT * FROM expenses WHERE COALESCE(module_type, 'Wholesale') = $1", [mod]),
@@ -190,6 +190,7 @@ router.get('/debug-raw-data', async (req, res) => {
       pool.query("SELECT * FROM investment WHERE COALESCE(module_type, 'Wholesale') = $1", [mod]),
       pool.query("SELECT * FROM other_expenses WHERE COALESCE(module_type, 'Wholesale') = $1", [mod]),
       pool.query("SELECT * FROM bank_accounts"),
+      pool.query("SELECT * FROM products"),
     ]);
 
     res.json({
@@ -201,6 +202,7 @@ router.get('/debug-raw-data', async (req, res) => {
       rents: rents.rows,
       investments: investments.rows,
       otherExp: otherExp.rows,
+      products: products.rows,
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
