@@ -75,7 +75,15 @@ router.delete('/:id', auth, async (req, res) => {
 router.get('/:id/ledger', auth, async (req, res) => {
   try {
     const staffId = req.params.id;
-    const staffRes = await pool.query('SELECT * FROM staff WHERE id = $1 AND (user_id = $2 OR $3)', [staffId, req.user.id, isAdmin(req)]);
+    let staffRes;
+    if (isAdmin(req)) {
+      staffRes = await pool.query('SELECT * FROM staff WHERE id = $1', [staffId]);
+    } else {
+      staffRes = await pool.query(
+        'SELECT * FROM staff WHERE id = $1 AND (user_id = $2 OR module_type = $3)',
+        [staffId, req.user.id, req.user.module_type || 'Retail 1']
+      );
+    }
     if (staffRes.rows.length === 0) return res.status(404).json({ error: 'Staff not found' });
     
     const ledgerRes = await pool.query('SELECT * FROM staff_ledger WHERE staff_id = $1 ORDER BY date ASC, id ASC', [staffId]);
@@ -99,7 +107,15 @@ router.post('/:id/ledger', auth, async (req, res) => {
     
     if (amt <= 0) throw new Error('Amount must be positive');
     
-    const staffRes = await client.query('SELECT * FROM staff WHERE id = $1 FOR UPDATE', [staffId]);
+    let staffRes;
+    if (isAdmin(req)) {
+      staffRes = await client.query('SELECT * FROM staff WHERE id = $1 FOR UPDATE', [staffId]);
+    } else {
+      staffRes = await client.query(
+        'SELECT * FROM staff WHERE id = $1 AND (user_id = $2 OR module_type = $3) FOR UPDATE',
+        [staffId, req.user.id, req.user.module_type || 'Retail 1']
+      );
+    }
     if (staffRes.rows.length === 0) throw new Error('Staff not found');
     const staff = staffRes.rows[0];
 
