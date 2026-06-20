@@ -314,7 +314,7 @@ export default function Billing({ type }) {
     const headers = { "Authorization": `Bearer ${localStorage.getItem('token')}` };
     const [prodRes, salesRes, vehiclesRes, banksRes, custsRes, labRes] = await Promise.all([
       fetch(`${PRODUCTS_API}?type=${activeTab}`, { headers }),
-      fetch(SALES_API, { headers }),
+      fetch(`${SALES_API}?type=${activeTab}`, { headers }),
       fetch(`${TRANSPORT_API}?type=${activeTab}`, { headers }),
       fetch(`${API_BASE_URL}/banks`, { headers }),
       fetch(`${CUSTOMERS_API}?type=${activeTab}`, { headers }),
