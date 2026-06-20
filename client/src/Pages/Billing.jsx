@@ -27,6 +27,25 @@ const TRANSPORT_API = (API_BASE_URL + "/transport");
 
 const CATEGORIES = ["All", "Cement", "Steel", "Crush", "Bricks", "Sand", "Tiles Bond", "Chips", "Other"];
 
+const formatItemName = (brand, name) => {
+  const b = (brand || '').trim();
+  const n = (name || '').trim();
+  if (!b || b === 'undefined') return n;
+  if (!n) return b;
+  
+  const bLower = b.toLowerCase();
+  const nLower = n.toLowerCase();
+  
+  if (nLower.includes(bLower)) {
+    return n;
+  }
+  if (bLower.includes(nLower)) {
+    return b;
+  }
+  
+  return `${b} ${n}`;
+};
+
 export default function Billing({ type }) {
   const { user } = useContext(AuthContext);
   const ledgerReportRef = useRef(null);
@@ -218,6 +237,7 @@ export default function Billing({ type }) {
   const [heldBills, setHeldBills] = useState(() => JSON.parse(localStorage.getItem('heldBills') || '[]'));
   const [showHoldModal, setShowHoldModal] = useState(false);
   const [salesDateFilter, setSalesDateFilter] = useState("Today");
+  const [salesSearch, setSalesSearch] = useState("");
   const [selectedSales, setSelectedSales] = useState([]);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [confirmMessage, setConfirmMessage] = useState("");
@@ -235,7 +255,7 @@ export default function Billing({ type }) {
     yesterday.setDate(yesterday.getDate() - 1);
     const yesterdayStr = yesterday.toLocaleDateString('en-CA');
 
-    return sales.filter(s => {
+    const dateFiltered = sales.filter(s => {
       const saleDateStr = s.created_at ? new Date(s.created_at).toLocaleDateString('en-CA') : '';
       if (salesDateFilter === "Today") {
         return saleDateStr === todayStr;
@@ -245,7 +265,41 @@ export default function Billing({ type }) {
       }
       return true; // "All Time"
     });
-  }, [sales, salesDateFilter]);
+
+    if (!salesSearch.trim()) return dateFiltered;
+    const term = salesSearch.toLowerCase();
+    return dateFiltered.filter(s => {
+      const billIdStr = `#sal-${s.id}`.toLowerCase();
+      const customerName = (s.customer_name || '').toLowerCase();
+      const customerPhone = (s.customer_phone || '').toLowerCase();
+      const customerAddress = (s.customer_address || '').toLowerCase();
+      const paymentType = (s.payment_type || '').toLowerCase();
+      const status = (s.status || 'Completed').toLowerCase();
+
+      // Check items sold
+      let itemsMatches = false;
+      try {
+        const items = typeof s.items === 'string' ? JSON.parse(s.items) : (s.items || []);
+        itemsMatches = Array.isArray(items) && items.some(i => {
+          const name = (i.name || i.product_name || '').toLowerCase();
+          const brand = (i.brand || '').toLowerCase();
+          return name.includes(term) || brand.includes(term);
+        });
+      } catch (e) {
+        itemsMatches = false;
+      }
+
+      return billIdStr.includes(term) ||
+        String(s.id).includes(term) ||
+        customerName.includes(term) ||
+        customerPhone.includes(term) ||
+        customerAddress.includes(term) ||
+        paymentType.includes(term) ||
+        status.includes(term) ||
+        itemsMatches;
+    });
+  }, [sales, salesDateFilter, salesSearch]);
+
 
   useEffect(() => {
     localStorage.setItem('heldBills', JSON.stringify(heldBills));
@@ -260,7 +314,7 @@ export default function Billing({ type }) {
     const headers = { "Authorization": `Bearer ${localStorage.getItem('token')}` };
     const [prodRes, salesRes, vehiclesRes, banksRes, custsRes, labRes] = await Promise.all([
       fetch(`${PRODUCTS_API}?type=${activeTab}`, { headers }),
-      fetch(`${SALES_API}?type=${activeTab}`, { headers }),
+      fetch(SALES_API, { headers }),
       fetch(`${TRANSPORT_API}?type=${activeTab}`, { headers }),
       fetch(`${API_BASE_URL}/banks`, { headers }),
       fetch(`${CUSTOMERS_API}?type=${activeTab}`, { headers }),
@@ -1172,7 +1226,7 @@ export default function Billing({ type }) {
         <div className="history-container" style={{ padding: '20px', background: 'white', borderRadius: '16px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
 
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '15px' }} className="no-print">
-            <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '15px', flexWrap: 'wrap' }}>
               <h2 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 800, color: '#1e293b' }}>Sales Log</h2>
               {user?.role === 'admin' && selectedSales.length > 0 && (
                 <button
@@ -1211,28 +1265,40 @@ export default function Billing({ type }) {
                 </button>
               )}
             </div>
-            <div style={{ display: 'flex', gap: '8px', background: '#f1f5f9', padding: '4px', borderRadius: '12px' }}>
-              {["Today", "Yesterday", "All Time"].map(d => (
-                <button
-                  type="button"
-                  key={d}
-                  className={`tab-btn ${salesDateFilter === d ? 'active' : ''}`}
-                  onClick={() => setSalesDateFilter(d)}
-                  style={{
-                    padding: '6px 16px',
-                    borderRadius: '8px',
-                    fontSize: '0.85rem',
-                    fontWeight: 700,
-                    background: salesDateFilter === d ? '#3b82f6' : 'transparent',
-                    color: salesDateFilter === d ? 'white' : '#64748b',
-                    border: 'none',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s'
-                  }}
-                >
-                  {d}
-                </button>
-              ))}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+              <div style={{ position: 'relative', width: '250px' }}>
+                <Search size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#64748b' }} />
+                <InputText 
+                  placeholder="Search sales history..." 
+                  value={salesSearch} 
+                  onChange={(e) => setSalesSearch(e.target.value)} 
+                  style={{ paddingLeft: '38px', borderRadius: '12px', width: '100%', height: '38px', border: '1px solid #cbd5e1' }}
+                  className="p-inputtext-sm"
+                />
+              </div>
+              <div style={{ display: 'flex', gap: '8px', background: '#f1f5f9', padding: '4px', borderRadius: '12px' }}>
+                {["Today", "Yesterday", "All Time"].map(d => (
+                  <button
+                    type="button"
+                    key={d}
+                    className={`tab-btn ${salesDateFilter === d ? 'active' : ''}`}
+                    onClick={() => setSalesDateFilter(d)}
+                    style={{
+                      padding: '6px 16px',
+                      borderRadius: '8px',
+                      fontSize: '0.85rem',
+                      fontWeight: 700,
+                      background: salesDateFilter === d ? '#3b82f6' : 'transparent',
+                      color: salesDateFilter === d ? 'white' : '#64748b',
+                      border: 'none',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s'
+                    }}
+                  >
+                    {d}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
 
@@ -1639,7 +1705,7 @@ export default function Billing({ type }) {
                             try {
                               items = typeof row.items === 'string' ? JSON.parse(row.items) : (row.items || []);
                             } catch (e) { items = []; }
-                            let details = items.map(i => `${i.name} (${i.qty} x Rs.${i.rate})`).join(', ');
+                            let details = items.map(i => `${formatItemName(i.brand, i.name)} (${i.qty} x Rs.${i.rate})`).join(', ');
                             if (parseFloat(row.delivery_charges || 0) > 0) {
                               details += ` + Delivery (Rs. ${parseFloat(row.delivery_charges).toLocaleString()})`;
                             }
@@ -1778,7 +1844,7 @@ export default function Billing({ type }) {
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                                       {items.map((item, idx) => (
                                         <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '8px', background: '#f8fafc', padding: '4px 8px', borderRadius: '4px', border: '1px solid #e2e8f0' }}>
-                                          <span style={{ fontSize: '0.8rem', fontWeight: 600, flex: 1 }}>{item.name}</span>
+                                          <span style={{ fontSize: '0.8rem', fontWeight: 600, flex: 1 }}>{formatItemName(item.brand, item.name)}</span>
                                           <span style={{ fontSize: '0.8rem', color: '#64748b' }}>{item.qty} x Rs.{item.rate}</span>
                                           <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#3b82f6', minWidth: '60px', textAlign: 'right' }}>
                                             Rs. {(parseFloat(item.qty) * parseFloat(item.rate)).toLocaleString()}
@@ -2166,6 +2232,7 @@ export default function Billing({ type }) {
                 Yes, Delete
               </button>
             </div>
+          </div>
         </div>
       )}
 

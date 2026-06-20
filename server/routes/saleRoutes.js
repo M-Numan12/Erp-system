@@ -12,18 +12,18 @@ const querystring = require('querystring');
 
 const isAdmin = (req) => req.user.role === 'admin';
 
-// Get all sales (with isolation)
 router.get('/', auth, async (req, res) => {
   try {
     const { type } = req.query;
     let query = 'SELECT * FROM sales';
     let params = [];
 
-    if (!isAdmin(req)) {
-      query += ' WHERE sale_type=$1';
-      params.push(req.user.module_type || 'Retail 1');
-    } else if (type) {
-      query += ' WHERE sale_type=$1';
+    if (type) {
+      if (type === 'Wholesale') {
+        query += ' WHERE (sale_type=$1 OR sale_type IS NULL)';
+      } else {
+        query += ' WHERE sale_type=$1';
+      }
       params.push(type);
     }
 
@@ -210,7 +210,7 @@ router.post('/', auth, async (req, res) => {
 // Get sale details with items
 router.get('/:id', auth, async (req, res) => {
   try {
-    const sale = await pool.query('SELECT * FROM sales WHERE id = $1 AND (user_id = $2 OR $3)', [req.params.id, req.user.id, isAdmin(req)]);
+    const sale = await pool.query('SELECT * FROM sales WHERE id = $1', [req.params.id]);
     if (sale.rows.length === 0) return res.status(404).json({ error: 'Sale not found' });
 
     const items = await pool.query('SELECT * FROM sale_items WHERE sale_id = $1', [req.params.id]);

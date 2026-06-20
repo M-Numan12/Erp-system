@@ -15,6 +15,25 @@ import "../Styles/ModulePages.scss";
 
 const API = (API_BASE_URL + "/customers");
 
+const formatItemName = (brand, name) => {
+  const b = (brand || '').trim();
+  const n = (name || '').trim();
+  if (!b || b === 'undefined') return n;
+  if (!n) return b;
+  
+  const bLower = b.toLowerCase();
+  const nLower = n.toLowerCase();
+  
+  if (nLower.includes(bLower)) {
+    return n;
+  }
+  if (bLower.includes(nLower)) {
+    return b;
+  }
+  
+  return `${b} ${n}`;
+};
+
 const emptyForm = {
   name: "",
   phone: "",
@@ -838,7 +857,7 @@ export default function Customers({ type }) {
                           <td style={{ border: '1px solid #cbd5e1', padding: '8px' }}>
                             {items.length > 0
                               ? (() => {
-                                let details = items.map(i => `${i.brand || ''} ${i.name} (${i.qty} x Rs. ${i.rate})`).join(', ');
+                                let details = items.map(i => `${formatItemName(i.brand, i.name)} (${i.qty} x Rs. ${i.rate})`).join(', ');
                                 if (parseFloat(row.delivery_charges || 0) > 0) {
                                   details += ` + Delivery (Rs. ${parseFloat(row.delivery_charges).toLocaleString()})`;
                                 }
@@ -1007,9 +1026,9 @@ export default function Customers({ type }) {
                                       overflow: 'hidden',
                                       textOverflow: 'ellipsis'
                                     }}
-                                    title={`${item.brand || ''} ${item.name}`}
+                                    title={formatItemName(item.brand, item.name)}
                                   >
-                                    {item.brand || ''} {item.name}
+                                    {formatItemName(item.brand, item.name)}
                                   </div>
                                 ))}
                                 {parseFloat(row.delivery_charges || 0) > 0 && (
@@ -1442,6 +1461,8 @@ export default function Customers({ type }) {
               </div>
             </div>
           </div>
+        </div>
+      )}
       {showWhatsAppModal && (
         <div className="modal-overlay" onClick={closeWhatsAppModal}>
           <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '950px', width: '95%', borderRadius: '16px' }}>
