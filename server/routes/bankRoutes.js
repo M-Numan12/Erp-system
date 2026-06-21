@@ -351,6 +351,13 @@ router.get('/balances', auth, async (req, res) => {
           investmentsCount: investmentsRes.rows.length,
           otherExpensesCount: otherExpensesRes.rows.length,
           transactionsCount: transactions.length,
+          txs: transactions.map(t => ({
+            id: t.id,
+            type: t.type,
+            pt: t.payment_type,
+            amt: t.amount,
+            key: findBalanceKey(t.payment_type)
+          })).filter(tx => tx.amt > 50000 || tx.key === 'Cash')
         }
       });
     }
