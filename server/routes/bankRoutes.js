@@ -90,14 +90,39 @@ async function updateBankAccountsCurrentBalances(poolOrClient) {
         return match ? match.id : 'GHOST';
       };
 
+      // Use strict module match for Retail counters; allow NULL fallback only for Wholesale
+      const isWholesale = mod === 'Wholesale';
+      const saleQ = isWholesale
+        ? "SELECT id, paid_amount, payment_type, created_at FROM sales WHERE (sale_type = 'Wholesale' OR sale_type IS NULL)"
+        : "SELECT id, paid_amount, payment_type, created_at FROM sales WHERE sale_type = $1";
+      const purchQ = isWholesale
+        ? "SELECT p.id, p.paid_amount, p.payment_type, p.delivery_charges, p.fare_payment_type, p.purchase_date FROM purchases p LEFT JOIN products pr ON p.product_id = pr.id WHERE (p.module_type = 'Wholesale' OR p.module_type IS NULL) AND pr.name IS NULL"
+        : "SELECT p.id, p.paid_amount, p.payment_type, p.delivery_charges, p.fare_payment_type, p.purchase_date FROM purchases p LEFT JOIN products pr ON p.product_id = pr.id WHERE p.module_type = $1 AND pr.name IS NULL";
+      const expQ = isWholesale
+        ? "SELECT id, amount, payment_type, expense_type, created_at FROM expenses WHERE (module_type = 'Wholesale' OR module_type IS NULL)"
+        : "SELECT id, amount, payment_type, expense_type, created_at FROM expenses WHERE module_type = $1";
+      const salQ = isWholesale
+        ? "SELECT id, amount, payment_type, created_at FROM salary_payments WHERE (module_type = 'Wholesale' OR module_type IS NULL)"
+        : "SELECT id, amount, payment_type, created_at FROM salary_payments WHERE module_type = $1";
+      const rentQ = isWholesale
+        ? "SELECT id, amount, created_at FROM rent WHERE (module_type = 'Wholesale' OR module_type IS NULL)"
+        : "SELECT id, amount, created_at FROM rent WHERE module_type = $1";
+      const invQ = isWholesale
+        ? "SELECT id, amount, created_at, date FROM investment WHERE (module_type = 'Wholesale' OR module_type IS NULL)"
+        : "SELECT id, amount, created_at, date FROM investment WHERE module_type = $1";
+      const otherExpQ = isWholesale
+        ? "SELECT id, amount, payment_method, created_at, date FROM other_expenses WHERE (module_type = 'Wholesale' OR module_type IS NULL)"
+        : "SELECT id, amount, payment_method, created_at, date FROM other_expenses WHERE module_type = $1";
+      const qParams = isWholesale ? [] : [mod];
+
       const [sales, purchases, expenses, salaries, rents, investments, otherExp] = await Promise.all([
-        poolOrClient.query("SELECT id, paid_amount, payment_type, created_at FROM sales WHERE COALESCE(sale_type, 'Wholesale') = $1", [mod]),
-        poolOrClient.query("SELECT p.id, p.paid_amount, p.payment_type, p.delivery_charges, p.fare_payment_type, p.purchase_date FROM purchases p LEFT JOIN products pr ON p.product_id = pr.id WHERE COALESCE(p.module_type, 'Wholesale') = $1 AND pr.name IS NULL", [mod]),
-        poolOrClient.query("SELECT id, amount, payment_type, expense_type, created_at FROM expenses WHERE COALESCE(module_type, 'Wholesale') = $1", [mod]),
-        poolOrClient.query("SELECT id, amount, payment_type, created_at FROM salary_payments WHERE COALESCE(module_type, 'Wholesale') = $1", [mod]),
-        poolOrClient.query("SELECT id, amount, created_at FROM rent WHERE COALESCE(module_type, 'Wholesale') = $1", [mod]),
-        poolOrClient.query("SELECT id, amount, created_at, date FROM investment WHERE COALESCE(module_type, 'Wholesale') = $1", [mod]),
-        poolOrClient.query("SELECT id, amount, payment_method, created_at, date FROM other_expenses WHERE COALESCE(module_type, 'Wholesale') = $1", [mod]),
+        poolOrClient.query(saleQ, qParams),
+        poolOrClient.query(purchQ, qParams),
+        poolOrClient.query(expQ, qParams),
+        poolOrClient.query(salQ, qParams),
+        poolOrClient.query(rentQ, qParams),
+        poolOrClient.query(invQ, qParams),
+        poolOrClient.query(otherExpQ, qParams),
       ]);
 
       const txns = [];
@@ -420,13 +445,50 @@ router.get('/balances', auth, async (req, res) => {
     };
 
     // Fetch all relevant transactions
-    const salesRes = await pool.query("SELECT id, paid_amount, payment_type, created_at FROM sales WHERE COALESCE(sale_type, 'Wholesale') = $1", [targetModule]);
-    const purchasesRes = await pool.query("SELECT p.id, p.paid_amount, p.payment_type, p.delivery_charges, p.fare_payment_type, p.purchase_date FROM purchases p LEFT JOIN products pr ON p.product_id = pr.id WHERE COALESCE(p.module_type, 'Wholesale') = $1 AND pr.name IS NULL", [targetModule]);
-    const expensesRes = await pool.query("SELECT id, amount, payment_type, expense_type, created_at FROM expenses WHERE COALESCE(module_type, 'Wholesale') = $1", [targetModule]);
-    const salariesRes = await pool.query("SELECT id, amount, payment_type, created_at FROM salary_payments WHERE COALESCE(module_type, 'Wholesale') = $1", [targetModule]);
-    const rentsRes = await pool.query("SELECT id, amount, created_at FROM rent WHERE COALESCE(module_type, 'Wholesale') = $1", [targetModule]);
-    const investmentsRes = await pool.query("SELECT id, amount, created_at, date FROM investment WHERE COALESCE(module_type, 'Wholesale') = $1", [targetModule]);
-    const otherExpensesRes = await pool.query("SELECT id, amount, payment_method, created_at, date FROM other_expenses WHERE COALESCE(module_type, 'Wholesale') = $1", [targetModule]);
+    // Strict module isolation: Wholesale allows NULL fallback; Retail 1/2 must match exactly
+    const isWholesaleMod = targetModule === 'Wholesale';
+    const salesRes = await pool.query(
+      isWholesaleMod
+        ? "SELECT id, paid_amount, payment_type, created_at FROM sales WHERE (sale_type = 'Wholesale' OR sale_type IS NULL)"
+        : "SELECT id, paid_amount, payment_type, created_at FROM sales WHERE sale_type = $1",
+      isWholesaleMod ? [] : [targetModule]
+    );
+    const purchasesRes = await pool.query(
+      isWholesaleMod
+        ? "SELECT p.id, p.paid_amount, p.payment_type, p.delivery_charges, p.fare_payment_type, p.purchase_date FROM purchases p LEFT JOIN products pr ON p.product_id = pr.id WHERE (p.module_type = 'Wholesale' OR p.module_type IS NULL) AND pr.name IS NULL"
+        : "SELECT p.id, p.paid_amount, p.payment_type, p.delivery_charges, p.fare_payment_type, p.purchase_date FROM purchases p LEFT JOIN products pr ON p.product_id = pr.id WHERE p.module_type = $1 AND pr.name IS NULL",
+      isWholesaleMod ? [] : [targetModule]
+    );
+    const expensesRes = await pool.query(
+      isWholesaleMod
+        ? "SELECT id, amount, payment_type, expense_type, created_at FROM expenses WHERE (module_type = 'Wholesale' OR module_type IS NULL)"
+        : "SELECT id, amount, payment_type, expense_type, created_at FROM expenses WHERE module_type = $1",
+      isWholesaleMod ? [] : [targetModule]
+    );
+    const salariesRes = await pool.query(
+      isWholesaleMod
+        ? "SELECT id, amount, payment_type, created_at FROM salary_payments WHERE (module_type = 'Wholesale' OR module_type IS NULL)"
+        : "SELECT id, amount, payment_type, created_at FROM salary_payments WHERE module_type = $1",
+      isWholesaleMod ? [] : [targetModule]
+    );
+    const rentsRes = await pool.query(
+      isWholesaleMod
+        ? "SELECT id, amount, created_at FROM rent WHERE (module_type = 'Wholesale' OR module_type IS NULL)"
+        : "SELECT id, amount, created_at FROM rent WHERE module_type = $1",
+      isWholesaleMod ? [] : [targetModule]
+    );
+    const investmentsRes = await pool.query(
+      isWholesaleMod
+        ? "SELECT id, amount, created_at, date FROM investment WHERE (module_type = 'Wholesale' OR module_type IS NULL)"
+        : "SELECT id, amount, created_at, date FROM investment WHERE module_type = $1",
+      isWholesaleMod ? [] : [targetModule]
+    );
+    const otherExpensesRes = await pool.query(
+      isWholesaleMod
+        ? "SELECT id, amount, payment_method, created_at, date FROM other_expenses WHERE (module_type = 'Wholesale' OR module_type IS NULL)"
+        : "SELECT id, amount, payment_method, created_at, date FROM other_expenses WHERE module_type = $1",
+      isWholesaleMod ? [] : [targetModule]
+    );
     
     const transactions = [];
 

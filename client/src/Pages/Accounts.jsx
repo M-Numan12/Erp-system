@@ -124,44 +124,70 @@ export default function Accounts() {
     const isRetailModule = targetModule === 'Retail 1' || targetModule === 'Retail 2';
     const includeRecipients = !isRetailModule;
     return [
-      ...accounts.filter(a => (a.module_type || 'Wholesale') === targetModule && (includeRecipients || a.module_type !== 'Admin Recipient')),
+      ...accounts.filter(a => {
+        if (a.module_type === 'Admin Recipient') return false;
+        if (targetModule === 'Wholesale') return !a.module_type || a.module_type === 'Wholesale';
+        return a.module_type === targetModule;
+      }),
       ...(includeRecipients ? recipientAccounts : [])
     ];
   }, [accounts, activeTab, user]);
 
   const filteredSales = useMemo(() => {
     const targetModule = user?.role === 'admin' ? activeTab : (user?.module_type || 'Wholesale');
-    return sales.filter(s => (s.sale_type || s.module_type || 'Wholesale') === targetModule);
+    return sales.filter(s => {
+      const saleModule = s.sale_type || s.module_type;
+      if (targetModule === 'Wholesale') return !saleModule || saleModule === 'Wholesale';
+      return saleModule === targetModule;
+    });
   }, [sales, activeTab, user]);
 
   const filteredSupplierPayments = useMemo(() => {
     const targetModule = user?.role === 'admin' ? activeTab : (user?.module_type || 'Wholesale');
-    return supplierPayments.filter(p => (p.module_type || 'Wholesale') === targetModule);
+    return supplierPayments.filter(p => {
+      if (targetModule === 'Wholesale') return !p.module_type || p.module_type === 'Wholesale';
+      return p.module_type === targetModule;
+    });
   }, [supplierPayments, activeTab, user]);
 
   const filteredGeneralExpenses = useMemo(() => {
     const targetModule = user?.role === 'admin' ? activeTab : (user?.module_type || 'Wholesale');
-    return generalExpenses.filter(e => (e.module_type || 'Wholesale') === targetModule);
+    return generalExpenses.filter(e => {
+      if (targetModule === 'Wholesale') return !e.module_type || e.module_type === 'Wholesale';
+      return e.module_type === targetModule;
+    });
   }, [generalExpenses, activeTab, user]);
 
   const filteredSalaries = useMemo(() => {
     const targetModule = user?.role === 'admin' ? activeTab : (user?.module_type || 'Wholesale');
-    return salaries.filter(s => (s.module_type || 'Wholesale') === targetModule);
+    return salaries.filter(s => {
+      if (targetModule === 'Wholesale') return !s.module_type || s.module_type === 'Wholesale';
+      return s.module_type === targetModule;
+    });
   }, [salaries, activeTab, user]);
 
   const filteredRents = useMemo(() => {
     const targetModule = user?.role === 'admin' ? activeTab : (user?.module_type || 'Wholesale');
-    return rents.filter(r => (r.module_type || 'Wholesale') === targetModule);
+    return rents.filter(r => {
+      if (targetModule === 'Wholesale') return !r.module_type || r.module_type === 'Wholesale';
+      return r.module_type === targetModule;
+    });
   }, [rents, activeTab, user]);
 
   const filteredInvestments = useMemo(() => {
     const targetModule = user?.role === 'admin' ? activeTab : (user?.module_type || 'Wholesale');
-    return investments.filter(i => (i.module_type || 'Wholesale') === targetModule);
+    return investments.filter(i => {
+      if (targetModule === 'Wholesale') return !i.module_type || i.module_type === 'Wholesale';
+      return i.module_type === targetModule;
+    });
   }, [investments, activeTab, user]);
 
   const filteredOtherExpenses = useMemo(() => {
     const targetModule = user?.role === 'admin' ? activeTab : (user?.module_type || 'Wholesale');
-    return otherExpenses.filter(o => (o.module_type || 'Wholesale') === targetModule);
+    return otherExpenses.filter(o => {
+      if (targetModule === 'Wholesale') return !o.module_type || o.module_type === 'Wholesale';
+      return o.module_type === targetModule;
+    });
   }, [otherExpenses, activeTab, user]);
 
   // State for Ledger view
