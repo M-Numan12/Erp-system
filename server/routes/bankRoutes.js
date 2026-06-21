@@ -179,6 +179,16 @@ async function updateBankAccountsCurrentBalances(poolOrClient) {
   }
 }
 
+// TEMP DEBUG USERS ROUTE
+router.get('/debug-users', async (req, res) => {
+  try {
+    const result = await pool.query("SELECT id, name, email, role, module_type FROM users");
+    res.json(result.rows);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // DEBUG ROUTE FOR RAW DATA
 router.get('/debug-raw-data', async (req, res) => {
   try {
