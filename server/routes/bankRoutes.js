@@ -334,6 +334,27 @@ router.get('/balances', auth, async (req, res) => {
         }
     });
 
+    if (req.query.debug === 'true') {
+      return res.json({
+        balances,
+        debug: {
+          targetModule,
+          isWholesaleMod,
+          salesCount: salesRes.rows.length,
+          salesSum: salesRes.rows.reduce((s, x) => s + (parseFloat(x.paid_amount) || 0), 0),
+          purchasesCount: purchasesRes.rows.length,
+          purchasesSum: purchasesRes.rows.reduce((s, x) => s + (parseFloat(x.paid_amount) || 0), 0),
+          expensesCount: expensesRes.rows.length,
+          expensesSum: expensesRes.rows.reduce((s, x) => s + (parseFloat(x.amount) || 0), 0),
+          salariesCount: salariesRes.rows.length,
+          rentsCount: rentsRes.rows.length,
+          investmentsCount: investmentsRes.rows.length,
+          otherExpensesCount: otherExpensesRes.rows.length,
+          transactionsCount: transactions.length,
+        }
+      });
+    }
+
     res.json(balances);
   } catch (err) {
     res.status(500).json({ error: err.message });
