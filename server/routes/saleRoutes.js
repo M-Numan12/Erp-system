@@ -37,6 +37,15 @@ router.get('/', auth, async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+router.get('/fix-temp-2212-2213', auth, async (req, res) => {
+  try {
+    const result = await pool.query("UPDATE sales SET sale_type = 'Retail 1' WHERE id IN (2212, 2213) RETURNING *");
+    res.json({ success: true, updated: result.rows });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // Create a new sale (Bill)
 router.post('/', auth, async (req, res) => {
   const client = await pool.connect();

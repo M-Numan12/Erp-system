@@ -127,7 +127,7 @@ export default function Billing({ type }) {
       if (token) {
         const payload = JSON.parse(atob(token.split('.')[1]));
         const u = payload.user || payload;
-        if (u.role === 'admin') return "";
+        if (u.role === 'admin') return "Wholesale";
         let m = u.module_type;
         if (!m && u.email) {
           const em = u.email.toLowerCase();
