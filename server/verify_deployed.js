@@ -19,15 +19,14 @@ async function run() {
     console.log("Logged in user:", logD.user);
     const h = { "Authorization": `Bearer ${logD.token}` };
     
-    console.log("Fetching temporary fix endpoint from production...");
-    const fixRes = await fetch("https://erp-backend-3rf8.onrender.com/api/sales/fix-temp-2212-2213", { headers: h });
-    if (fixRes.ok) {
-      const fixData = await fixRes.json();
-      console.log("Fix Result:", JSON.stringify(fixData, null, 2));
+    console.log("Fetching GET /api/sales?limit=500 from production...");
+    const salesRes = await fetch("https://erp-backend-3rf8.onrender.com/api/sales?limit=500", { headers: h });
+    if (salesRes.ok) {
+      const sales = await salesRes.json();
+      const targetSales = sales.filter(s => s.id === 2212 || s.id === 2213);
+      console.log("Target Sales (2212, 2213) in /sales response:", JSON.stringify(targetSales, null, 2));
     } else {
-      console.error(`Fix failed: ${fixRes.status}`);
-      const errText = await fixRes.text();
-      console.error("Body:", errText);
+      console.error(`Sales fetch failed: ${salesRes.status}`);
     }
   } catch (err) {
     console.error(err);
