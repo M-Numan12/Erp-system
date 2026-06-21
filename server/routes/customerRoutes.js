@@ -17,9 +17,8 @@ router.get('/', auth, async (req, res) => {
         params.push(type);
       }
     } else {
-      // Normal users see their own created AND those assigned to their module_type (e.g. from Admin)
-      query += ' WHERE user_id = $1 OR module_type = $2';
-      params.push(req.user.id, req.user.module_type || 'Retail 1');
+      query += ' WHERE module_type = $1';
+      params.push(req.user.module_type || 'Retail 1');
     }
 
     query += ' ORDER BY name ASC';
@@ -50,8 +49,8 @@ router.put('/:id', auth, async (req, res) => {
     const finalBalance = isNaN(parsedBalance) ? 0 : parsedBalance;
 
     const result = await pool.query(
-      'UPDATE customers SET name=$1,phone=$2,email=$3,address=$4,balance=$5 WHERE id=$6 AND (user_id=$7 OR $8) RETURNING *',
-      [name, phone, email, address, finalBalance, req.params.id, req.user.id, isAdmin(req)]
+      'UPDATE customers SET name=$1,phone=$2,email=$3,address=$4,balance=$5 WHERE id=$6 AND (module_type=$7 OR $8) RETURNING *',
+      [name, phone, email, address, finalBalance, req.params.id, req.user.module_type || 'Retail 1', isAdmin(req)]
     );
     res.json(result.rows[0]);
   } catch (err) { res.status(500).json({ error: err.message }); }
@@ -59,7 +58,7 @@ router.put('/:id', auth, async (req, res) => {
 
 router.delete('/:id', auth, async (req, res) => {
   try {
-    await pool.query('DELETE FROM customers WHERE id=$1 AND (user_id=$2 OR $3)', [req.params.id, req.user.id, isAdmin(req)]);
+    await pool.query('DELETE FROM customers WHERE id=$1 AND (module_type=$2 OR $3)', [req.params.id, req.user.module_type || 'Retail 1', isAdmin(req)]);
     res.json({ message: 'Deleted' });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });

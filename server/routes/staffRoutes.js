@@ -18,8 +18,8 @@ router.get('/', auth, async (req, res) => {
         params.push(type);
       }
     } else {
-      query += ' WHERE user_id = $1 OR module_type = $2';
-      params.push(req.user.id, req.user.module_type || 'Retail 1');
+      query += ' WHERE module_type = $1';
+      params.push(req.user.module_type || 'Retail 1');
     }
 
     query += ' ORDER BY name ASC';
@@ -52,8 +52,8 @@ router.put('/:id', auth, async (req, res) => {
   try {
     const { name, phone, address } = req.body;
     const result = await pool.query(
-      'UPDATE staff SET name=$1, phone=$2, address=$3 WHERE id=$4 AND (user_id=$5 OR $6) RETURNING *',
-      [name, phone, address, req.params.id, req.user.id, isAdmin(req)]
+      'UPDATE staff SET name=$1, phone=$2, address=$3 WHERE id=$4 AND (module_type=$5 OR $6) RETURNING *',
+      [name, phone, address, req.params.id, req.user.module_type || 'Retail 1', isAdmin(req)]
     );
     res.json(result.rows[0]);
   } catch (err) {
@@ -64,7 +64,7 @@ router.put('/:id', auth, async (req, res) => {
 // Delete a staff member
 router.delete('/:id', auth, async (req, res) => {
   try {
-    await pool.query('DELETE FROM staff WHERE id=$1 AND (user_id=$2 OR $3)', [req.params.id, req.user.id, isAdmin(req)]);
+    await pool.query('DELETE FROM staff WHERE id=$1 AND (module_type=$2 OR $3)', [req.params.id, req.user.module_type || 'Retail 1', isAdmin(req)]);
     res.json({ message: 'Deleted' });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -80,8 +80,8 @@ router.get('/:id/ledger', auth, async (req, res) => {
       staffRes = await pool.query('SELECT * FROM staff WHERE id = $1', [staffId]);
     } else {
       staffRes = await pool.query(
-        'SELECT * FROM staff WHERE id = $1 AND (user_id = $2 OR module_type = $3)',
-        [staffId, req.user.id, req.user.module_type || 'Retail 1']
+        'SELECT * FROM staff WHERE id = $1 AND module_type = $2',
+        [staffId, req.user.module_type || 'Retail 1']
       );
     }
     if (staffRes.rows.length === 0) return res.status(404).json({ error: 'Staff not found' });
@@ -112,8 +112,8 @@ router.post('/:id/ledger', auth, async (req, res) => {
       staffRes = await client.query('SELECT * FROM staff WHERE id = $1 FOR UPDATE', [staffId]);
     } else {
       staffRes = await client.query(
-        'SELECT * FROM staff WHERE id = $1 AND (user_id = $2 OR module_type = $3) FOR UPDATE',
-        [staffId, req.user.id, req.user.module_type || 'Retail 1']
+        'SELECT * FROM staff WHERE id = $1 AND module_type = $2 FOR UPDATE',
+        [staffId, req.user.module_type || 'Retail 1']
       );
     }
     if (staffRes.rows.length === 0) throw new Error('Staff not found');

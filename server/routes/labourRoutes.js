@@ -18,8 +18,8 @@ router.get('/', auth, async (req, res) => {
         params.push(type);
       }
     } else {
-      query += ' WHERE user_id = $1 OR module_type = $2';
-      params.push(req.user.id, req.user.module_type || 'Retail 1');
+      query += ' WHERE module_type = $1';
+      params.push(req.user.module_type || 'Retail 1');
     }
 
     query += ' ORDER BY group_name ASC, name ASC';
@@ -46,8 +46,8 @@ router.put('/:id', auth, async (req, res) => {
   try {
     const { name, group_name, contact, rate_per_day, cnic } = req.body;
     const result = await pool.query(
-      'UPDATE labours SET name=$1, group_name=$2, contact=$3, rate_per_day=$4, cnic=$5 WHERE id=$6 AND (user_id=$7 OR $8) RETURNING *',
-      [name, group_name, contact, rate_per_day, cnic, req.params.id, req.user.id, isAdmin(req)]
+      'UPDATE labours SET name=$1, group_name=$2, contact=$3, rate_per_day=$4, cnic=$5 WHERE id=$6 AND (module_type=$7 OR $8) RETURNING *',
+      [name, group_name, contact, rate_per_day, cnic, req.params.id, req.user.module_type || 'Retail 1', isAdmin(req)]
     );
     res.json(result.rows[0]);
   } catch (err) { res.status(500).json({ error: err.message }); }
@@ -56,7 +56,7 @@ router.put('/:id', auth, async (req, res) => {
 // 4. DELETE labour
 router.delete('/:id', auth, async (req, res) => {
   try {
-    await pool.query('DELETE FROM labours WHERE id=$1 AND (user_id=$2 OR $3)', [req.params.id, req.user.id, isAdmin(req)]);
+    await pool.query('DELETE FROM labours WHERE id=$1 AND (module_type=$2 OR $3)', [req.params.id, req.user.module_type || 'Retail 1', isAdmin(req)]);
     res.json({ message: 'Labour deleted successfully' });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
@@ -74,8 +74,8 @@ router.get('/work-history', auth, async (req, res) => {
         params.push(type);
       }
     } else {
-      query += ' WHERE user_id = $1 OR module_type = $2';
-      params.push(req.user.id, req.user.module_type || 'Retail 1');
+      query += ' WHERE module_type = $1';
+      params.push(req.user.module_type || 'Retail 1');
     }
 
     query += ' ORDER BY created_at DESC';

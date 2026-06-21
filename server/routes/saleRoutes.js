@@ -18,13 +18,15 @@ router.get('/', auth, async (req, res) => {
     let query = 'SELECT * FROM sales';
     let params = [];
 
-    if (type) {
-      if (type === 'Wholesale') {
+    const activeTab = isAdmin(req) ? type : (req.user.module_type || 'Retail 1');
+
+    if (activeTab) {
+      if (activeTab === 'Wholesale') {
         query += ' WHERE (sale_type=$1 OR sale_type IS NULL)';
       } else {
         query += ' WHERE sale_type=$1';
       }
-      params.push(type);
+      params.push(activeTab);
     }
 
     const limit = req.query.limit ? parseInt(req.query.limit) : 500;
@@ -213,6 +215,16 @@ router.get('/:id', auth, async (req, res) => {
     const sale = await pool.query('SELECT * FROM sales WHERE id = $1', [req.params.id]);
     if (sale.rows.length === 0) return res.status(404).json({ error: 'Sale not found' });
 
+    if (!isAdmin(req)) {
+      const userModule = req.user.module_type || 'Retail 1';
+      const saleType = sale.rows[0].sale_type;
+      const isWholesaleMatch = (userModule === 'Wholesale' && (saleType === 'Wholesale' || saleType === null));
+      const isOtherMatch = (saleType === userModule);
+      if (!isWholesaleMatch && !isOtherMatch) {
+        return res.status(403).json({ error: 'Unauthorized to view this sale' });
+      }
+    }
+
     const items = await pool.query('SELECT * FROM sale_items WHERE sale_id = $1', [req.params.id]);
     res.json({ ...sale.rows[0], items: items.rows });
   } catch (err) { res.status(500).json({ error: err.message }); }
@@ -260,19 +272,29 @@ router.post('/payment', auth, async (req, res) => {
       return res.status(400).json({ error: 'Invalid payment amount' });
     }
 
+    const finalModule = isAdmin(req) ? (module_type || 'Wholesale') : (req.user.module_type || 'Retail 1');
+
+    const cust = await client.query('SELECT name, module_type FROM customers WHERE id=$1', [customer_id]);
+    if (cust.rows.length === 0) throw new Error('Customer not found');
+    const custName = cust.rows[0].name || 'Unknown';
+    const custModule = cust.rows[0].module_type || 'Wholesale';
+
+    if (!isAdmin(req)) {
+      if (custModule !== req.user.module_type) {
+        throw new Error('Unauthorized customer access');
+      }
+    }
+
     await client.query(
       'UPDATE customers SET balance = balance - $1 WHERE id = $2',
       [parsedAmount, customer_id]
     );
 
-    const cust = await client.query('SELECT name FROM customers WHERE id=$1', [customer_id]);
-    const custName = cust.rows[0]?.name || 'Unknown';
-
     const insertRes = await client.query(
       `INSERT INTO sales 
       (customer_id, customer_name, total_amount, net_amount, paid_amount, balance_amount, payment_type, sale_type, user_id) 
       VALUES ($1, $2, 0, 0, $3, $4, $5, $6, $7) RETURNING id`,
-      [customer_id, custName, amount, -amount, payment_reference ? `${payment_type || 'Cash'} (${payment_reference})` : (payment_type || 'Cash'), module_type, req.user.id]
+      [customer_id, custName, amount, -amount, payment_reference ? `${payment_type || 'Cash'} (${payment_reference})` : (payment_type || 'Cash'), finalModule, req.user.id]
     );
 
     await client.query('COMMIT');
@@ -673,6 +695,17 @@ router.post('/return', auth, async (req, res) => {
     const saleRes = await client.query('SELECT * FROM sales WHERE id = $1', [sId]);
     if (saleRes.rows.length === 0) throw new Error('Sale not found');
     const sale = saleRes.rows[0];
+
+    if (!isAdmin(req)) {
+      const userModule = req.user.module_type || 'Retail 1';
+      const saleType = sale.sale_type;
+      const isWholesaleMatch = (userModule === 'Wholesale' && (saleType === 'Wholesale' || saleType === null));
+      const isOtherMatch = (saleType === userModule);
+      if (!isWholesaleMatch && !isOtherMatch) {
+        throw new Error('Unauthorized to return this sale');
+      }
+    }
+
     if (sale.status === 'Returned') throw new Error('This bill has already been fully returned');
 
     // 2. Identify items to return

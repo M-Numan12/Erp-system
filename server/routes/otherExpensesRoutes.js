@@ -44,8 +44,8 @@ router.put('/:id', auth, async (req, res) => {
   try {
     const { title, category, amount, date, notes, payment_method } = req.body;
     const result = await pool.query(
-      'UPDATE other_expenses SET title=$1, category=$2, amount=$3, date=$4, notes=$5, payment_method=$6 WHERE id=$7 AND (user_id=$8 OR $9) RETURNING *',
-      [title, category, amount || 0, date, notes, payment_method, req.params.id, req.user.id, isAdmin(req)]
+      'UPDATE other_expenses SET title=$1, category=$2, amount=$3, date=$4, notes=$5, payment_method=$6 WHERE id=$7 AND (module_type=$8 OR $9) RETURNING *',
+      [title, category, amount || 0, date, notes, payment_method, req.params.id, req.user.module_type || 'Retail 1', isAdmin(req)]
     );
     res.json(result.rows[0]);
   } catch (err) { res.status(500).json({ error: err.message }); }
@@ -53,7 +53,7 @@ router.put('/:id', auth, async (req, res) => {
 
 router.delete('/:id', auth, async (req, res) => {
   try {
-    await pool.query('DELETE FROM other_expenses WHERE id=$1 AND (user_id=$2 OR $3)', [req.params.id, req.user.id, isAdmin(req)]);
+    await pool.query('DELETE FROM other_expenses WHERE id=$1 AND (module_type=$2 OR $3)', [req.params.id, req.user.module_type || 'Retail 1', isAdmin(req)]);
     res.json({ message: 'Deleted' });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });

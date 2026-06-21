@@ -13,8 +13,8 @@ router.get('/', auth, async (req, res) => {
     let params = [];
 
     if (!isAdmin(req)) {
-      query += ' WHERE user_id = $1 OR module_type = $2';
-      params.push(req.user.id, req.user.module_type || 'Retail 1');
+      query += ' WHERE module_type = $1';
+      params.push(req.user.module_type || 'Retail 1');
     } else if (type) {
       query += ' WHERE module_type=$1';
       params.push(type);
@@ -69,13 +69,13 @@ router.put('/:id', auth, async (req, res) => {
       `UPDATE products SET 
         name=$1, brand=$2, category=$3, unit=$4, price=$5, cost_price=$6, 
         stock_quantity=$7, minimum_stock=$8, description=$9, image_url=$10 
-      WHERE id=$11 AND (user_id=$12 OR $13) RETURNING *`,
+      WHERE id=$11 AND (module_type=$12 OR $13) RETURNING *`,
       [
         name, brand, category, unit, 
         parseFloat(price) || 0, parseFloat(cost_price) || 0, 
         parseFloat(stock_quantity) || 0, parseFloat(minimum_stock) || 0, 
         description, image_url, 
-        req.params.id, req.user.id, isAdmin(req)
+        req.params.id, req.user.module_type || 'Retail 1', isAdmin(req)
       ]
     );
     res.json(result.rows[0]);
@@ -99,8 +99,8 @@ router.post('/:id/stock', auth, async (req, res) => {
     // Update product stock
     const prodRes = await client.query(
       `UPDATE products SET stock_quantity = stock_quantity + $1 
-       WHERE id=$2 AND (user_id=$3 OR $4) RETURNING *`,
-      [parsedQty, req.params.id, req.user.id, isAdmin(req)]
+       WHERE id=$2 AND (module_type=$3 OR $4) RETURNING *`,
+      [parsedQty, req.params.id, req.user.module_type || 'Retail 1', isAdmin(req)]
     );
 
     if (prodRes.rows.length === 0) throw new Error("Product not found or unauthorized");
@@ -126,7 +126,7 @@ router.post('/:id/stock', auth, async (req, res) => {
 // Delete a product
 router.delete('/:id', auth, async (req, res) => {
   try {
-    await pool.query('DELETE FROM products WHERE id=$1 AND (user_id=$2 OR $3)', [req.params.id, req.user.id, isAdmin(req)]);
+    await pool.query('DELETE FROM products WHERE id=$1 AND (module_type=$2 OR $3)', [req.params.id, req.user.module_type || 'Retail 1', isAdmin(req)]);
     res.json({ message: 'Product Deleted' });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });

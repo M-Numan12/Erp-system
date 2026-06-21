@@ -13,8 +13,13 @@ router.get('/', auth, async (req, res) => {
     let params = [];
     let conditions = ['(is_deleted IS NOT TRUE)'];
 
-    if (type) {
-      params.push(type);
+    if (isAdmin(req)) {
+      if (type) {
+        params.push(type);
+        conditions.push(`module_type = $${params.length}`);
+      }
+    } else {
+      params.push(req.user.module_type || 'Retail 1');
       conditions.push(`module_type = $${params.length}`);
     }
 
@@ -64,10 +69,10 @@ router.put('/:id', auth, async (req, res) => {
     const result = await pool.query(
       `UPDATE vehicles SET 
         ownership_type=$1, vehicle_number=$2, driver_name=$3, driver_cnic=$4, driver_phone=$5
-      WHERE id=$6 AND (user_id=$7 OR $8) RETURNING *`,
+      WHERE id=$6 AND (module_type=$7 OR $8) RETURNING *`,
       [
         ownership_type, vehicle_number, driver_name, driver_cnic, driver_phone, 
-        req.params.id, req.user.id, isAdmin(req)
+        req.params.id, req.user.module_type || 'Retail 1', isAdmin(req)
       ]
     );
     res.json(result.rows[0]);
@@ -180,7 +185,7 @@ router.post('/payment', auth, async (req, res) => {
 
 router.delete('/:id', auth, async (req, res) => {
   try {
-    await pool.query('UPDATE vehicles SET is_deleted=TRUE WHERE id=$1 AND (user_id=$2 OR $3)', [req.params.id, req.user.id, isAdmin(req)]);
+    await pool.query('UPDATE vehicles SET is_deleted=TRUE WHERE id=$1 AND (module_type=$2 OR $3)', [req.params.id, req.user.module_type || 'Retail 1', isAdmin(req)]);
     res.json({ message: 'Deleted' });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });

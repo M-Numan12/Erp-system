@@ -322,7 +322,7 @@ router.get('/debug-cash-wholesale', async (req, res) => {
 router.get('/balances', auth, async (req, res) => {
   try {
     await updateBankAccountsCurrentBalances(pool);
-    const targetModule = req.query.type || req.user.module_type || 'Wholesale';
+    const targetModule = isAdmin(req) ? (req.query.type || req.user.module_type || 'Wholesale') : (req.user.module_type || 'Retail 1');
 
     // Fetch accounts relevant to the module only
     let accountsQ = "SELECT id, bank_name, account_number, opening_balance FROM bank_accounts WHERE (COALESCE(module_type, 'Wholesale') = $1 OR module_type = 'Admin Recipient')";
@@ -468,13 +468,13 @@ router.get('/', auth, async (req, res) => {
       // Everyone else sees their own banks, those added for their shop
       if (includeRecipients) {
         result = await pool.query(
-          "SELECT * FROM bank_accounts WHERE user_id = $1 OR module_type = $2 OR module_type = 'Admin Recipient' ORDER BY id ASC",
-          [req.user.id, req.user.module_type || 'Retail 1']
+          "SELECT * FROM bank_accounts WHERE module_type = $1 OR module_type = 'Admin Recipient' ORDER BY id ASC",
+          [req.user.module_type || 'Retail 1']
         );
       } else {
         result = await pool.query(
-          "SELECT * FROM bank_accounts WHERE (user_id = $1 OR module_type = $2) AND COALESCE(module_type, '') != 'Admin Recipient' ORDER BY id ASC",
-          [req.user.id, req.user.module_type || 'Retail 1']
+          "SELECT * FROM bank_accounts WHERE module_type = $1 AND COALESCE(module_type, '') != 'Admin Recipient' ORDER BY id ASC",
+          [req.user.module_type || 'Retail 1']
         );
       }
     }
@@ -527,8 +527,8 @@ router.put('/:id', auth, async (req, res) => {
       );
     } else {
       result = await pool.query(
-        'UPDATE bank_accounts SET bank_name=$1, account_title=$2, account_number=$3, opening_balance=$4 WHERE id=$5 AND user_id=$6 RETURNING *',
-        [bank_name, account_title, account_number, opening_balance || 0, req.params.id, req.user.id]
+        'UPDATE bank_accounts SET bank_name=$1, account_title=$2, account_number=$3, opening_balance=$4 WHERE id=$5 AND module_type=$6 RETURNING *',
+        [bank_name, account_title, account_number, opening_balance || 0, req.params.id, req.user.module_type || 'Retail 1']
       );
     }
     await updateBankAccountsCurrentBalances(pool);
@@ -544,7 +544,7 @@ router.delete('/:id', auth, async (req, res) => {
     if (req.user.role === 'admin') {
       await pool.query('DELETE FROM bank_accounts WHERE id=$1', [req.params.id]);
     } else {
-      await pool.query('DELETE FROM bank_accounts WHERE id=$1 AND user_id=$2', [req.params.id, req.user.id]);
+      await pool.query('DELETE FROM bank_accounts WHERE id=$1 AND module_type=$2', [req.params.id, req.user.module_type || 'Retail 1']);
     }
     await updateBankAccountsCurrentBalances(pool);
     res.json({ message: 'Bank deleted' });
@@ -558,7 +558,7 @@ router.get('/balance/:method', auth, async (req, res) => {
   try {
     const { method } = req.params;
     const { module_type } = req.query;
-    const finalModule = module_type || req.user.module_type || 'Wholesale';
+    const finalModule = isAdminUser ? (module_type || req.user.module_type || 'Wholesale') : (req.user.module_type || 'Retail 1');
     const userId = req.user.id;
     const isAdminUser = req.user.role === 'admin';
 
@@ -569,8 +569,8 @@ router.get('/balance/:method', auth, async (req, res) => {
     let accountsQ = 'SELECT bank_name, account_number, current_balance FROM bank_accounts';
     let params = [];
     if (!isAdminUser) {
-      accountsQ += " WHERE user_id = $1 OR COALESCE(module_type, 'Wholesale') = $2";
-      params.push(userId, finalModule);
+      accountsQ += " WHERE COALESCE(module_type, 'Wholesale') = $1";
+      params.push(finalModule);
     } else {
       accountsQ += " WHERE COALESCE(module_type, 'Wholesale') = $1";
       params.push(finalModule);

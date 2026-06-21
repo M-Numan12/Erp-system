@@ -89,6 +89,12 @@ router.get('/summary', auth, async (req, res) => {
   try {
     const { from, to } = req.query;
     const summary = await buildSummary(from || null, to || null);
+    if (!isAdmin(req)) {
+      const userModule = req.user.module_type || 'Retail 1';
+      const filtered = {};
+      filtered[userModule] = summary[userModule];
+      return res.json(filtered);
+    }
     res.json(summary);
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
@@ -97,6 +103,12 @@ router.get('/summary', auth, async (req, res) => {
 router.get('/detail/:counter', auth, async (req, res) => {
   try {
     const c = decodeURIComponent(req.params.counter);
+    if (!isAdmin(req)) {
+      const userModule = req.user.module_type || 'Retail 1';
+      if (c !== userModule) {
+        return res.status(403).json({ error: 'Unauthorized: Cannot view details of other counters' });
+      }
+    }
     let { from, to } = req.query;
     if (from) from = `${from} 00:00:00`;
     if (to)   to   = `${to} 23:59:59`;

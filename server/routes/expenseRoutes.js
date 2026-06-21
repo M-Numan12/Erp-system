@@ -17,8 +17,8 @@ router.get('/', auth, async (req, res) => {
         params.push(type);
       }
     } else {
-      query += ' WHERE user_id = $1 OR module_type = $2';
-      params.push(req.user.id, req.user.module_type || 'Retail 1');
+      query += ' WHERE module_type = $1';
+      params.push(req.user.module_type || 'Retail 1');
     }
 
     query += ' ORDER BY expense_date DESC';
@@ -59,8 +59,8 @@ router.put('/:id', auth, async (req, res) => {
     }
 
     const result = await pool.query(
-      'UPDATE expenses SET description=$1, expense_type=$2, category=$3, amount=$4, expense_date=$5, notes=$6, payment_type=$7, vehicle_id=$8 WHERE id=$9 AND (user_id=$10 OR $11) RETURNING id, description as title, expense_type, category, amount, expense_date, notes, user_id, module_type, payment_type, vehicle_id, created_at',
-      [title, expense_type, category, amount, expense_date, notes, payment_type, vehicle_id || null, req.params.id, req.user.id, isAdmin(req)]
+      'UPDATE expenses SET description=$1, expense_type=$2, category=$3, amount=$4, expense_date=$5, notes=$6, payment_type=$7, vehicle_id=$8 WHERE id=$9 AND (module_type=$10 OR $11) RETURNING id, description as title, expense_type, category, amount, expense_date, notes, user_id, module_type, payment_type, vehicle_id, created_at',
+      [title, expense_type, category, amount, expense_date, notes, payment_type, vehicle_id || null, req.params.id, req.user.module_type || 'Retail 1', isAdmin(req)]
     );
 
     if (vehicle_id) {
@@ -82,7 +82,7 @@ router.delete('/:id', auth, async (req, res) => {
       }
     }
 
-    await pool.query('DELETE FROM expenses WHERE id=$1 AND (user_id=$2 OR $3)', [req.params.id, req.user.id, isAdmin(req)]);
+    await pool.query('DELETE FROM expenses WHERE id=$1 AND (module_type=$2 OR $3)', [req.params.id, req.user.module_type || 'Retail 1', isAdmin(req)]);
     res.json({ message: 'Deleted' });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });

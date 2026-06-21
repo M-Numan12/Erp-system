@@ -44,8 +44,8 @@ router.put('/:id', auth, async (req, res) => {
   try {
     const { property_name, landlord_name, amount, rent_date, status, notes, payment_type } = req.body;
     const result = await pool.query(
-      'UPDATE rent SET property_name=$1, landlord_name=$2, amount=$3, rent_date=$4, status=$5, notes=$6, payment_type=$7 WHERE id=$8 AND (user_id=$9 OR $10) RETURNING *',
-      [property_name, landlord_name, amount || 0, rent_date, status || 'Paid', notes, payment_type, req.params.id, req.user.id, isAdmin(req)]
+      'UPDATE rent SET property_name=$1, landlord_name=$2, amount=$3, rent_date=$4, status=$5, notes=$6, payment_type=$7 WHERE id=$8 AND (module_type=$9 OR $10) RETURNING *',
+      [property_name, landlord_name, amount || 0, rent_date, status || 'Paid', notes, payment_type, req.params.id, req.user.module_type || 'Retail 1', isAdmin(req)]
     );
     res.json(result.rows[0]);
   } catch (err) { res.status(500).json({ error: err.message }); }
@@ -53,7 +53,7 @@ router.put('/:id', auth, async (req, res) => {
 
 router.delete('/:id', auth, async (req, res) => {
   try {
-    await pool.query('DELETE FROM rent WHERE id=$1 AND (user_id=$2 OR $3)', [req.params.id, req.user.id, isAdmin(req)]);
+    await pool.query('DELETE FROM rent WHERE id=$1 AND (module_type=$2 OR $3)', [req.params.id, req.user.module_type || 'Retail 1', isAdmin(req)]);
     res.json({ message: 'Deleted' });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });

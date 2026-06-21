@@ -69,10 +69,10 @@ router.put('/:id', auth, async (req, res) => {
       `UPDATE salary SET 
         employee_name=$1, designation=$2, cnic=$3, amount=$4, advance_salary=$5, 
         joining_date=$6, payment_date=$7, month=$8, status=$9, notes=$10 
-      WHERE id=$11 AND (user_id=$12 OR $13) RETURNING *`,
+      WHERE id=$11 AND (module_type=$12 OR $13) RETURNING *`,
       [
         employee_name, designation, cnic, finalAmount, Math.abs(parseFloat(advance_salary || 0)),
-        joining_date, payment_date, month, status, notes, req.params.id, req.user.id, isAdmin(req)
+        joining_date, payment_date, month, status, notes, req.params.id, req.user.module_type || 'Retail 1', isAdmin(req)
       ]
     );
     res.json(result.rows[0]);
@@ -82,10 +82,14 @@ router.put('/:id', auth, async (req, res) => {
 // New endpoint to fetch combined payments history for staff ledger
 router.get('/ledger/:name', auth, async (req, res) => {
   try {
-    const result = await pool.query(
-      'SELECT * FROM salary_payments WHERE employee_name = $1 ORDER BY created_at DESC',
-      [req.params.name]
-    );
+    let query = 'SELECT * FROM salary_payments WHERE employee_name = $1';
+    let params = [req.params.name];
+    if (!isAdmin(req)) {
+      query += ' AND module_type = $2';
+      params.push(req.user.module_type || 'Retail 1');
+    }
+    query += ' ORDER BY created_at DESC';
+    const result = await pool.query(query, params);
     res.json(result.rows);
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
@@ -94,6 +98,12 @@ router.get('/ledger/:name', auth, async (req, res) => {
 router.get('/deductions/pending/:staffId', auth, async (req, res) => {
   try {
     const { month } = req.query;
+    if (!isAdmin(req)) {
+      const staffRes = await pool.query('SELECT module_type FROM salary WHERE id = $1', [req.params.staffId]);
+      if (staffRes.rows.length === 0 || staffRes.rows[0].module_type !== req.user.module_type) {
+        return res.status(403).json({ error: 'Unauthorized: Staff member counter mismatch' });
+      }
+    }
     let query = 'SELECT * FROM salary_deductions WHERE staff_id = $1 AND is_applied = FALSE';
     let params = [req.params.staffId];
     if (month) {
@@ -109,6 +119,12 @@ router.get('/deductions/pending/:staffId', auth, async (req, res) => {
 router.post('/deductions', auth, async (req, res) => {
   try {
     const { staff_id, amount, target_month, notes } = req.body;
+    if (!isAdmin(req)) {
+      const staffRes = await pool.query('SELECT module_type FROM salary WHERE id = $1', [staff_id]);
+      if (staffRes.rows.length === 0 || staffRes.rows[0].module_type !== req.user.module_type) {
+        return res.status(403).json({ error: 'Unauthorized: Staff member counter mismatch' });
+      }
+    }
     const result = await pool.query(
       `INSERT INTO salary_deductions (staff_id, amount, target_month, notes) 
        VALUES ($1, $2, $3, $4) RETURNING *`,
@@ -126,6 +142,12 @@ router.post('/pay', auth, async (req, res) => {
       transaction_type, month, payment_date, notes, module_type 
     } = req.body;
     
+    if (!isAdmin(req) && staff_id) {
+      const staffRes = await pool.query('SELECT module_type FROM salary WHERE id = $1', [staff_id]);
+      if (staffRes.rows.length === 0 || staffRes.rows[0].module_type !== req.user.module_type) {
+        return res.status(403).json({ error: 'Unauthorized: Staff member counter mismatch' });
+      }
+    }
     const finalModule = isAdmin(req) ? (module_type || 'Wholesale') : (req.user.module_type || 'Retail 1');
     const targetMonth = month || new Date(payment_date || new Date()).toLocaleString('default', { month: 'long', year: 'numeric' });
 
@@ -178,7 +200,7 @@ router.post('/pay', auth, async (req, res) => {
 
 router.delete('/:id', auth, async (req, res) => {
   try {
-    await pool.query('DELETE FROM salary WHERE id=$1 AND (user_id=$2 OR $3)', [req.params.id, req.user.id, isAdmin(req)]);
+    await pool.query('DELETE FROM salary WHERE id=$1 AND (module_type=$2 OR $3)', [req.params.id, req.user.module_type || 'Retail 1', isAdmin(req)]);
     res.json({ message: 'Deleted' });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
