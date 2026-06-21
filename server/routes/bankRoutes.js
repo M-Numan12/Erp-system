@@ -182,8 +182,43 @@ async function updateBankAccountsCurrentBalances(poolOrClient) {
 // TEMP DEBUG USERS ROUTE
 router.get('/debug-users', async (req, res) => {
   try {
-    const result = await pool.query("SELECT id, name, email, role, module_type FROM users");
-    res.json(result.rows);
+    // 1. Fix user module_type in users table
+    await pool.query("UPDATE users SET module_type = 'Retail 2' WHERE email = 'wali2022@gmail.com'");
+    
+    // 2. Fix all user 5 data module types across all relevant tables
+    const tables = [
+      { name: 'bank_accounts', col: 'module_type' },
+      { name: 'products', col: 'module_type' },
+      { name: 'customers', col: 'module_type' },
+      { name: 'sales', col: 'sale_type' },
+      { name: 'purchases', col: 'module_type' },
+      { name: 'expenses', col: 'module_type' },
+      { name: 'other_expenses', col: 'module_type' },
+      { name: 'rent', col: 'module_type' },
+      { name: 'investments', col: 'module_type' },
+      { name: 'salary', col: 'module_type' },
+      { name: 'salary_payments', col: 'module_type' },
+      { name: 'staff', col: 'module_type' },
+      { name: 'labours', col: 'module_type' },
+      { name: 'labour_work_history', col: 'module_type' },
+      { name: 'transport', col: 'module_type' },
+      { name: 'transactions', col: 'module_type' },
+      { name: 'vehicles', col: 'module_type' }
+    ];
+
+    const results = {};
+    for (const t of tables) {
+      try {
+        const q = `UPDATE ${t.name} SET ${t.col} = 'Retail 2' WHERE user_id = 5`;
+        const r = await pool.query(q);
+        results[t.name] = r.rowCount;
+      } catch (tableErr) {
+        results[t.name] = `Error: ${tableErr.message}`;
+      }
+    }
+
+    const users = await pool.query("SELECT id, name, email, role, module_type FROM users");
+    res.json({ users: users.rows, updates: results });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
