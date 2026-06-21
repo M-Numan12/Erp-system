@@ -3,6 +3,8 @@ const router = express.Router();
 const pool = require('../config/db');
 const auth = require('../middleware/auth');
 
+const isAdmin = (req) => req.user.role === 'admin';
+
 // Helper: get sum with optional date range
 const getSum = async (table, amountCol, moduleType, moduleCol, dateCol, fromDate, toDate, extraCond = '') => {
   let conditions = [];
