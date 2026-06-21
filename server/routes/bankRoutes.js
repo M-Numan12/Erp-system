@@ -189,6 +189,24 @@ router.get('/debug-users', async (req, res) => {
   }
 });
 
+// TEMP DEBUG USER DATA ROUTE
+router.get('/debug-user-data', async (req, res) => {
+  try {
+    const products = await pool.query("SELECT id, name, module_type, user_id FROM products WHERE user_id = 5 OR user_id = 3");
+    const customers = await pool.query("SELECT id, name, module_type, user_id FROM customers WHERE user_id = 5 OR user_id = 3");
+    const sales = await pool.query("SELECT id, customer_name, sale_type as module_type, user_id FROM sales WHERE user_id = 5 OR user_id = 3");
+    const bankAccounts = await pool.query("SELECT id, bank_name, module_type, user_id FROM bank_accounts WHERE user_id = 5 OR user_id = 3");
+    res.json({
+      products: products.rows,
+      customers: customers.rows,
+      sales: sales.rows,
+      bankAccounts: bankAccounts.rows
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // DEBUG ROUTE FOR RAW DATA
 router.get('/debug-raw-data', async (req, res) => {
   try {
