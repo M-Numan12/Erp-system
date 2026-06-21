@@ -40,7 +40,7 @@ const buildSummary = async (fromDate, toDate) => {
       getSum('sales', 'paid_amount', c, 'sale_type', 'created_at', fromDate, toDate),
       getSum('expenses',       'amount',      c, 'module_type',  'created_at',    fromDate, toDate, "payment_type != 'Pending' AND expense_type NOT IN ('Galla Closeout', 'Admin Payment', 'Sale Return', 'Sale Return Refund')"),
       getSum('rent',           'amount',      c, 'module_type',  'rent_date',     fromDate, toDate),
-      getSum('salary',         'amount',      c, 'module_type',  'payment_date',  fromDate, toDate),
+      getSum('salary_payments', 'amount',      c, 'module_type',  'payment_date',  fromDate, toDate),
       getSum('other_expenses', 'amount',      c, 'module_type',  'date',          fromDate, toDate),
       getSum('purchases',      'paid_amount', c, 'module_type',  'purchase_date', fromDate, toDate)
     ]);
@@ -159,9 +159,12 @@ router.get('/detail/:counter', auth, async (req, res) => {
 
     // Salary
     const salaryRes = await pool.query(
-      `SELECT id, employee_name, designation, amount, payment_date, status FROM salary WHERE module_type = $1
-       ${from ? `AND payment_date >= $2` : ''} ${to ? `AND payment_date <= $${from ? 3 : 2}` : ''}
-       ORDER BY payment_date DESC LIMIT 50`,
+      `SELECT sp.id, sp.employee_name, s.designation, sp.amount, sp.payment_date, sp.transaction_type as status 
+       FROM salary_payments sp
+       LEFT JOIN salary s ON sp.staff_id = s.id
+       WHERE sp.module_type = $1
+       ${from ? `AND sp.payment_date >= $2` : ''} ${to ? `AND sp.payment_date <= $${from ? 3 : 2}` : ''}
+       ORDER BY sp.payment_date DESC LIMIT 50`,
       [c, ...(from ? [from] : []), ...(to ? [to] : [])]
     );
 

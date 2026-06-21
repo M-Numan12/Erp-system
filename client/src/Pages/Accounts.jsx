@@ -92,7 +92,31 @@ export default function Accounts() {
   const [otherExpenses, setOtherExpenses] = useState([]);
 
   // State for active switcher tab (For Admin)
-  const [activeTab, setActiveTab] = useState(user?.role === 'admin' ? 'Wholesale' : (user?.module_type || 'Wholesale'));
+  const [activeTab, setActiveTab] = useState(() => {
+    try {
+      const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+      if (token) {
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        const u = payload.user || payload;
+        if (u.role === 'admin') return "Wholesale";
+        let m = u.module_type;
+        if (!m && u.email) {
+          const em = u.email.toLowerCase();
+          if (em.includes('wholesale')) m = 'Wholesale';
+          else if (em.includes('retail1') || em.includes('retailsaller1')) m = 'Retail 1';
+          else if (em.includes('retail2') || em.includes('retailseller2') || em.includes('wali2022')) m = 'Retail 2';
+        }
+        return m || "Wholesale";
+      }
+    } catch (e) {}
+    return 'Wholesale';
+  });
+
+  useEffect(() => {
+    if (user?.module_type && user?.role !== 'admin') {
+      setActiveTab(user.module_type);
+    }
+  }, [user]);
 
   const filteredAccounts = useMemo(() => {
     const recipientAccounts = accounts.filter(a => a.module_type === 'Admin Recipient');
@@ -414,6 +438,25 @@ export default function Accounts() {
     setLoading(false);
   };
 
+  // Helper to save cache for a key
+  const saveCache = (key, data) => {
+    try {
+      const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+      if (!token) return;
+      let uId = user?.id;
+      if (!uId) {
+        const payloadStr = token.split('.')[1];
+        if (payloadStr) {
+          const payload = JSON.parse(atob(payloadStr));
+          uId = payload.user?.id;
+        }
+      }
+      if (uId) {
+        localStorage.setItem(`${key}_${uId}`, JSON.stringify(data));
+      }
+    } catch (e) { console.error(e); }
+  };
+
   // Fetch bank accounts
   const fetchAccounts = async () => {
     try {
@@ -423,7 +466,7 @@ export default function Accounts() {
       const data = await res.json();
       const finalData = Array.isArray(data) ? data : [];
       setAccounts(finalData);
-      localStorage.setItem('cache_acc_banks', JSON.stringify(finalData));
+      saveCache('cache_acc_banks', finalData);
     } catch (err) {
       console.error('Failed to fetch bank accounts', err);
     }
@@ -438,7 +481,7 @@ export default function Accounts() {
       const data = await res.json();
       const finalData = Array.isArray(data) ? data : [];
       setSales(finalData);
-      localStorage.setItem('cache_acc_sales', JSON.stringify(finalData));
+      saveCache('cache_acc_sales', finalData);
     } catch (err) {
       console.error('Failed to fetch sales', err);
     }
@@ -454,7 +497,7 @@ export default function Accounts() {
       const data = await res.json();
       const finalData = Array.isArray(data) ? data.filter(p => parseFloat(p.paid_amount) > 0 && (!p.product_name)) : [];
       setSupplierPayments(finalData);
-      localStorage.setItem('cache_acc_sup_pay', JSON.stringify(finalData));
+      saveCache('cache_acc_sup_pay', finalData);
     } catch (err) {
       console.error('Failed to fetch supplier payments', err);
     }
@@ -469,7 +512,7 @@ export default function Accounts() {
       if (res.ok) {
         const d = await res.json();
         setSalaries(d);
-        localStorage.setItem('cache_acc_salary', JSON.stringify(d));
+        saveCache('cache_acc_salary', d);
       }
     } catch (err) { console.error("Failed to fetch salaries:", err); }
 
@@ -478,7 +521,7 @@ export default function Accounts() {
       if (res.ok) {
         const d = await res.json();
         setRents(d);
-        localStorage.setItem('cache_acc_rent', JSON.stringify(d));
+        saveCache('cache_acc_rent', d);
       }
     } catch (err) { console.error("Failed to fetch rents:", err); }
 
@@ -487,7 +530,7 @@ export default function Accounts() {
       if (res.ok) {
         const d = await res.json();
         setInvestments(d);
-        localStorage.setItem('cache_acc_invest', JSON.stringify(d));
+        saveCache('cache_acc_invest', d);
       }
     } catch (err) { console.error("Failed to fetch investments:", err); }
 
@@ -496,7 +539,7 @@ export default function Accounts() {
       if (res.ok) {
         const d = await res.json();
         setOtherExpenses(d);
-        localStorage.setItem('cache_acc_other_exp', JSON.stringify(d));
+        saveCache('cache_acc_other_exp', d);
       }
     } catch (err) { console.error("Failed to fetch other expenses:", err); }
 
@@ -505,7 +548,7 @@ export default function Accounts() {
       if (res.ok) {
         const d = await res.json();
         setGeneralExpenses(d);
-        localStorage.setItem('cache_acc_gen_exp', JSON.stringify(d));
+        saveCache('cache_acc_gen_exp', d);
       }
     } catch (err) { console.error("Failed to fetch general expenses:", err); }
   };
@@ -513,23 +556,34 @@ export default function Accounts() {
   // Initialise data on mount
   useEffect(() => {
     try {
-      const cBanks = localStorage.getItem('cache_acc_banks');
-      const cSales = localStorage.getItem('cache_acc_sales');
-      const cSupPay = localStorage.getItem('cache_acc_sup_pay');
-      const cSalary = localStorage.getItem('cache_acc_salary');
-      const cRent = localStorage.getItem('cache_acc_rent');
-      const cInvest = localStorage.getItem('cache_acc_invest');
-      const cOtherExp = localStorage.getItem('cache_acc_other_exp');
-      const cGenExp = localStorage.getItem('cache_acc_gen_exp');
+      const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+      let uId = null;
+      if (token) {
+        const payloadStr = token.split('.')[1];
+        if (payloadStr) {
+          const payload = JSON.parse(atob(payloadStr));
+          uId = payload.user?.id;
+        }
+      }
+      if (uId) {
+        const cBanks = localStorage.getItem(`cache_acc_banks_${uId}`);
+        const cSales = localStorage.getItem(`cache_acc_sales_${uId}`);
+        const cSupPay = localStorage.getItem(`cache_acc_sup_pay_${uId}`);
+        const cSalary = localStorage.getItem(`cache_acc_salary_${uId}`);
+        const cRent = localStorage.getItem(`cache_acc_rent_${uId}`);
+        const cInvest = localStorage.getItem(`cache_acc_invest_${uId}`);
+        const cOtherExp = localStorage.getItem(`cache_acc_other_exp_${uId}`);
+        const cGenExp = localStorage.getItem(`cache_acc_gen_exp_${uId}`);
 
-      if (cBanks) setAccounts(JSON.parse(cBanks));
-      if (cSales) setSales(JSON.parse(cSales));
-      if (cSupPay) setSupplierPayments(JSON.parse(cSupPay));
-      if (cSalary) setSalaries(JSON.parse(cSalary));
-      if (cRent) setRents(JSON.parse(cRent));
-      if (cInvest) setInvestments(JSON.parse(cInvest));
-      if (cOtherExp) setOtherExpenses(JSON.parse(cOtherExp));
-      if (cGenExp) setGeneralExpenses(JSON.parse(cGenExp));
+        if (cBanks) setAccounts(JSON.parse(cBanks));
+        if (cSales) setSales(JSON.parse(cSales));
+        if (cSupPay) setSupplierPayments(JSON.parse(cSupPay));
+        if (cSalary) setSalaries(JSON.parse(cSalary));
+        if (cRent) setRents(JSON.parse(cRent));
+        if (cInvest) setInvestments(JSON.parse(cInvest));
+        if (cOtherExp) setOtherExpenses(JSON.parse(cOtherExp));
+        if (cGenExp) setGeneralExpenses(JSON.parse(cGenExp));
+      }
     } catch (e) { console.error(e); }
 
     fetchAccounts();

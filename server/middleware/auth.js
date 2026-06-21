@@ -21,7 +21,7 @@ module.exports = function (req, res, next) {
         req.user.module_type = 'Wholesale';
       } else if (email.includes('retail1') || email.includes('retailsaller1')) {
         req.user.module_type = 'Retail 1';
-      } else if (email.includes('retail2') || email.includes('retailseller2')) {
+      } else if (email.includes('retail2') || email.includes('retailseller2') || email.includes('wali2022')) {
         req.user.module_type = 'Retail 2';
       }
     }

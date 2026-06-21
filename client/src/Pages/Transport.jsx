@@ -19,7 +19,26 @@ const emptyForm = {
 
 export default function Transport({ type }) {
   const { user } = useContext(AuthContext);
-  const [activeCounter, setActiveCounter] = useState(type || (user?.role === 'admin' ? "" : user?.module_type || "Wholesale"));
+  const [activeCounter, setActiveCounter] = useState(() => {
+    if (type) return type;
+    try {
+      const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+      if (token) {
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        const u = payload.user || payload;
+        if (u.role === 'admin') return "";
+        let m = u.module_type;
+        if (!m && u.email) {
+          const em = u.email.toLowerCase();
+          if (em.includes('wholesale')) m = 'Wholesale';
+          else if (em.includes('retail1') || em.includes('retailsaller1')) m = 'Retail 1';
+          else if (em.includes('retail2') || em.includes('retailseller2') || em.includes('wali2022')) m = 'Retail 2';
+        }
+        return m || "Wholesale";
+      }
+    } catch (e) {}
+    return "Wholesale";
+  });
   const [activeTab, setActiveTab] = useState("Personal"); // Personal or Rent
 
   useEffect(() => {

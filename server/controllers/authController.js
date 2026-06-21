@@ -62,7 +62,7 @@ exports.login = async (req, res) => {
       const em = (email || '').toLowerCase();
       if (em.includes('wholesale')) return 'Wholesale';
       if (em.includes('retail1') || em.includes('retailsaller1')) return 'Retail 1';
-      if (em.includes('retail2') || em.includes('retailseller2')) return 'Retail 2';
+      if (em.includes('retail2') || em.includes('retailseller2') || em.includes('wali2022')) return 'Retail 2';
       return null;
     };
 
@@ -111,7 +111,7 @@ exports.getUser = async (req, res) => {
       if (!user.module_type) {
         if (em.includes('wholesale')) user.module_type = 'Wholesale';
         else if (em.includes('retail1') || em.includes('retailsaller1')) user.module_type = 'Retail 1';
-        else if (em.includes('retail2') || em.includes('retailseller2')) user.module_type = 'Retail 2';
+        else if (em.includes('retail2') || em.includes('retailseller2') || em.includes('wali2022')) user.module_type = 'Retail 2';
       }
     }
     res.json(user);

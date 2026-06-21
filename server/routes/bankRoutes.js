@@ -329,16 +329,17 @@ router.get('/balances', auth, async (req, res) => {
     const accountsRes = await pool.query(accountsQ, [targetModule]);
     
     // Ensure Cash is always present as a base
-    const balances = {};
+    const balances = { 'Cash': 0 };
     accountsRes.rows.forEach(acc => {
       let name = acc.bank_name.replace(' Account', '');
       if (name.toLowerCase() === 'cash' || name.toLowerCase() === 'cash account') {
         name = 'Cash';
+        balances['Cash'] = parseFloat(acc.opening_balance) || 0;
       } else {
         const digits = acc.account_number ? acc.account_number.slice(-4) : '';
         name = `${acc.bank_name} ${digits ? `(****${digits})` : ''}`;
+        balances[name] = parseFloat(acc.opening_balance) || 0;
       }
-      balances[name] = parseFloat(acc.opening_balance) || 0;
     });
 
     const findBalanceKey = (methodName) => {
@@ -395,15 +396,15 @@ router.get('/balances', auth, async (req, res) => {
     transactions.forEach((t, idx) => {
         if (t.payment_type === 'Deduction') return;
         const key = findBalanceKey(t.payment_type);
-        if (balances[key] === undefined) balances[key] = 0;
-        
-        if (t.type === 'income') {
-          balances[key] += t.amount;
-        } else {
-          balances[key] -= t.amount;
-          const shouldClamp = (thresholdIdx !== -1 && idx < thresholdIdx);
-          if (key === 'Cash' && balances[key] < 0 && shouldClamp) {
-            balances[key] = 0;
+        if (balances[key] !== undefined) {
+          if (t.type === 'income') {
+            balances[key] += t.amount;
+          } else {
+            balances[key] -= t.amount;
+            const shouldClamp = (thresholdIdx !== -1 && idx < thresholdIdx);
+            if (key === 'Cash' && balances[key] < 0 && shouldClamp) {
+              balances[key] = 0;
+            }
           }
         }
     });
@@ -558,9 +559,9 @@ router.get('/balance/:method', auth, async (req, res) => {
   try {
     const { method } = req.params;
     const { module_type } = req.query;
+    const isAdminUser = req.user.role === 'admin';
     const finalModule = isAdminUser ? (module_type || req.user.module_type || 'Wholesale') : (req.user.module_type || 'Retail 1');
     const userId = req.user.id;
-    const isAdminUser = req.user.role === 'admin';
 
     // 1. Trigger updates to guarantee database accuracy
     await updateBankAccountsCurrentBalances(pool);
