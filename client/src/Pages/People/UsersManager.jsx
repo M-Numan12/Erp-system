@@ -75,11 +75,15 @@ export default function UsersManager() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    const dataToSend = { ...formData };
+    if (dataToSend.role === 'admin') {
+      dataToSend.module_type = 'admin';
+    }
     try {
       if (editingId) {
-        await api.put(`/users/${editingId}`, formData);
+        await api.put(`/users/${editingId}`, dataToSend);
       } else {
-        await api.post('/users', formData);
+        await api.post('/users', dataToSend);
       }
       setShowForm(false);
       setEditingId(null);
@@ -124,12 +128,30 @@ export default function UsersManager() {
           </div>
           
           <div className="form-row">
-            <select value={formData.role} onChange={e => setFormData({...formData, role: e.target.value})} required style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', background: 'white' }}>
+            <select 
+              value={formData.role} 
+              onChange={e => {
+                const nextRole = e.target.value;
+                setFormData({
+                  ...formData, 
+                  role: nextRole,
+                  module_type: nextRole === 'admin' ? 'admin' : (formData.module_type === 'admin' ? 'Wholesale' : formData.module_type)
+                });
+              }} 
+              required 
+              style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', background: 'white' }}
+            >
               <option value="user">User Role</option>
               <option value="admin">Admin Role</option>
             </select>
-            <select value={formData.module_type} onChange={e => setFormData({...formData, module_type: e.target.value})} style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', background: 'white' }}>
+            <select 
+              value={formData.module_type} 
+              onChange={e => setFormData({...formData, module_type: e.target.value})} 
+              disabled={formData.role === 'admin'}
+              style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', background: formData.role === 'admin' ? '#f1f5f9' : 'white' }}
+            >
               <option value="">No Specific Module (NULL)</option>
+              <option value="admin">Admin Module</option>
               <option value="Wholesale">Wholesale Module</option>
               <option value="Retail 1">Retail 1 Module</option>
               <option value="Retail 2">Retail 2 Module</option>

@@ -173,7 +173,7 @@ async function syncDatabaseSchema() {
     `UPDATE customers SET balance = 31070.00 WHERE id = 350 AND (balance IS NULL OR balance::text = 'NaN');`,
     `UPDATE customers SET balance = COALESCE(opening_balance, 0) WHERE balance::text = 'NaN' OR balance IS NULL;`,
     // --- 15. AUTO-HEAL USER MODULE TYPES ---
-    `UPDATE users SET module_type = NULL WHERE email = 'hassam4288@gmail.com';`,
+    `UPDATE users SET module_type = 'admin' WHERE email = 'hassam4288@gmail.com';`,
     `UPDATE users SET module_type = 'Wholesale' WHERE email = 'usmanwholesale@gmail.com' AND (module_type IS NULL OR module_type = '');`
   ];
 
