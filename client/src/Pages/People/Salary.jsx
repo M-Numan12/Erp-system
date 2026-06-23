@@ -457,7 +457,7 @@ export default function Salary({ type }) {
         </div>
 
         <div style={{display:'flex', gap: '12px', alignItems:'center'}}>
-            {user?.role === 'admin' && !user?.module_type && !type && (
+            {user?.role === 'admin' && (!user?.module_type || user?.module_type === 'admin') && !type && (
             <div className="counter-switcher">
                 {['Wholesale', 'Retail 1', 'Retail 2'].map(tab => (
                     <button key={tab} className={activeTab === tab ? 'active' : ''} onClick={() => setActiveTab(tab)}>{tab}</button>

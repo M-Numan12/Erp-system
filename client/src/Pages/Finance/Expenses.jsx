@@ -39,6 +39,7 @@ export default function Expenses({ type }) {
         const payload = JSON.parse(atob(token.split('.')[1]));
         const u = payload.user || payload;
         let m = u.module_type;
+        if (m === 'admin') m = null;
         if (!m && u.email) {
           const em = u.email.toLowerCase();
           if (em.includes('wholesale')) m = 'Wholesale';
@@ -129,10 +130,10 @@ export default function Expenses({ type }) {
   useEffect(() => {
     if (type) {
       setActiveTab(type);
-    } else if (user?.module_type) {
+    } else if (user?.module_type && user?.role !== 'admin') {
       setActiveTab(user.module_type);
     }
-  }, [type, user?.module_type]);
+  }, [type, user?.module_type, user?.role]);
 
   const fetchRecords = async () => {
     if (!activeTab) return;
@@ -276,7 +277,7 @@ const filtered = records.filter(r => {
           </div>
         </div>
 
-        {user?.role === 'admin' && !user?.module_type && !type && (
+        {user?.role === 'admin' && (!user?.module_type || user?.module_type === 'admin') && !type && (
           <div className="counter-switcher">
             <button className={activeTab === 'Wholesale' ? 'active' : ''} onClick={() => setActiveTab('Wholesale')}>Wholesale</button>
             <button className={activeTab === 'Retail 1' ? 'active' : ''} onClick={() => setActiveTab('Retail 1')}>Retail 1</button>

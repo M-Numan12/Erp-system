@@ -406,7 +406,7 @@ export default function Stock({ type }) {
         </div>
 
         {/* Counter Switcher for Admin */}
-        {user?.role === 'admin' && !user?.module_type && !type && (
+        {user?.role === 'admin' && (!user?.module_type || user?.module_type === 'admin') && !type && (
           <div className="counter-switcher">
             <button className={activeTab === 'Wholesale' ? 'active' : ''} onClick={() => setActiveTab('Wholesale')}>Wholesale</button>
             <button className={activeTab === 'Retail 1' ? 'active' : ''} onClick={() => setActiveTab('Retail 1')}>Retail 1</button>

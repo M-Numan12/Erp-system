@@ -369,7 +369,7 @@ export default function Transport({ type }) {
           </div>
         </div>
 
-        {user?.role === 'admin' && !user?.module_type && !type && (
+        {user?.role === 'admin' && (!user?.module_type || user?.module_type === 'admin') && !type && (
           <div className="counter-switcher">
             <button className={activeCounter === 'Wholesale' ? 'active' : ''} onClick={() => setActiveCounter('Wholesale')}>Wholesale</button>
             <button className={activeCounter === 'Retail 1' ? 'active' : ''} onClick={() => setActiveCounter('Retail 1')}>Retail 1</button>
