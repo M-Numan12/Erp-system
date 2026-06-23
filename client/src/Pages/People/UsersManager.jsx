@@ -76,8 +76,8 @@ export default function UsersManager() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     const dataToSend = { ...formData };
-    if (dataToSend.role === 'admin') {
-      dataToSend.module_type = 'admin';
+    if (!dataToSend.module_type) {
+      dataToSend.module_type = null;
     }
     try {
       if (editingId) {
@@ -132,23 +132,46 @@ export default function UsersManager() {
               value={formData.role} 
               onChange={e => {
                 const nextRole = e.target.value;
+                let nextModule = '';
+                if (nextRole === 'admin') nextModule = 'admin';
+                else if (nextRole === 'Wholesale') nextModule = 'Wholesale';
+                else if (nextRole === 'Retail 1') nextModule = 'Retail 1';
+                else if (nextRole === 'Retail 2') nextModule = 'Retail 2';
+                else nextModule = '';
+
                 setFormData({
                   ...formData, 
                   role: nextRole,
-                  module_type: nextRole === 'admin' ? 'admin' : (formData.module_type === 'admin' ? 'Wholesale' : formData.module_type)
+                  module_type: nextModule
                 });
               }} 
               required 
               style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', background: 'white' }}
             >
-              <option value="user">User Role</option>
               <option value="admin">Admin Role</option>
+              <option value="Wholesale">Wholesale Role</option>
+              <option value="Retail 1">Retail 1 Role</option>
+              <option value="Retail 2">Retail 2 Role</option>
+              <option value="user">User Role</option>
             </select>
             <select 
               value={formData.module_type} 
-              onChange={e => setFormData({...formData, module_type: e.target.value})} 
-              disabled={formData.role === 'admin'}
-              style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', background: formData.role === 'admin' ? '#f1f5f9' : 'white' }}
+              onChange={e => {
+                const nextModule = e.target.value;
+                let nextRole = 'user';
+                if (nextModule === 'admin') nextRole = 'admin';
+                else if (nextModule === 'Wholesale') nextRole = 'Wholesale';
+                else if (nextModule === 'Retail 1') nextRole = 'Retail 1';
+                else if (nextModule === 'Retail 2') nextRole = 'Retail 2';
+                else nextRole = 'user';
+
+                setFormData({
+                  ...formData,
+                  module_type: nextModule,
+                  role: nextRole
+                });
+              }} 
+              style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', background: 'white' }}
             >
               <option value="">No Specific Module (NULL)</option>
               <option value="admin">Admin Module</option>

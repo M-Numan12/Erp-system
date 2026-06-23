@@ -172,9 +172,14 @@ async function syncDatabaseSchema() {
     `UPDATE customers SET opening_balance = 20000.00 WHERE id = 350 AND (opening_balance IS NULL OR opening_balance = 0);`,
     `UPDATE customers SET balance = 31070.00 WHERE id = 350 AND (balance IS NULL OR balance::text = 'NaN');`,
     `UPDATE customers SET balance = COALESCE(opening_balance, 0) WHERE balance::text = 'NaN' OR balance IS NULL;`,
-    // --- 15. AUTO-HEAL USER MODULE TYPES ---
-    `UPDATE users SET module_type = 'admin' WHERE email = 'hassam4288@gmail.com';`,
-    `UPDATE users SET module_type = 'Wholesale' WHERE email = 'usmanwholesale@gmail.com' AND (module_type IS NULL OR module_type = '');`
+    // --- 15. AUTO-HEAL USER MODULE TYPES & ROLES ---
+    `UPDATE users SET module_type = 'admin' WHERE role = 'admin' AND (module_type IS NULL OR module_type != 'admin');`,
+    `UPDATE users SET role = module_type WHERE module_type IS NOT NULL AND module_type != '' AND module_type != 'admin' AND (role IS NULL OR role = '' OR role = 'user' OR role != module_type);`,
+    `UPDATE users SET role = 'admin', module_type = 'admin' WHERE email = 'hassam4288@gmail.com';`,
+    `UPDATE users SET role = 'Wholesale', module_type = 'Wholesale' WHERE email = 'usmanwholesale@gmail.com';`,
+    `UPDATE users SET role = 'Wholesale', module_type = 'Wholesale' WHERE email = 'wholesale@erp.com';`,
+    `UPDATE users SET role = 'Retail 1', module_type = 'Retail 1' WHERE email = 'retail1@erp.com';`,
+    `UPDATE users SET role = 'Retail 2', module_type = 'Retail 2' WHERE email = 'retail2@erp.com';`
   ];
 
   let totalExecuted = 0;
