@@ -72,9 +72,7 @@ code {
     display: block !important;
   }
 
-  /* Portals / Dialogs Print Isolation:
-     If a dialog (portal) is present, hide the entire main application layout so only the portal content is printed. */
-  body:has(.p-dialog, .p-dialog-mask, .bill-viewer-dialog, .ledger-dialog) #root {
+  body:has(.p-dialog-mask:not([style*="display: none"]):not([style*="display:none"]), .bill-viewer-dialog:not([style*="display: none"]):not([style*="display:none"]), .ledger-dialog:not([style*="display: none"]):not([style*="display:none"])) #root {
     display: none !important;
   }
 
