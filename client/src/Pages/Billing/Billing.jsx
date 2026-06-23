@@ -32,17 +32,17 @@ const formatItemName = (brand, name) => {
   const n = (name || '').trim();
   if (!b || b === 'undefined') return n;
   if (!n) return b;
-  
+
   const bLower = b.toLowerCase();
   const nLower = n.toLowerCase();
-  
+
   if (nLower.includes(bLower)) {
     return n;
   }
   if (bLower.includes(nLower)) {
     return b;
   }
-  
+
   return `${b} ${n}`;
 };
 
@@ -72,7 +72,7 @@ export default function Billing({ type }) {
 
   const closeWhatsAppModal = () => {
     if (whatsAppPdfUrl) {
-      try { URL.revokeObjectURL(whatsAppPdfUrl); } catch (e) {}
+      try { URL.revokeObjectURL(whatsAppPdfUrl); } catch (e) { }
     }
     setWhatsAppPdfUrl("");
     setWhatsAppPdfBase64("");
@@ -137,7 +137,7 @@ export default function Billing({ type }) {
         }
         return m || "Wholesale";
       }
-    } catch (e) {}
+    } catch (e) { }
     return "Wholesale";
   });
 
@@ -1287,10 +1287,10 @@ export default function Billing({ type }) {
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
               <div style={{ position: 'relative', width: '250px' }}>
                 <Search size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#64748b' }} />
-                <InputText 
-                  placeholder="Search sales history..." 
-                  value={salesSearch} 
-                  onChange={(e) => setSalesSearch(e.target.value)} 
+                <InputText
+                  placeholder="Search sales history..."
+                  value={salesSearch}
+                  onChange={(e) => setSalesSearch(e.target.value)}
                   style={{ paddingLeft: '38px', borderRadius: '12px', width: '100%', height: '38px', border: '1px solid #cbd5e1' }}
                   className="p-inputtext-sm"
                 />
@@ -1383,7 +1383,7 @@ export default function Billing({ type }) {
               <ActionMenu
                 onEdit={user?.role === 'admin' ? () => {
                   const items = typeof s.items === 'string' ? JSON.parse(s.items) : (s.items || []);
-                  
+
                   // Keep track of original quantities for stock validation adjustment
                   const origMap = {};
                   items.forEach(i => {
@@ -1527,7 +1527,7 @@ export default function Billing({ type }) {
                 <div className="contact-info">
                   <p>Waqar Butt: 0311-4105840</p>
                   <p>Mhd Aiss: 0335-1430216</p>
-                  <p>Saifullah: 0333-4714628</p>
+                  <p>Main Hassam Ahmad: 0334-4294300</p>
                 </div>
                 <p className="address">
                   Ada Treadywali Stop Main Jaranwala Road,<br />
@@ -2267,11 +2267,11 @@ export default function Billing({ type }) {
                 Review the PDF generated below. Click <strong>Send Ledger</strong> to forward it to the customer's WhatsApp number (<strong>{whatsappCustomer?.phone}</strong>).
               </p>
               {whatsAppPdfUrl ? (
-                <iframe 
-                  src={whatsAppPdfUrl} 
-                  title="PDF Preview" 
-                  width="100%" 
-                  height="550px" 
+                <iframe
+                  src={whatsAppPdfUrl}
+                  title="PDF Preview"
+                  width="100%"
+                  height="550px"
                   style={{ border: '1px solid #cbd5e1', borderRadius: '8px', background: '#ffffff' }}
                 />
               ) : (
