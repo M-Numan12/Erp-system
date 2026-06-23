@@ -12,7 +12,7 @@ import { Dialog } from 'primereact/dialog';
 import { Button } from 'primereact/button';
 import ActionMenu from '../../components/ActionMenu';
 import { AuthContext } from "../../context/AuthContext";
-import "../Styles/ModulePages.scss";
+import "../../Styles/ModulePages.scss";
 
 const API = (API_BASE_URL + "/other-expenses");
 

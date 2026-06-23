@@ -9,7 +9,7 @@ import {
   TrendingUp, MoreHorizontal, ArrowRight, AlertTriangle
 } from "lucide-react";
 import { AuthContext } from '../../context/AuthContext';
-import "../Styles/Dashboard.scss";
+import "../../Styles/Dashboard.scss";
 
 export default function Dashboard() {
   const { user } = useContext(AuthContext);

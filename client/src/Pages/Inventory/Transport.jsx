@@ -7,7 +7,7 @@ import {
 import { AuthContext } from "../../context/AuthContext";
 import ActionMenu from '../../components/ActionMenu';
 import api from "../../services/api"; // Use system-wide dynamic api service instead of hardcoded string
-import "../Styles/ModulePages.scss";
+import "../../Styles/ModulePages.scss";
 
 const emptyForm = {
   ownership_type: "Personal",

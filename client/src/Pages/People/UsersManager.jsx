@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import api from '../../services/api';
-import '../Styles/UsersManager.scss';
+import '../../Styles/UsersManager.scss';
 import { UserPlus, Save } from 'lucide-react';
 import ActionMenu from '../../components/ActionMenu';
 

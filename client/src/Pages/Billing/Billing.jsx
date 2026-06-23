@@ -18,7 +18,7 @@ import { Column } from 'primereact/column';
 import { MultiSelect } from 'primereact/multiselect';
 import ActionMenu from '../../components/ActionMenu';
 import { AuthContext } from "../../context/AuthContext";
-import "../Styles/ModulePages.scss";
+import "../../Styles/ModulePages.scss";
 
 const PRODUCTS_API = (API_BASE_URL + "/products");
 const CUSTOMERS_API = (API_BASE_URL + "/customers");

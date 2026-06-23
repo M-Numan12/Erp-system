@@ -8,7 +8,7 @@ import {
 } from "lucide-react";
 import ActionMenu from '../../components/ActionMenu';
 import { AuthContext } from "../../context/AuthContext";
-import "../Styles/ModulePages.scss";
+import "../../Styles/ModulePages.scss";
 
 const API = (API_BASE_URL + "/salary");
 

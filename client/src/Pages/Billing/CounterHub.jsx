@@ -9,7 +9,7 @@ import Stock from '../Inventory/Stock';
 import Customers from '../People/Customers';
 import Suppliers from '../People/Suppliers';
 import Expenses from '../Finance/Expenses';
-import "../Styles/ModulePages.scss";
+import "../../Styles/ModulePages.scss";
 
 export default function CounterHub({ type = "Wholesale" }) {
   const [activeTab, setActiveTab] = useState('POS');

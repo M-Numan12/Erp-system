@@ -5,7 +5,7 @@ import React, { useState, useEffect, useContext, useMemo } from "react";
 import { Users, FolderGit2, Contact, Coins, Plus, Search, Edit, Trash2, X, Phone, Hash, CreditCard, ChevronLeft, ArrowUpCircle, ArrowDownCircle, ClipboardList, Printer } from "lucide-react";
 import ActionMenu from '../../components/ActionMenu';
 import { AuthContext } from "../../context/AuthContext";
-import "../Styles/ModulePages.scss";
+import "../../Styles/ModulePages.scss";
 
 const API = (API_BASE_URL + "/labours");
 

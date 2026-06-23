@@ -12,7 +12,7 @@ import { DataTable } from 'primereact/datatable';
 import { Column } from 'primereact/column';
 import { Button } from 'primereact/button';
 import { Dialog } from 'primereact/dialog';
-import "../Styles/ModulePages.scss";
+import "../../Styles/ModulePages.scss";
 
 const SUMMARY_API = (API_BASE_URL + "/profit/summary");
 const DETAIL_API  = (API_BASE_URL + "/profit/detail");

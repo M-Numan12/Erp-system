@@ -1,5 +1,5 @@
 import React from 'react';
-import '../Styles/Dashboard.scss';
+import '../../Styles/Dashboard.scss';
 
 export default function Retail() {
   return (
