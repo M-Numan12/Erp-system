@@ -181,13 +181,27 @@ async function sendWhatsAppDocument(to, base64Data, filename = 'Ledger.pdf') {
  */
 async function sendWhatsAppBill(sale, items) {
   const adminPhone = process.env.ADMIN_PHONE || '923004269347'; // Default fallback admin phone
+  const isWholesale = !sale.sale_type || String(sale.sale_type).toLowerCase() === 'wholesale';
 
-  let itemsList = '';
+  // 1. Build Items List for Admin (always has rates)
+  let adminItemsList = '';
   items.forEach((item, idx) => {
-    itemsList += `${idx + 1}. *${item.product_name || item.name}* (Qty: ${item.qty} @ Rs.${item.rate || item.price})\n`;
+    adminItemsList += `${idx + 1}. *${item.product_name || item.name}* (Qty: ${item.qty} @ Rs.${item.rate || item.price})\n`;
   });
 
-  const messageBody = `🌟 *DATA WALEY CEMENT ERP* 🌟\n` +
+  // 2. Build Items List for Customer (has rates only if NOT wholesale)
+  let customerItemsList = '';
+  items.forEach((item, idx) => {
+    if (isWholesale) {
+      customerItemsList += `${idx + 1}. *${item.product_name || item.name}* (Qty: ${item.qty})\n`;
+    } else {
+      customerItemsList += `${idx + 1}. *${item.product_name || item.name}* (Qty: ${item.qty} @ Rs.${item.rate || item.price})\n`;
+    }
+  });
+
+  // 3. Build Message Body for Admin (always has full details)
+  const adminMessage = `🚨 *ADMIN COPY: NEW BILL GENERATED*\n\n` +
+    `🌟 *DATA WALEY CEMENT ERP* 🌟\n` +
     `-----------------------------------------\n` +
     `🧾 *NEW BILL GENERATED*\n\n` +
     `*Bill No:* #00${sale.id}\n` +
@@ -195,7 +209,7 @@ async function sendWhatsAppBill(sale, items) {
     `*Phone:* ${sale.customer_phone || 'N/A'}\n` +
     `*Payment Mode:* ${sale.payment_type || 'Cash'}\n` +
     `*Module:* ${sale.sale_type || 'Wholesale'}\n\n` +
-    `*Items Ordered:*\n${itemsList}\n` +
+    `*Items Ordered:*\n${adminItemsList}\n` +
     `*Total Amount:* Rs. ${parseFloat(sale.total_amount).toLocaleString()}\n` +
     `*Discount:* Rs. ${parseFloat(sale.discount || 0).toLocaleString()}\n` +
     `*Delivery Charges:* Rs. ${parseFloat(sale.delivery_charges || 0).toLocaleString()}\n` +
@@ -206,14 +220,48 @@ async function sendWhatsAppBill(sale, items) {
     `👤 *Total Outstanding Balance:* Rs. ${parseFloat(sale.customer_balance || 0).toLocaleString()}\n\n` +
     `Thank you for your business! 🙏`;
 
+  // 4. Build Message Body for Customer
+  let customerMessage = '';
+  if (isWholesale) {
+    customerMessage = `🌟 *DATA WALEY CEMENT ERP* 🌟\n` +
+      `-----------------------------------------\n` +
+      `🧾 *NEW BILL GENERATED*\n\n` +
+      `*Bill No:* #00${sale.id}\n` +
+      `*Customer:* ${sale.customer_name || 'Walk-in Customer'}\n` +
+      `*Phone:* ${sale.customer_phone || 'N/A'}\n` +
+      `*Payment Mode:* ${sale.payment_type || 'Cash'}\n` +
+      `*Module:* ${sale.sale_type || 'Wholesale'}\n\n` +
+      `*Items Ordered:*\n${customerItemsList}\n` +
+      `-----------------------------------------\n` +
+      `Thank you for your business! 🙏`;
+  } else {
+    customerMessage = `🌟 *DATA WALEY CEMENT ERP* 🌟\n` +
+      `-----------------------------------------\n` +
+      `🧾 *NEW BILL GENERATED*\n\n` +
+      `*Bill No:* #00${sale.id}\n` +
+      `*Customer:* ${sale.customer_name || 'Walk-in Customer'}\n` +
+      `*Phone:* ${sale.customer_phone || 'N/A'}\n` +
+      `*Payment Mode:* ${sale.payment_type || 'Cash'}\n` +
+      `*Module:* ${sale.sale_type || 'Wholesale'}\n\n` +
+      `*Items Ordered:*\n${customerItemsList}\n` +
+      `*Total Amount:* Rs. ${parseFloat(sale.total_amount).toLocaleString()}\n` +
+      `*Discount:* Rs. ${parseFloat(sale.discount || 0).toLocaleString()}\n` +
+      `*Delivery Charges:* Rs. ${parseFloat(sale.delivery_charges || 0).toLocaleString()}\n` +
+      `-----------------------------------------\n` +
+      `🔥 *Net Payable:* Rs. ${parseFloat(sale.net_amount).toLocaleString()}\n` +
+      `💵 *Paid Amount:* Rs. ${parseFloat(sale.paid_amount).toLocaleString()}\n` +
+      `💰 *Remaining Bill Balance:* Rs. ${parseFloat(sale.balance_amount).toLocaleString()}\n` +
+      `👤 *Total Outstanding Balance:* Rs. ${parseFloat(sale.customer_balance || 0).toLocaleString()}\n\n` +
+      `Thank you for your business! 🙏`;
+  }
+
   // 1. Send to Customer if valid phone is provided
   if (sale.customer_phone && sale.customer_phone.trim() !== '') {
-    await sendWhatsAppMessage(sale.customer_phone, messageBody);
+    await sendWhatsAppMessage(sale.customer_phone, customerMessage);
   }
 
   // 2. Send copy to Admin
   if (adminPhone) {
-    const adminMessage = `🚨 *ADMIN COPY: NEW BILL GENERATED*\n\n${messageBody}`;
     await sendWhatsAppMessage(adminPhone, adminMessage);
   }
 }
