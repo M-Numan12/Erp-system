@@ -670,10 +670,6 @@ export default function Accounts() {
         if (cInvest) setInvestments(JSON.parse(cInvest));
         if (cOtherExp) setOtherExpenses(JSON.parse(cOtherExp));
         if (cGenExp) setGeneralExpenses(JSON.parse(cGenExp));
-
-        if (cBanks && cSales) {
-          setInitialLoading(false);
-        }
       }
     } catch (e) { console.error(e); }
 
