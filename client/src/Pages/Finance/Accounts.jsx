@@ -81,6 +81,7 @@ export default function Accounts() {
   const [editId, setEditId] = useState(null);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(true);
 
   // State for sales (payment overview)
   const [sales, setSales] = useState([]);
@@ -533,54 +534,43 @@ export default function Accounts() {
   const fetchOthers = async () => {
     const h = { "Authorization": `Bearer ${localStorage.getItem('token')}` };
 
-    try {
-      const res = await fetch((API_BASE_URL + '/salary'), { headers: h });
-      if (res.ok) {
-        const d = await res.json();
-        setSalaries(d);
-        saveCache('cache_acc_salary', d);
-      }
-    } catch (err) { console.error("Failed to fetch salaries:", err); }
+    const fetchSalariesPromise = fetch((API_BASE_URL + '/salary'), { headers: h })
+      .then(res => res.ok ? res.json() : [])
+      .then(d => { setSalaries(d); saveCache('cache_acc_salary', d); })
+      .catch(err => console.error("Failed to fetch salaries:", err));
 
-    try {
-      const res = await fetch((API_BASE_URL + '/rent'), { headers: h });
-      if (res.ok) {
-        const d = await res.json();
-        setRents(d);
-        saveCache('cache_acc_rent', d);
-      }
-    } catch (err) { console.error("Failed to fetch rents:", err); }
+    const fetchRentsPromise = fetch((API_BASE_URL + '/rent'), { headers: h })
+      .then(res => res.ok ? res.json() : [])
+      .then(d => { setRents(d); saveCache('cache_acc_rent', d); })
+      .catch(err => console.error("Failed to fetch rents:", err));
 
-    try {
-      const res = await fetch((API_BASE_URL + '/investments'), { headers: h });
-      if (res.ok) {
-        const d = await res.json();
-        setInvestments(d);
-        saveCache('cache_acc_invest', d);
-      }
-    } catch (err) { console.error("Failed to fetch investments:", err); }
+    const fetchInvestmentsPromise = fetch((API_BASE_URL + '/investments'), { headers: h })
+      .then(res => res.ok ? res.json() : [])
+      .then(d => { setInvestments(d); saveCache('cache_acc_invest', d); })
+      .catch(err => console.error("Failed to fetch investments:", err));
 
-    try {
-      const res = await fetch((API_BASE_URL + '/other-expenses'), { headers: h });
-      if (res.ok) {
-        const d = await res.json();
-        setOtherExpenses(d);
-        saveCache('cache_acc_other_exp', d);
-      }
-    } catch (err) { console.error("Failed to fetch other expenses:", err); }
+    const fetchOtherExpensesPromise = fetch((API_BASE_URL + '/other-expenses'), { headers: h })
+      .then(res => res.ok ? res.json() : [])
+      .then(d => { setOtherExpenses(d); saveCache('cache_acc_other_exp', d); })
+      .catch(err => console.error("Failed to fetch other expenses:", err));
 
-    try {
-      const res = await fetch((API_BASE_URL + '/expenses'), { headers: h });
-      if (res.ok) {
-        const d = await res.json();
-        setGeneralExpenses(d);
-        saveCache('cache_acc_gen_exp', d);
-      }
-    } catch (err) { console.error("Failed to fetch general expenses:", err); }
+    const fetchGeneralExpensesPromise = fetch((API_BASE_URL + '/expenses'), { headers: h })
+      .then(res => res.ok ? res.json() : [])
+      .then(d => { setGeneralExpenses(d); saveCache('cache_acc_gen_exp', d); })
+      .catch(err => console.error("Failed to fetch general expenses:", err));
+
+    await Promise.all([
+      fetchSalariesPromise,
+      fetchRentsPromise,
+      fetchInvestmentsPromise,
+      fetchOtherExpensesPromise,
+      fetchGeneralExpensesPromise
+    ]);
   };
 
   // Initialise data on mount
   useEffect(() => {
+    let isMounted = true;
     try {
       const token = localStorage.getItem('token') || sessionStorage.getItem('token');
       let uId = null;
@@ -612,10 +602,28 @@ export default function Accounts() {
       }
     } catch (e) { console.error(e); }
 
-    fetchAccounts();
-    fetchSales();
-    fetchSupplierPayments();
-    fetchOthers();
+    const loadData = async () => {
+      try {
+        await Promise.all([
+          fetchAccounts(),
+          fetchSales(),
+          fetchSupplierPayments(),
+          fetchOthers()
+        ]);
+      } catch (err) {
+        console.error("Error loading accounts data:", err);
+      } finally {
+        if (isMounted) {
+          setInitialLoading(false);
+        }
+      }
+    };
+
+    loadData();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   const handleSubmit = async (e) => {
@@ -1179,9 +1187,30 @@ export default function Accounts() {
 
       </div>
 
-      {/* Payment summary */}
-      <div className="no-print">
-        {summarySection}
+      {initialLoading ? (
+        <div className="no-print" style={{ display: 'flex', flexDirection: 'column', gap: '25px', padding: '10px 0' }}>
+          {/* Skeleton cards matching summary cards */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '20px' }}>
+            {[1, 2, user?.role === 'admin' ? 3 : null].filter(Boolean).map(i => (
+              <div key={i} className="skeleton-block" style={{ height: '120px', borderRadius: '20px' }}></div>
+            ))}
+          </div>
+          {/* Title skeleton */}
+          <div className="skeleton-block" style={{ height: '28px', width: '250px', marginTop: '10px' }}></div>
+          {/* Account Grid skeletons */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '20px' }}>
+            {[1, 2, 3].map(i => (
+              <div key={i} className="skeleton-block" style={{ height: '210px', borderRadius: '20px' }}></div>
+            ))}
+          </div>
+          {/* Table skeleton */}
+          <div className="skeleton-block" style={{ height: '250px', borderRadius: '16px', marginTop: '15px' }}></div>
+        </div>
+      ) : (
+        <>
+          {/* Payment summary */}
+          <div className="no-print">
+            {summarySection}
 
         <h3 style={{ margin: '25px 0 15px 0', color: '#1e293b', fontWeight: 800, fontSize: '1.3rem' }}>All Accounts & Recent Activity</h3>
         <div style={{
@@ -1339,6 +1368,8 @@ export default function Accounts() {
           }} style={{ textAlign: 'center', width: '60px' }} />
         </DataTable>
       </div>
+    </>
+  )}
 
       {/* Ledger Dialog */}
       <Dialog
@@ -1608,6 +1639,15 @@ export default function Accounts() {
           background-color: #e2e8f0 !important;
           border-color: #cbd5e1 !important;
           box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05) !important;
+        }
+        @keyframes shimmer {
+          0% { background-position: -200% 0; }
+          100% { background-position: 200% 0; }
+        }
+        .skeleton-block {
+          background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
+          background-size: 200% 100%;
+          animation: shimmer 1.5s infinite linear;
         }
       `}</style>
 
