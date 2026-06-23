@@ -82,6 +82,9 @@ export default function Accounts() {
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
+  const [isFreshDataLoaded, setIsFreshDataLoaded] = useState(false);
+  const [cachedSummary, setCachedSummary] = useState(null);
+  const [cachedAdminReceived, setCachedAdminReceived] = useState(null);
 
   // State for sales (payment overview)
   const [sales, setSales] = useState([]);
@@ -661,6 +664,8 @@ export default function Accounts() {
         const cInvest = localStorage.getItem(`cache_acc_invest_${uId}`);
         const cOtherExp = localStorage.getItem(`cache_acc_other_exp_${uId}`);
         const cGenExp = localStorage.getItem(`cache_acc_gen_exp_${uId}`);
+        const cSummary = localStorage.getItem(`cache_acc_summary_balances_${uId}`);
+        const cAdminRec = localStorage.getItem(`cache_acc_admin_received_${uId}`);
 
         if (cBanks) setAccounts(JSON.parse(cBanks));
         if (cSales) setSales(JSON.parse(cSales));
@@ -670,12 +675,21 @@ export default function Accounts() {
         if (cInvest) setInvestments(JSON.parse(cInvest));
         if (cOtherExp) setOtherExpenses(JSON.parse(cOtherExp));
         if (cGenExp) setGeneralExpenses(JSON.parse(cGenExp));
+        if (cSummary) setCachedSummary(JSON.parse(cSummary));
+        if (cAdminRec) setCachedAdminReceived(JSON.parse(cAdminRec));
+
+        if (cSummary) {
+          setInitialLoading(false);
+        }
       }
     } catch (e) { console.error(e); }
 
     const loadData = async () => {
       try {
         await loadAllData();
+        if (isMounted) {
+          setIsFreshDataLoaded(true);
+        }
       } catch (err) {
         console.error("Error loading accounts data:", err);
       } finally {
@@ -803,7 +817,7 @@ export default function Accounts() {
     return latestCloseout ? new Date(latestCloseout.created_at || latestCloseout.expense_date || latestCloseout.date) : null;
   }, [latestCloseout]);
 
-  const paymentSummary = useMemo(() => {
+  const calculatedPaymentSummary = useMemo(() => {
     const rawList = [
       ...filteredSales,
       ...filteredInvestments.map(i => ({ ...i, isIncome: true, payment_type: 'Cash' })),
@@ -868,10 +882,17 @@ export default function Accounts() {
     return res;
   }, [filteredSales, filteredInvestments, filteredCloseouts, filteredSupplierPayments, filteredGeneralExpenses, filteredSalaries, filteredRents, filteredOtherExpenses, filteredAccounts, activeTab]);
 
+  const paymentSummary = useMemo(() => {
+    if (!isFreshDataLoaded && cachedSummary) {
+      return cachedSummary;
+    }
+    return calculatedPaymentSummary;
+  }, [calculatedPaymentSummary, cachedSummary, isFreshDataLoaded]);
+
   const totalCash = paymentSummary['Cash'] || 0;
   const totalBank = filteredAccounts.filter(acc => !checkIsCash(acc) && acc.module_type !== 'Admin Recipient').reduce((sum, acc) => sum + Math.max(0, paymentSummary[acc.id] || 0), 0);
 
-  const totalAdminReceived = useMemo(() => {
+  const calculatedAdminReceived = useMemo(() => {
     const isToday = (dateStr) => {
       if (!dateStr) return false;
       const d = new Date(dateStr);
@@ -888,6 +909,21 @@ export default function Accounts() {
       .reduce((sum, e) => sum + (parseFloat(e.amount) || 0), 0);
     return received - paid;
   }, [generalExpenses]);
+
+  const totalAdminReceived = useMemo(() => {
+    if (!isFreshDataLoaded && cachedAdminReceived !== null) {
+      return cachedAdminReceived;
+    }
+    return calculatedAdminReceived;
+  }, [calculatedAdminReceived, cachedAdminReceived, isFreshDataLoaded]);
+
+  // Sync fresh summary calculation to local storage cache
+  useEffect(() => {
+    if (isFreshDataLoaded) {
+      saveCache('cache_acc_summary_balances', calculatedPaymentSummary);
+      saveCache('cache_acc_admin_received', calculatedAdminReceived);
+    }
+  }, [calculatedPaymentSummary, calculatedAdminReceived, isFreshDataLoaded]);
 
   // Filter all transactions for the selected ledger account (without date filter)
   const allAccountTransactions = useMemo(() => {
