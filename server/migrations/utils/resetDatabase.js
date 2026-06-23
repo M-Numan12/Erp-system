@@ -1,11 +1,11 @@
 const pool = require('../config/db');
 
 const tables = [
-  'bank_accounts', 'bill_items', 'bills', 'customers', 'expenses', 
-  'investment', 'investments', 'labour_work_history', 'labours', 
+  'bank_accounts', 'customers', 'expenses', 
+  'investment', 'labour_work_history', 'labours', 
   'other_expenses', 'products', 'purchases', 'rent', 'salary', 
   'salary_deductions', 'salary_payments', 'sale_items', 'sales', 
-  'stock', 'stock_logs', 'suppliers', 'users', 'vehicles'
+  'suppliers', 'users', 'vehicles'
 ];
 
 const usersToSeed = [

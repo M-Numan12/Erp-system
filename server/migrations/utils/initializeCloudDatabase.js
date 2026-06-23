@@ -130,20 +130,7 @@ async function initializeCloudDatabase() {
     `);
     console.log('✅ purchases table verified.');
 
-    // 8. stock_logs
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS stock_logs (
-        id SERIAL PRIMARY KEY,
-        product_id INTEGER REFERENCES products(id) ON DELETE CASCADE,
-        vehicle_number VARCHAR(100),
-        quantity DECIMAL(10,2),
-        log_type VARCHAR(20) DEFAULT 'IN',
-        module_type VARCHAR(50),
-        user_id INTEGER,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      );
-    `);
-    console.log('✅ stock_logs table verified.');
+
 
     // 9. Quick safety column checks for existing tables
     const bankCols = [

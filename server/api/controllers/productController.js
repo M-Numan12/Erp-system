@@ -102,13 +102,6 @@ exports.receiveStock = async (req, res) => {
 
     if (prodRes.rows.length === 0) throw new Error("Product not found or unauthorized");
 
-    // Insert stock log
-    await client.query(
-      `INSERT INTO stock_logs (product_id, vehicle_number, quantity, log_type, module_type, user_id)
-       VALUES ($1, $2, $3, 'IN', $4, $5)`,
-      [req.params.id, vehicle_number, parseFloat(quantity), module_type || prodRes.rows[0].module_type, req.user.id]
-    );
-
     await client.query('COMMIT');
     res.json(prodRes.rows[0]);
   } catch (err) {

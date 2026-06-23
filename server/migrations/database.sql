@@ -51,25 +51,7 @@ CREATE TABLE IF NOT EXISTS customers (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- 6. Billing Table (Invoices)
-CREATE TABLE IF NOT EXISTS bills (
-    id SERIAL PRIMARY KEY,
-    customer_id INT REFERENCES customers(id),
-    total_amount DECIMAL(12, 2) NOT NULL,
-    discount DECIMAL(10, 2) DEFAULT 0,
-    net_amount DECIMAL(12, 2) NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
 
--- 7. Bill Items Table (Line items for each bill)
-CREATE TABLE IF NOT EXISTS bill_items (
-    id SERIAL PRIMARY KEY,
-    bill_id INT REFERENCES bills(id) ON DELETE CASCADE,
-    product_id INT REFERENCES products(id),
-    quantity DECIMAL(10, 2) NOT NULL,
-    price DECIMAL(10, 2) NOT NULL,
-    total DECIMAL(12, 2) NOT NULL
-);
 
 
 
