@@ -71,16 +71,7 @@ CREATE TABLE IF NOT EXISTS bill_items (
     total DECIMAL(12, 2) NOT NULL
 );
 
--- 8. Transport Table
-CREATE TABLE IF NOT EXISTS transport (
-    id SERIAL PRIMARY KEY,
-    driver_name VARCHAR(255),
-    vehicle_number VARCHAR(100),
-    bill_id INT REFERENCES bills(id),
-    cost DECIMAL(10, 2),
-    status VARCHAR(50) DEFAULT 'Pending',
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
+
 
 -- 9. Expenses Table
 CREATE TABLE IF NOT EXISTS expenses (

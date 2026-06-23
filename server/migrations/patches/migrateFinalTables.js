@@ -43,12 +43,7 @@ async function migrate() {
         ['advance_salary', 'DECIMAL(12, 2) DEFAULT 0'],
         ['joining_date', 'DATE']
       ],
-      transport: [
-        ['vehicle_type', 'VARCHAR(50)'],
-        ['trips', 'INTEGER DEFAULT 1'],
-        ['pending_payment', 'DECIMAL(12, 2) DEFAULT 0'],
-        ['ownership_type', "VARCHAR(50) DEFAULT 'Personal'"]
-      ],
+
       expenses: [
         ['expense_type', "VARCHAR(50) DEFAULT 'Office'"]
       ],

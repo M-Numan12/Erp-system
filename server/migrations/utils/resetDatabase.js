@@ -5,7 +5,7 @@ const tables = [
   'investment', 'investments', 'labour_work_history', 'labours', 
   'other_expenses', 'products', 'purchases', 'rent', 'salary', 
   'salary_deductions', 'salary_payments', 'sale_items', 'sales', 
-  'stock', 'stock_logs', 'suppliers', 'transport', 'users', 'vehicles'
+  'stock', 'stock_logs', 'suppliers', 'users', 'vehicles'
 ];
 
 const usersToSeed = [
