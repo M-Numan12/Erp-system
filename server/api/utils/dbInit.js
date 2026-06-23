@@ -186,7 +186,8 @@ async function syncDatabaseSchema() {
     `DROP TABLE IF EXISTS bill_items CASCADE;`,
     `DROP TABLE IF EXISTS investments CASCADE;`,
     `DROP TABLE IF EXISTS stock CASCADE;`,
-    `DROP TABLE IF EXISTS stock_logs CASCADE;`
+    `DROP TABLE IF EXISTS stock_logs CASCADE;`,
+    `CREATE OR REPLACE VIEW stock AS SELECT id AS product_id, name AS product_name, brand, category, stock_quantity, unit, cost_price, price AS retail_price, module_type, created_at FROM products;`
   ];
 
   let totalExecuted = 0;

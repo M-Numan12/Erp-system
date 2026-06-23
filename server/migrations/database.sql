@@ -110,3 +110,18 @@ CREATE TABLE IF NOT EXISTS other_expenses (
     notes TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+-- 14. Stock View (Virtual table for stock management/display)
+CREATE OR REPLACE VIEW stock AS 
+SELECT 
+    id AS product_id, 
+    name AS product_name, 
+    brand, 
+    category, 
+    stock_quantity, 
+    unit, 
+    cost_price, 
+    price AS retail_price, 
+    module_type, 
+    created_at 
+FROM products;
