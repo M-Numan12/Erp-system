@@ -123,6 +123,18 @@ export default function UsersManager() {
             <input type="text" placeholder={editingId ? "Edit Password" : "Password"} value={formData.password} onChange={e => setFormData({...formData, password: e.target.value})} required />
           </div>
           
+          <div className="form-row">
+            <select value={formData.role} onChange={e => setFormData({...formData, role: e.target.value})} required style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', background: 'white' }}>
+              <option value="user">User Role</option>
+              <option value="admin">Admin Role</option>
+            </select>
+            <select value={formData.module_type} onChange={e => setFormData({...formData, module_type: e.target.value})} style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', background: 'white' }}>
+              <option value="">No Specific Module (NULL)</option>
+              <option value="Wholesale">Wholesale Module</option>
+              <option value="Retail 1">Retail 1 Module</option>
+              <option value="Retail 2">Retail 2 Module</option>
+            </select>
+          </div>
 
           <h4>Assign Module Permissions</h4>
           <div className="permissions-grid">
@@ -150,6 +162,8 @@ export default function UsersManager() {
             <tr>
               <th>Name</th>
               <th>Email</th>
+              <th>Role</th>
+              <th>Module Type</th>
               <th>Permissions</th>
               <th>Actions</th>
             </tr>
@@ -159,6 +173,8 @@ export default function UsersManager() {
               <tr key={u.id}>
                 <td>{u.name}</td>
                 <td>{u.email}</td>
+                <td style={{ textTransform: 'capitalize' }}>{u.role}</td>
+                <td>{u.module_type || 'None'}</td>
                 <td className="perms-cell">
                   {u.permissions?.length ? u.permissions.join(', ') : 'None'}
                 </td>
