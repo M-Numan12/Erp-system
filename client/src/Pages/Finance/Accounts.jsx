@@ -342,10 +342,7 @@ export default function Accounts() {
 
       if (res.ok) {
         setShowTransferModal(false);
-        fetchAccounts();
-        fetchSales();
-        fetchSupplierPayments();
-        fetchOthers();
+        loadAllData();
         alert("Funds transferred successfully!");
       } else {
         const errorData = await res.json();
@@ -414,11 +411,8 @@ export default function Accounts() {
 
       if (res.ok) {
         setShowCloseoutModal(false);
-        // Refresh all data
-        fetchAccounts();
-        fetchSales();
-        fetchSupplierPayments();
-        fetchOthers();
+        // Refresh all data atomically
+        loadAllData();
       }
     } catch (err) {
       console.error('Failed to submit closeout', err);
@@ -454,10 +448,7 @@ export default function Accounts() {
       if (res.ok) {
         setShowAdminPaymentModal(false);
         setAdminPaymentForm({ amount: "", admin_bank_id: "", payment_type: "Cash", notes: "" });
-        fetchAccounts();
-        fetchSales();
-        fetchSupplierPayments();
-        fetchOthers();
+        loadAllData();
       }
     } catch (err) {
       console.error('Failed to submit admin payment', err);
@@ -568,6 +559,86 @@ export default function Accounts() {
     ]);
   };
 
+  const loadAllData = async () => {
+    const h = { "Authorization": `Bearer ${localStorage.getItem('token')}` };
+
+    try {
+      const pAccounts = fetch((API_BASE_URL + '/banks?include_recipients=true'), { headers: h })
+        .then(res => res.ok ? res.json() : [])
+        .catch(err => { console.error(err); return []; });
+
+      const pSales = fetch((API_BASE_URL + '/sales?limit=10000'), { headers: h })
+        .then(res => res.ok ? res.json() : [])
+        .catch(err => { console.error(err); return []; });
+
+      const pSupPay = fetch((API_BASE_URL + '/purchases/ledger/all'), { headers: h })
+        .then(res => res.ok ? res.json() : [])
+        .then(data => Array.isArray(data) ? data.filter(p => parseFloat(p.paid_amount) > 0 && (!p.product_name)) : [])
+        .catch(err => { console.error(err); return []; });
+
+      const pSalary = fetch((API_BASE_URL + '/salary'), { headers: h })
+        .then(res => res.ok ? res.json() : [])
+        .catch(err => { console.error(err); return []; });
+
+      const pRent = fetch((API_BASE_URL + '/rent'), { headers: h })
+        .then(res => res.ok ? res.json() : [])
+        .catch(err => { console.error(err); return []; });
+
+      const pInvest = fetch((API_BASE_URL + '/investments'), { headers: h })
+        .then(res => res.ok ? res.json() : [])
+        .catch(err => { console.error(err); return []; });
+
+      const pOtherExp = fetch((API_BASE_URL + '/other-expenses'), { headers: h })
+        .then(res => res.ok ? res.json() : [])
+        .catch(err => { console.error(err); return []; });
+
+      const pExpenses = fetch((API_BASE_URL + '/expenses'), { headers: h })
+        .then(res => res.ok ? res.json() : [])
+        .catch(err => { console.error(err); return []; });
+
+      const [
+        resAccounts,
+        resSales,
+        resSupPay,
+        resSalary,
+        resRent,
+        resInvest,
+        resOtherExp,
+        resExpenses
+      ] = await Promise.all([
+        pAccounts,
+        pSales,
+        pSupPay,
+        pSalary,
+        pRent,
+        pInvest,
+        pOtherExp,
+        pExpenses
+      ]);
+
+      setAccounts(resAccounts);
+      setSales(resSales);
+      setSupplierPayments(resSupPay);
+      setSalaries(resSalary);
+      setRents(resRent);
+      setInvestments(resInvest);
+      setOtherExpenses(resOtherExp);
+      setGeneralExpenses(resExpenses);
+
+      saveCache('cache_acc_banks', resAccounts);
+      saveCache('cache_acc_sales', resSales);
+      saveCache('cache_acc_sup_pay', resSupPay);
+      saveCache('cache_acc_salary', resSalary);
+      saveCache('cache_acc_rent', resRent);
+      saveCache('cache_acc_invest', resInvest);
+      saveCache('cache_acc_other_exp', resOtherExp);
+      saveCache('cache_acc_gen_exp', resExpenses);
+
+    } catch (error) {
+      console.error("Error loading all data:", error);
+    }
+  };
+
   // Initialise data on mount
   useEffect(() => {
     let isMounted = true;
@@ -608,12 +679,7 @@ export default function Accounts() {
 
     const loadData = async () => {
       try {
-        await Promise.all([
-          fetchAccounts(),
-          fetchSales(),
-          fetchSupplierPayments(),
-          fetchOthers()
-        ]);
+        await loadAllData();
       } catch (err) {
         console.error("Error loading accounts data:", err);
       } finally {
