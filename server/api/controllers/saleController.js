@@ -1,5 +1,5 @@
 const pool = require('../config/db');
-const { sendWhatsAppBill, sendWhatsAppMessage } = require('../utils/whatsapp');
+const { sendWhatsAppBill, sendWhatsAppMessage, sanitizeWhatsAppPhone } = require('../utils/whatsapp');
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
@@ -846,10 +846,10 @@ exports.sendCustomDocument = async (req, res) => {
       return res.status(400).json({ error: 'Recipient phone (to) and document (base64) are required' });
     }
 
-    let cleanPhone = String(to).replace(/[^0-9]/g, '');
-    if (cleanPhone.startsWith('0092')) cleanPhone = cleanPhone.substring(2);
-    else if (cleanPhone.startsWith('0')) cleanPhone = '92' + cleanPhone.substring(1);
-    else if (cleanPhone.length === 10 && cleanPhone.startsWith('3')) cleanPhone = '92' + cleanPhone;
+    const cleanPhone = sanitizeWhatsAppPhone(to);
+    if (!cleanPhone) {
+      return res.status(400).json({ error: 'Invalid recipient phone number format' });
+    }
 
     let rawBase64 = docBase64;
     if (rawBase64.startsWith('data:')) {

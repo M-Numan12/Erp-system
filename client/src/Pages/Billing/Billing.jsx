@@ -82,13 +82,28 @@ export default function Billing({ type }) {
 
   const handleConfirmWhatsAppSend = async () => {
     if (!whatsappCustomer) return;
-    let phone = (whatsappCustomer.phone || '').trim().replace(/[^\d+]/g, '');
-    if (phone.startsWith('0')) {
+    
+    let rawPhone = whatsappCustomer.phone || '';
+    // Convert Urdu/Arabic digits to English digits
+    const urduDigits = [/۰/g, /۱/g, /۲/g, /۳/g, /۴/g, /۵/g, /۶/g, /۷/g, /۸/g, /۹/g];
+    const englishDigits = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
+    for (let i = 0; i < 10; i++) {
+      rawPhone = rawPhone.replace(urduDigits[i], englishDigits[i]);
+    }
+    
+    let phone = rawPhone.replace(/[^0-9]/g, '');
+    if (phone.startsWith('00')) {
+      phone = phone.substring(2);
+    }
+    if (phone.startsWith('92')) {
+      if (phone.startsWith('920')) {
+        phone = '92' + phone.substring(3);
+      }
+    } else if (phone.startsWith('0')) {
       phone = '92' + phone.substring(1);
-    } else if (!phone.startsWith('+') && !phone.startsWith('92')) {
+    } else if (phone.length === 10 && phone.startsWith('3')) {
       phone = '92' + phone;
     }
-    phone = phone.replace('+', '');
 
     setLoading(true);
     try {

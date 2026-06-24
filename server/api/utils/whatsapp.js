@@ -3,6 +3,34 @@ const https = require('https');
 const querystring = require('querystring');
 
 /**
+ * Sanitizes a phone number for WhatsApp (specifically handles Pakistani numbers robustly).
+ * Converts Urdu/Arabic digits, removes non-numeric chars, and corrects leading zero issues.
+ */
+function sanitizeWhatsAppPhone(phone) {
+  if (!phone) return '';
+  let str = String(phone);
+  const urduDigits = [/۰/g, /۱/g, /۲/g, /۳/g, /۴/g, /۵/g, /۶/g, /۷/g, /۸/g, /۹/g];
+  const englishDigits = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
+  for (let i = 0; i < 10; i++) {
+    str = str.replace(urduDigits[i], englishDigits[i]);
+  }
+  let clean = str.replace(/[^0-9]/g, '');
+  if (clean.startsWith('00')) {
+    clean = clean.substring(2);
+  }
+  if (clean.startsWith('92')) {
+    if (clean.startsWith('920')) {
+      clean = '92' + clean.substring(3);
+    }
+  } else if (clean.startsWith('0')) {
+    clean = '92' + clean.substring(1);
+  } else if (clean.length === 10 && clean.startsWith('3')) {
+    clean = '92' + clean;
+  }
+  return clean;
+}
+
+/**
  * Sends a WhatsApp message using a configured gateway (like UltraMsg, Green-API, Wassenger, etc.)
  * Fallbacks cleanly to logging if no API is configured so the system never crashes.
  */
@@ -14,21 +42,10 @@ async function sendWhatsAppMessage(to, body) {
   const apiUrl = process.env.WHATSAPP_API_URL || 'https://api.ultramsg.com/instance174172/messages/chat';
   const token = process.env.WHATSAPP_TOKEN || '4722xwbvpu3mdq18';
 
-  if (!to) {
-    console.log('❌ No recipient phone number provided for WhatsApp');
+  const cleanPhone = sanitizeWhatsAppPhone(to);
+  if (!cleanPhone) {
+    console.log(`❌ Invalid or empty recipient phone number provided for WhatsApp: "${to}"`);
     return;
-  }
-  // Sanitize phone number (remove spaces, plus, dashes)
-  let cleanPhone = String(to).replace(/[^0-9]/g, '');
-  if (cleanPhone.startsWith('0092')) {
-    // If it starts with 0092, strip the leading 00
-    cleanPhone = cleanPhone.substring(2);
-  } else if (cleanPhone.startsWith('0')) {
-    // Convert local Pakistan number to international (replace leading 0 with 92)
-    cleanPhone = '92' + cleanPhone.substring(1);
-  } else if (cleanPhone.length === 10 && cleanPhone.startsWith('3')) {
-    // Convert 10-digit local number (e.g. 3264899299) to international by prepending 92
-    cleanPhone = '92' + cleanPhone;
   }
 
   // OPTION A: Twilio (No personal phone needed, sends from Twilio's system number)
@@ -98,19 +115,10 @@ async function sendWhatsAppDocument(to, base64Data, filename = 'Ledger.pdf') {
   const instanceUrl = process.env.WHATSAPP_API_URL || 'https://api.ultramsg.com/instance174172/messages/chat';
   const token = process.env.WHATSAPP_TOKEN || '4722xwbvpu3mdq18';
 
-  if (!to) {
-    console.log('❌ No recipient phone number provided for WhatsApp Document');
+  const cleanPhone = sanitizeWhatsAppPhone(to);
+  if (!cleanPhone) {
+    console.log(`❌ Invalid or empty recipient phone number provided for WhatsApp Document: "${to}"`);
     return;
-  }
-
-  // Sanitize phone number (remove spaces, plus, dashes)
-  let cleanPhone = String(to).replace(/[^0-9]/g, '');
-  if (cleanPhone.startsWith('0092')) {
-    cleanPhone = cleanPhone.substring(2);
-  } else if (cleanPhone.startsWith('0')) {
-    cleanPhone = '92' + cleanPhone.substring(1);
-  } else if (cleanPhone.length === 10 && cleanPhone.startsWith('3')) {
-    cleanPhone = '92' + cleanPhone;
   }
 
   // Ensure document has the correct data URI prefix for UltraMsg
@@ -266,4 +274,4 @@ async function sendWhatsAppBill(sale, items) {
   }
 }
 
-module.exports = { sendWhatsAppBill, sendWhatsAppMessage, sendWhatsAppDocument };
+module.exports = { sendWhatsAppBill, sendWhatsAppMessage, sendWhatsAppDocument, sanitizeWhatsAppPhone };
