@@ -1,5 +1,5 @@
 const pool = require('../config/db');
-const { sendWhatsAppBill, sendWhatsAppMessage, sanitizeWhatsAppPhone } = require('../utils/whatsapp');
+const { sendWhatsAppBill, sendWhatsAppMessage, sanitizeWhatsAppPhone, extractWhatsAppPhones } = require('../utils/whatsapp');
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
@@ -846,8 +846,8 @@ exports.sendCustomDocument = async (req, res) => {
       return res.status(400).json({ error: 'Recipient phone (to) and document (base64) are required' });
     }
 
-    const cleanPhone = sanitizeWhatsAppPhone(to);
-    if (!cleanPhone) {
+    const cleanPhones = extractWhatsAppPhones(to);
+    if (cleanPhones.length === 0) {
       return res.status(400).json({ error: 'Invalid recipient phone number format' });
     }
 
@@ -876,48 +876,62 @@ exports.sendCustomDocument = async (req, res) => {
     const instanceUrl = process.env.WHATSAPP_API_URL || 'https://api.ultramsg.com/instance174172/messages/chat';
     const docApiUrl = instanceUrl.replace(/\/messages\/chat(\/?)?$/, '/messages/document').replace(/\/chat(\/?)?$/, '/messages/document');
 
-    const sendResult = await new Promise((resolve, reject) => {
-      const postData = querystring.stringify({
-        token: token,
-        to: cleanPhone,
-        filename: filename || 'Ledger.pdf',
-        document: fileUrl
-      });
+    // Send to all parsed phone numbers
+    const results = [];
+    for (const cleanPhone of cleanPhones) {
+      try {
+        const sendResult = await new Promise((resolve, reject) => {
+          const postData = querystring.stringify({
+            token: token,
+            to: cleanPhone,
+            filename: filename || 'Ledger.pdf',
+            document: fileUrl
+          });
 
-      const urlObj = new URL(docApiUrl);
-      const options = {
-        hostname: urlObj.hostname,
-        path: urlObj.pathname + urlObj.search,
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-          'Content-Length': Buffer.byteLength(postData)
-        }
-      };
+          const urlObj = new URL(docApiUrl);
+          const options = {
+            hostname: urlObj.hostname,
+            path: urlObj.pathname + urlObj.search,
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/x-www-form-urlencoded',
+              'Content-Length': Buffer.byteLength(postData)
+            }
+          };
 
-      const httpreq = https.request(options, (httpsRes) => {
-        let data = '';
-        httpsRes.on('data', chunk => data += chunk);
-        httpsRes.on('end', () => {
-          try {
-            const parsed = JSON.parse(data);
-            console.log(`✅ UltraMsg Document Response: ${JSON.stringify(parsed)}`);
-            resolve(parsed);
-          } catch (e) {
-            console.error('UltraMsg raw response:', data);
-            reject(new Error(`UltraMsg response parse error: ${data}`));
-          }
+          const httpreq = https.request(options, (httpsRes) => {
+            let data = '';
+            httpsRes.on('data', chunk => data += chunk);
+            httpsRes.on('end', () => {
+              try {
+                const parsed = JSON.parse(data);
+                console.log(`✅ UltraMsg Document Response for ${cleanPhone}: ${JSON.stringify(parsed)}`);
+                resolve(parsed);
+              } catch (e) {
+                console.error(`UltraMsg raw response for ${cleanPhone}:`, data);
+                reject(new Error(`UltraMsg response parse error: ${data}`));
+              }
+            });
+          });
+          httpreq.on('error', reject);
+          httpreq.write(postData);
+          httpreq.end();
         });
-      });
-      httpreq.on('error', reject);
-      httpreq.write(postData);
-      httpreq.end();
-    });
 
-    if (sendResult.sent === 'true' || sendResult.sent === true) {
+        if (sendResult.sent === 'true' || sendResult.sent === true) {
+          results.push(sendResult);
+        } else {
+          console.error(`❌ UltraMsg rejected document for ${cleanPhone}:`, sendResult);
+        }
+      } catch (err) {
+        console.error(`❌ Failed to send document to ${cleanPhone}:`, err.message);
+      }
+    }
+
+    if (results.length > 0) {
       res.json({ success: true, message: 'Ledger sent successfully via WhatsApp' });
     } else {
-      throw new Error(`UltraMsg rejected document: ${JSON.stringify(sendResult)}`);
+      throw new Error('Failed to send WhatsApp document to any recipient phone number.');
     }
   } catch (err) {
     console.error('Send Custom WhatsApp Document Error:', err.message);

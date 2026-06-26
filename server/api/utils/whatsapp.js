@@ -31,8 +31,54 @@ function sanitizeWhatsAppPhone(phone) {
 }
 
 /**
+ * Extracts and sanitizes all valid phone numbers from a potentially multi-number string.
+ * Uses a hybrid approach: regex-matching for Pakistani mobile numbers, and
+ * delimiter-splitting to support landlines and international numbers.
+ */
+function extractWhatsAppPhones(phoneStr) {
+  if (!phoneStr) return [];
+  
+  const validPhones = new Set();
+  const str = String(phoneStr);
+  
+  // 1. Regex-match Pakistani mobile numbers in any format (e.g., "0300 123 4567")
+  const pakMobileRegex = /(?:0092|\+92|92)?\s*\(?0?3\d{2}\)?\s*[-.\s]*\d{3}\s*[-.\s]*\d{4}/g;
+  const matches = str.match(pakMobileRegex);
+  if (matches) {
+    for (const match of matches) {
+      const clean = sanitizeWhatsAppPhone(match);
+      if (clean && clean.length >= 10 && clean.length <= 15) {
+        validPhones.add(clean);
+      }
+    }
+  }
+  
+  // 2. Split by explicit delimiters to capture other formats (landlines, foreign numbers)
+  const rawTokens = str.split(/[,/;|\\&\r\n]+|\b(?:and|or|aor|ya)\b/i);
+  for (let t of rawTokens) {
+    t = t.trim();
+    if (!t) continue;
+    
+    // Split by space only if both sides look like separate phone numbers
+    const subTokens = t.split(/(?<=\d{6})\s+(?=\+?\d{5})/);
+    for (let st of subTokens) {
+      st = st.trim();
+      if (!st) continue;
+      
+      const clean = sanitizeWhatsAppPhone(st);
+      if (clean && clean.length >= 10 && clean.length <= 15) {
+        validPhones.add(clean);
+      }
+    }
+  }
+  
+  return Array.from(validPhones);
+}
+
+/**
  * Sends a WhatsApp message using a configured gateway (like UltraMsg, Green-API, Wassenger, etc.)
  * Fallbacks cleanly to logging if no API is configured so the system never crashes.
+ * Automatically handles multiple recipient phone numbers.
  */
 async function sendWhatsAppMessage(to, body) {
   const twilioSid = process.env.TWILIO_ACCOUNT_SID;
@@ -42,81 +88,84 @@ async function sendWhatsAppMessage(to, body) {
   const apiUrl = process.env.WHATSAPP_API_URL || 'https://api.ultramsg.com/instance174172/messages/chat';
   const token = process.env.WHATSAPP_TOKEN || '4722xwbvpu3mdq18';
 
-  const cleanPhone = sanitizeWhatsAppPhone(to);
-  if (!cleanPhone) {
+  const cleanPhones = extractWhatsAppPhones(to);
+  if (cleanPhones.length === 0) {
     console.log(`❌ Invalid or empty recipient phone number provided for WhatsApp: "${to}"`);
     return;
   }
 
-  // OPTION A: Twilio (No personal phone needed, sends from Twilio's system number)
-  if (twilioSid && twilioToken) {
-    try {
-      const formattedTo = `whatsapp:+${cleanPhone}`;
-      const params = new URLSearchParams();
-      params.append('From', twilioFrom);
-      params.append('To', formattedTo);
-      params.append('Body', body);
+  // Loop and send to each valid recipient phone number
+  for (const cleanPhone of cleanPhones) {
+    // OPTION A: Twilio (No personal phone needed, sends from Twilio's system number)
+    if (twilioSid && twilioToken) {
+      try {
+        const formattedTo = `whatsapp:+${cleanPhone}`;
+        const params = new URLSearchParams();
+        params.append('From', twilioFrom);
+        params.append('To', formattedTo);
+        params.append('Body', body);
 
-      const authHeader = Buffer.from(`${twilioSid}:${twilioToken}`).toString('base64');
+        const authHeader = Buffer.from(`${twilioSid}:${twilioToken}`).toString('base64');
 
-      await axios.post(
-        `https://api.twilio.com/2010-04-01/Accounts/${twilioSid}/Messages.json`,
-        params,
-        {
-          headers: {
-            'Authorization': `Basic ${authHeader}`,
-            'Content-Type': 'application/x-www-form-urlencoded'
+        await axios.post(
+          `https://api.twilio.com/2010-04-01/Accounts/${twilioSid}/Messages.json`,
+          params,
+          {
+            headers: {
+              'Authorization': `Basic ${authHeader}`,
+              'Content-Type': 'application/x-www-form-urlencoded'
+            }
           }
-        }
-      );
-      console.log(`✅ Twilio WhatsApp successfully sent to ${cleanPhone}`);
-      return;
+        );
+        console.log(`✅ Twilio WhatsApp successfully sent to ${cleanPhone}`);
+      } catch (err) {
+        console.error(`❌ Twilio WhatsApp failed to ${cleanPhone}:`, err.response?.data || err.message);
+      }
+      continue;
+    }
+
+    // OPTION B: Scanned Gateways (UltraMsg / Green-API)
+    if (!apiUrl) {
+      console.log(`[WhatsApp Logger] Message to ${cleanPhone}:\n${body}\n(Set TWILIO or WHATSAPP credentials in Render to send live)`);
+      continue;
+    }
+
+    try {
+      if (apiUrl.includes('ultramsg')) {
+        const params = new URLSearchParams();
+        params.append('token', token);
+        params.append('to', cleanPhone);
+        params.append('body', body);
+
+        await axios.post(apiUrl, params, {
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+        });
+      } else {
+        await axios.post(apiUrl, {
+          to: cleanPhone,
+          chatId: `${cleanPhone}@c.us`,
+          message: body,
+          body: body,
+          token: token
+        });
+      }
+      console.log(`✅ Gateway WhatsApp successfully sent to ${cleanPhone}`);
     } catch (err) {
-      console.error(`❌ Twilio WhatsApp failed to ${cleanPhone}:`, err.response?.data || err.message);
-      return;
+      console.error(`❌ Gateway WhatsApp failed to ${cleanPhone}:`, err.message);
     }
-  }
-
-  // OPTION B: Scanned Gateways (UltraMsg / Green-API)
-  if (!apiUrl) {
-    console.log(`[WhatsApp Logger] Message to ${cleanPhone}:\n${body}\n(Set TWILIO or WHATSAPP credentials in Render to send live)`);
-    return;
-  }
-
-  try {
-    if (apiUrl.includes('ultramsg')) {
-      const params = new URLSearchParams();
-      params.append('token', token);
-      params.append('to', cleanPhone);
-      params.append('body', body);
-
-      await axios.post(apiUrl, params, {
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
-      });
-    } else {
-      await axios.post(apiUrl, {
-        to: cleanPhone,
-        chatId: `${cleanPhone}@c.us`,
-        message: body,
-        body: body,
-        token: token
-      });
-    }
-    console.log(`✅ Gateway WhatsApp successfully sent to ${cleanPhone}`);
-  } catch (err) {
-    console.error(`❌ Gateway WhatsApp failed to ${cleanPhone}:`, err.message);
   }
 }
 
 /**
  * Sends a PDF/Document via WhatsApp scan gateways (like UltraMsg) using base64.
+ * Automatically handles multiple recipient phone numbers.
  */
 async function sendWhatsAppDocument(to, base64Data, filename = 'Ledger.pdf') {
   const instanceUrl = process.env.WHATSAPP_API_URL || 'https://api.ultramsg.com/instance174172/messages/chat';
   const token = process.env.WHATSAPP_TOKEN || '4722xwbvpu3mdq18';
 
-  const cleanPhone = sanitizeWhatsAppPhone(to);
-  if (!cleanPhone) {
+  const cleanPhones = extractWhatsAppPhones(to);
+  if (cleanPhones.length === 0) {
     console.log(`❌ Invalid or empty recipient phone number provided for WhatsApp Document: "${to}"`);
     return;
   }
@@ -132,56 +181,69 @@ async function sendWhatsAppDocument(to, base64Data, filename = 'Ledger.pdf') {
     .replace(/\/messages\/chat(\/?)?$/, '/messages/document')
     .replace(/\/chat(\/?)?$/, '/messages/document');
 
-  console.log(`📤 Sending PDF document to ${cleanPhone} via UltraMsg...`);
-  console.log(`📍 Endpoint: ${docApiUrl}`);
+  const results = [];
+  for (const cleanPhone of cleanPhones) {
+    console.log(`📤 Sending PDF document to ${cleanPhone} via UltraMsg...`);
+    console.log(`📍 Endpoint: ${docApiUrl}`);
 
-  // Use native https for large payloads to avoid axios body size issues
-  return new Promise((resolve, reject) => {
-    const postData = querystring.stringify({
-      token: token,
-      to: cleanPhone,
-      filename: filename,
-      document: documentData
-    });
+    try {
+      const result = await new Promise((resolve, reject) => {
+        const postData = querystring.stringify({
+          token: token,
+          to: cleanPhone,
+          filename: filename,
+          document: documentData
+        });
 
-    const urlObj = new URL(docApiUrl);
-    const options = {
-      hostname: urlObj.hostname,
-      path: urlObj.pathname + urlObj.search,
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-        'Content-Length': Buffer.byteLength(postData)
-      }
-    };
-
-    const req = https.request(options, (res) => {
-      let data = '';
-      res.on('data', chunk => data += chunk);
-      res.on('end', () => {
-        try {
-          const parsed = JSON.parse(data);
-          console.log(`✅ UltraMsg Document Response: ${JSON.stringify(parsed)}`);
-          if (parsed.sent === 'true' || parsed.sent === true) {
-            resolve(parsed);
-          } else {
-            reject(new Error(`UltraMsg rejected document: ${JSON.stringify(parsed)}`));
+        const urlObj = new URL(docApiUrl);
+        const options = {
+          hostname: urlObj.hostname,
+          path: urlObj.pathname + urlObj.search,
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'Content-Length': Buffer.byteLength(postData)
           }
-        } catch (e) {
-          console.error('❌ UltraMsg Document raw response:', data);
-          reject(new Error(`Invalid JSON response from UltraMsg: ${data}`));
-        }
+        };
+
+        const req = https.request(options, (res) => {
+          let data = '';
+          res.on('data', chunk => data += chunk);
+          res.on('end', () => {
+            try {
+              const parsed = JSON.parse(data);
+              console.log(`✅ UltraMsg Document Response: ${JSON.stringify(parsed)}`);
+              if (parsed.sent === 'true' || parsed.sent === true) {
+                resolve(parsed);
+              } else {
+                reject(new Error(`UltraMsg rejected document: ${JSON.stringify(parsed)}`));
+              }
+            } catch (e) {
+              console.error('❌ UltraMsg Document raw response:', data);
+              reject(new Error(`Invalid JSON response from UltraMsg: ${data}`));
+            }
+          });
+        });
+
+        req.on('error', (err) => {
+          console.error(`❌ Document WhatsApp network error to ${cleanPhone}:`, err.message);
+          reject(err);
+        });
+
+        req.write(postData);
+        req.end();
       });
-    });
+      results.push(result);
+    } catch (err) {
+      console.error(`❌ Failed to send document to ${cleanPhone}:`, err.message);
+    }
+  }
 
-    req.on('error', (err) => {
-      console.error(`❌ Document WhatsApp network error to ${cleanPhone}:`, err.message);
-      reject(err);
-    });
+  if (results.length === 0) {
+    throw new Error('Failed to send WhatsApp document to any recipient phone number.');
+  }
 
-    req.write(postData);
-    req.end();
-  });
+  return results[0];
 }
 
 /**
@@ -274,4 +336,4 @@ async function sendWhatsAppBill(sale, items) {
   }
 }
 
-module.exports = { sendWhatsAppBill, sendWhatsAppMessage, sendWhatsAppDocument, sanitizeWhatsAppPhone };
+module.exports = { sendWhatsAppBill, sendWhatsAppMessage, sendWhatsAppDocument, sanitizeWhatsAppPhone, extractWhatsAppPhones };

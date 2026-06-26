@@ -1,6 +1,6 @@
 const path = require('path');
 require('dotenv').config({ path: path.join(__dirname, '../.env') });
-const pool = require('../config/db');
+const pool = require('../api/config/db');
 
 async function run() {
   try {
