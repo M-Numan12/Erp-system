@@ -118,7 +118,7 @@ function App() {
         <Routes>
           {/* Public Routes */}
           <Route path="/" element={<div style={{ minHeight: '100vh', backgroundColor: '#0f172a' }}></div>} />
-          <Route path="/portal-user" element={<LoginPage />} />
+          <Route path="/login" element={<LoginPage />} />
           <Route path="/portal-admin" element={<AdminLoginPage />} />
           <Route path="/forgot" element={<ForgotPassword />} />
           
