@@ -117,8 +117,9 @@ function App() {
         <Router>
         <Routes>
           {/* Public Routes */}
-          <Route path="/" element={<LoginPage />} />
-          <Route path="/admin-secret-portal-786" element={<AdminLoginPage />} />
+          <Route path="/" element={<div style={{ minHeight: '100vh', backgroundColor: '#0f172a' }}></div>} />
+          <Route path="/portal-user" element={<LoginPage />} />
+          <Route path="/portal-admin" element={<AdminLoginPage />} />
           <Route path="/forgot" element={<ForgotPassword />} />
           
           {/* Protected Routes inside MainLayout */}
