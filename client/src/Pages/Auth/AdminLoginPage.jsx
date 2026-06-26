@@ -1,5 +1,5 @@
 import React, { useState, useContext } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { AuthContext } from '../../context/AuthContext';
 import "../../Styles/LoginPage.scss";
 import { ShieldCheck } from 'lucide-react';
@@ -66,6 +66,7 @@ const AdminLoginPage = () => {
                 onChange={(e) => setRememberMe(e.target.checked)} 
               /> Remember me
             </label>
+            <Link to="/forgot" className="forgot-link">Forgot Password?</Link>
           </div>
           <button type="submit" className="login-btn admin-btn">Access Dashboard</button>
         </form>
