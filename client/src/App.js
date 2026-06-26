@@ -7,6 +7,7 @@ import MainLayout from "./components/MainLayout";
 import LoginPage from "./Pages/Auth/LoginPage.jsx";
 import AdminLoginPage from "./Pages/Auth/AdminLoginPage.jsx";
 import ForgotPassword from "./Pages/Auth/ForgotPassword.jsx";
+import LandingPage from "./Pages/Home/LandingPage.jsx";
 import Dashboard from "./Pages/Dashboard/Dashboard.jsx";
 import Products from "./Pages/Inventory/Products.jsx";
 import Stock from "./Pages/Inventory/Stock.jsx";
@@ -117,7 +118,7 @@ function App() {
         <Router>
         <Routes>
           {/* Public Routes */}
-          <Route path="/" element={<div style={{ minHeight: '100vh', backgroundColor: '#0f172a' }}></div>} />
+          <Route path="/" element={<LandingPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/portal-admin" element={<AdminLoginPage />} />
           <Route path="/forgot" element={<ForgotPassword />} />

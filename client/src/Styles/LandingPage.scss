@@ -1,0 +1,1065 @@
+// Premium Landing Page Styles for Data Waley Cement Depot
+// Theme: Obsidian Dark (#030712) & Metallic Gold (#b89047 / #d97706)
+
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Playfair+Display:ital,wght@1,600&display=swap');
+
+$bg-dark: #030712;
+$bg-card: rgba(15, 23, 42, 0.7);
+$gold-primary: #b89047;
+$gold-dark: #8c6a2f;
+$gold-glow: rgba(184, 144, 71, 0.3);
+$text-light: #f8fafc;
+$text-muted: #94a3b8;
+$font-family: 'Outfit', sans-serif;
+$font-ceo: 'Playfair Display', serif;
+
+.landing-container {
+  background-color: $bg-dark;
+  color: $text-light;
+  font-family: $font-family;
+  overflow-x: hidden;
+  scroll-behavior: smooth;
+  min-height: 100vh;
+
+  // Glassmorphism base
+  .glass-card {
+    background: $bg-card;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 20px;
+    transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+
+    &:hover {
+      border-color: rgba($gold-primary, 0.3);
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5), 0 0 30px rgba($gold-primary, 0.05);
+      transform: translateY(-6px);
+    }
+  }
+
+  // Headings
+  h1, h2, h3, h4 {
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: $text-light;
+
+    .gold-accent {
+      color: $gold-primary;
+      background: linear-gradient(135deg, $gold-primary, #fbbf24);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+  }
+
+  // Section styling
+  .section-padding {
+    padding: 100px 5% 80px 5%;
+    max-width: 1300px;
+    margin: 0 auto;
+
+    @media (max-width: 768px) {
+      padding: 60px 20px 40px 20px;
+    }
+  }
+
+  // CTA Buttons
+  .btn-gold {
+    background: linear-gradient(135deg, $gold-primary, $gold-dark);
+    color: #000;
+    font-weight: 600;
+    padding: 14px 28px;
+    border-radius: 12px;
+    border: none;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    box-shadow: 0 4px 15px rgba($gold-primary, 0.3);
+
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba($gold-primary, 0.5);
+      filter: brightness(1.1);
+    }
+  }
+
+  .btn-outline {
+    background: transparent;
+    color: $text-light;
+    font-weight: 600;
+    padding: 14px 28px;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+
+    &:hover {
+      border-color: $gold-primary;
+      color: $gold-primary;
+      background: rgba($gold-primary, 0.05);
+      transform: translateY(-2px);
+    }
+  }
+
+  // 1. Navigation Header
+  .nav-header {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 80px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 5%;
+    background: rgba(3, 7, 18, 0.85);
+    backdrop-filter: blur(16px);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    z-index: 1000;
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 800;
+      font-size: 1.35rem;
+      color: $text-light;
+      text-decoration: none;
+    }
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 32px;
+
+      @media (max-width: 900px) {
+        display: none; // hidden on small screens
+      }
+
+      a {
+        color: $text-muted;
+        text-decoration: none;
+        font-weight: 500;
+        font-size: 0.95rem;
+        transition: color 0.3s;
+
+        &:hover {
+          color: $gold-primary;
+        }
+      }
+    }
+
+    .portal-buttons {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+
+      .btn-portal-user {
+        color: $text-light;
+        text-decoration: none;
+        font-size: 0.9rem;
+        font-weight: 600;
+        padding: 10px 18px;
+        border-radius: 8px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        transition: all 0.3s;
+
+        &:hover {
+          border-color: $gold-primary;
+          color: $gold-primary;
+          background: rgba($gold-primary, 0.05);
+        }
+      }
+
+      .btn-portal-admin {
+        color: #000;
+        text-decoration: none;
+        font-size: 0.9rem;
+        font-weight: 600;
+        padding: 10px 18px;
+        border-radius: 8px;
+        background: $gold-primary;
+        transition: all 0.3s;
+        box-shadow: 0 4px 10px rgba($gold-primary, 0.2);
+
+        &:hover {
+          box-shadow: 0 6px 15px rgba($gold-primary, 0.4);
+          filter: brightness(1.1);
+        }
+      }
+    }
+  }
+
+  // 2. Hero Section
+  .hero-section {
+    position: relative;
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(to bottom, rgba(3, 7, 18, 0.4), rgba(3, 7, 18, 0.95)),
+                url('https://images.unsplash.com/photo-1541888946425-d81bb19240f5?auto=format&fit=crop&w=1920&q=80') center/cover no-repeat;
+    text-align: center;
+    padding-top: 80px;
+
+    .hero-content {
+      max-width: 900px;
+      padding: 0 20px;
+      z-index: 10;
+      animation: fadeIn 1s ease-out;
+
+      .hero-tag {
+        display: inline-block;
+        font-size: 0.85rem;
+        font-weight: 700;
+        letter-spacing: 0.2em;
+        text-transform: uppercase;
+        color: $gold-primary;
+        background: rgba($gold-primary, 0.1);
+        border: 1px solid rgba($gold-primary, 0.2);
+        padding: 6px 16px;
+        border-radius: 50px;
+        margin-bottom: 24px;
+      }
+
+      h1 {
+        font-size: 4rem;
+        line-height: 1.1;
+        margin-bottom: 24px;
+
+        @media (max-width: 768px) {
+          font-size: 2.5rem;
+        }
+      }
+
+      .hero-desc {
+        font-size: 1.25rem;
+        color: $text-muted;
+        max-width: 700px;
+        margin: 0 auto 40px auto;
+        line-height: 1.6;
+
+        @media (max-width: 768px) {
+          font-size: 1.05rem;
+        }
+      }
+
+      .hero-ctas {
+        display: flex;
+        justify-content: center;
+        gap: 20px;
+
+        @media (max-width: 480px) {
+          flex-direction: column;
+          align-items: stretch;
+        }
+      }
+    }
+  }
+
+  // 3. Statistics
+  .stats-section {
+    background-color: rgba(15, 23, 42, 0.3);
+    border-top: 1px solid rgba(255, 255, 255, 0.03);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 30px;
+
+      @media (max-width: 900px) {
+        grid-template-columns: repeat(2, 1fr);
+      }
+      @media (max-width: 480px) {
+        grid-template-columns: 1fr;
+      }
+
+      .stat-card {
+        text-align: center;
+        padding: 30px 20px;
+
+        .stat-num {
+          font-size: 3.5rem;
+          font-weight: 800;
+          color: $text-light;
+          line-height: 1;
+          margin-bottom: 10px;
+          background: linear-gradient(135deg, #fff, $gold-primary);
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+        }
+
+        .stat-label {
+          font-size: 0.9rem;
+          color: $text-muted;
+          font-weight: 600;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+        }
+      }
+    }
+  }
+
+  // 4. Vision Section
+  .vision-section {
+    text-align: center;
+    position: relative;
+
+    &::before {
+      content: '';
+      position: absolute;
+      width: 300px;
+      height: 300px;
+      background: radial-gradient(circle, rgba($gold-primary, 0.08) 0%, transparent 70%);
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 1;
+      pointer-events: none;
+    }
+
+    .vision-content {
+      max-width: 800px;
+      margin: 0 auto;
+      position: relative;
+      z-index: 2;
+
+      h2 {
+        font-size: 2.5rem;
+        margin-bottom: 24px;
+      }
+
+      p {
+        font-size: 1.15rem;
+        line-height: 1.8;
+        color: $text-muted;
+      }
+    }
+  }
+
+  // 5. Products Section
+  .products-section {
+    .section-header {
+      text-align: center;
+      margin-bottom: 60px;
+
+      h2 {
+        font-size: 2.5rem;
+        margin-bottom: 15px;
+      }
+
+      p {
+        color: $text-muted;
+        font-size: 1.1rem;
+        max-width: 600px;
+        margin: 0 auto;
+      }
+    }
+
+    .products-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 40px;
+
+      @media (max-width: 900px) {
+        grid-template-columns: 1fr;
+      }
+
+      .product-card {
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+
+        .product-image {
+          height: 240px;
+          background-size: cover;
+          background-position: center;
+          border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+          position: relative;
+
+          &::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(to bottom, transparent, rgba(3, 7, 18, 0.8));
+          }
+        }
+
+        .product-info {
+          padding: 30px;
+          flex-grow: 1;
+
+          .product-icon-title {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 15px;
+
+            h3 {
+              font-size: 1.5rem;
+              margin: 0;
+            }
+          }
+
+          p {
+            color: $text-muted;
+            font-size: 0.95rem;
+            line-height: 1.6;
+            margin-bottom: 24px;
+          }
+
+          .brand-badges {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+
+            .badge {
+              font-size: 0.75rem;
+              font-weight: 600;
+              background: rgba(255, 255, 255, 0.05);
+              border: 1px solid rgba(255, 255, 255, 0.1);
+              color: $text-light;
+              padding: 4px 10px;
+              border-radius: 6px;
+              transition: all 0.3s;
+
+              &:hover {
+                border-color: rgba($gold-primary, 0.5);
+                color: $gold-primary;
+                background: rgba($gold-primary, 0.05);
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
+  // 6. ERP Tech Operations
+  .tech-section {
+    background: linear-gradient(to right, rgba(15, 23, 42, 0.2), rgba(3, 7, 18, 0.9));
+
+    .tech-container {
+      display: flex;
+      align-items: center;
+      gap: 60px;
+
+      @media (max-width: 900px) {
+        flex-direction: column;
+        gap: 40px;
+      }
+
+      .tech-content {
+        flex: 1;
+
+        h2 {
+          font-size: 2.5rem;
+          margin-bottom: 20px;
+        }
+
+        .tech-desc {
+          color: $text-muted;
+          font-size: 1.05rem;
+          line-height: 1.7;
+          margin-bottom: 30px;
+        }
+
+        .tech-bullets {
+          display: flex;
+          flex-direction: column;
+          gap: 16px;
+
+          .bullet {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+
+            .bullet-text {
+              h4 {
+                font-size: 1.1rem;
+                margin: 0 0 4px 0;
+              }
+              p {
+                color: $text-muted;
+                font-size: 0.9rem;
+                margin: 0;
+                line-height: 1.5;
+              }
+            }
+          }
+        }
+      }
+
+      .tech-visual {
+        flex: 1;
+        display: flex;
+        justify-content: center;
+        position: relative;
+
+        &::after {
+          content: '';
+          position: absolute;
+          width: 100%;
+          height: 100%;
+          border-radius: 20px;
+          border: 1px solid rgba($gold-primary, 0.15);
+          top: 15px;
+          left: 15px;
+          z-index: 0;
+          pointer-events: none;
+        }
+
+        img {
+          width: 100%;
+          max-width: 500px;
+          border-radius: 20px;
+          position: relative;
+          z-index: 1;
+          box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5);
+          border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+      }
+    }
+  }
+
+  // 7. Why Choose Us
+  .why-section {
+    background-color: rgba(15, 23, 42, 0.15);
+
+    .why-header {
+      text-align: center;
+      margin-bottom: 60px;
+
+      h2 {
+        font-size: 2.5rem;
+        margin-bottom: 15px;
+      }
+    }
+
+    .why-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 25px;
+
+      @media (max-width: 1024px) {
+        grid-template-columns: repeat(2, 1fr);
+      }
+      @media (max-width: 600px) {
+        grid-template-columns: 1fr;
+      }
+
+      .why-card {
+        padding: 35px 25px;
+        text-align: center;
+
+        .why-icon {
+          background: rgba($gold-primary, 0.08);
+          border: 1px solid rgba($gold-primary, 0.15);
+          width: 60px;
+          height: 60px;
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          margin: 0 auto 20px auto;
+        }
+
+        h3 {
+          font-size: 1.2rem;
+          margin-bottom: 12px;
+        }
+
+        p {
+          color: $text-muted;
+          font-size: 0.9rem;
+          line-height: 1.6;
+          margin: 0;
+        }
+      }
+    }
+  }
+
+  // 8. Supply & Logistics
+  .supply-section {
+    position: relative;
+    background: linear-gradient(180deg, rgba(3, 7, 18, 0.95), rgba(15, 23, 42, 0.2)),
+                url('https://images.unsplash.com/photo-1601584115197-04ecc0da31d7?auto=format&fit=crop&w=1920&q=80') center/cover no-repeat;
+    background-attachment: fixed;
+
+    .supply-container {
+      display: flex;
+      align-items: center;
+      gap: 60px;
+
+      @media (max-width: 900px) {
+        flex-direction: column;
+        gap: 40px;
+      }
+
+      .supply-content {
+        flex: 1.2;
+
+        h2 {
+          font-size: 2.5rem;
+          margin-bottom: 20px;
+        }
+
+        p {
+          color: $text-muted;
+          font-size: 1.05rem;
+          line-height: 1.7;
+          margin-bottom: 30px;
+        }
+
+        .supply-features {
+          display: grid;
+          grid-template-columns: repeat(2, 1fr);
+          gap: 20px;
+
+          @media (max-width: 480px) {
+            grid-template-columns: 1fr;
+          }
+
+          .supply-feat-card {
+            padding: 20px;
+
+            h4 {
+              margin: 0 0 8px 0;
+              font-size: 1.1rem;
+            }
+
+            p {
+              margin: 0;
+              font-size: 0.85rem;
+              line-height: 1.5;
+            }
+          }
+        }
+      }
+
+      .supply-images {
+        flex: 0.8;
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 15px;
+
+        img {
+          width: 100%;
+          height: 150px;
+          object-fit: cover;
+          border-radius: 12px;
+          border: 1px solid rgba(255, 255, 255, 0.08);
+          box-shadow: 0 10px 25px rgba(0,0,0,0.4);
+          transition: transform 0.3s;
+
+          &:hover {
+            transform: scale(1.05);
+          }
+        }
+
+        .full-width-img {
+          grid-column: span 2;
+          height: 200px;
+        }
+      }
+    }
+  }
+
+  // 9. Locations Section
+  .locations-section {
+    .locations-header {
+      text-align: center;
+      margin-bottom: 60px;
+
+      h2 {
+        font-size: 2.5rem;
+        margin-bottom: 15px;
+      }
+
+      p {
+        color: $text-muted;
+        font-size: 1.1rem;
+      }
+    }
+
+    .locations-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 40px;
+
+      @media (max-width: 768px) {
+        grid-template-columns: 1fr;
+      }
+
+      .location-card {
+        padding: 40px;
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+
+        .loc-header {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+          padding-bottom: 15px;
+
+          h3 {
+            font-size: 1.4rem;
+            margin: 0;
+          }
+        }
+
+        .loc-details {
+          display: flex;
+          flex-direction: column;
+          gap: 15px;
+
+          .detail-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+
+            span {
+              font-size: 0.95rem;
+              line-height: 1.5;
+            }
+
+            .info-label {
+              color: $text-muted;
+              font-weight: 500;
+              margin-right: 5px;
+            }
+          }
+        }
+
+        .btn-map {
+          margin-top: 15px;
+          align-self: flex-start;
+          text-decoration: none;
+        }
+      }
+    }
+  }
+
+  // 10. Testimonials
+  .testimonials-section {
+    background-color: rgba(15, 23, 42, 0.1);
+
+    .test-header {
+      text-align: center;
+      margin-bottom: 60px;
+
+      h2 {
+        font-size: 2.5rem;
+        margin-bottom: 15px;
+      }
+    }
+
+    .testimonials-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 30px;
+
+      @media (max-width: 900px) {
+        grid-template-columns: 1fr;
+      }
+
+      .test-card {
+        padding: 35px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+
+        .stars {
+          display: flex;
+          gap: 4px;
+          margin-bottom: 20px;
+        }
+
+        .quote {
+          font-style: italic;
+          color: $text-muted;
+          line-height: 1.7;
+          font-size: 0.95rem;
+          margin-bottom: 25px;
+          flex-grow: 1;
+        }
+
+        .client-info {
+          border-top: 1px solid rgba(255, 255, 255, 0.05);
+          padding-top: 15px;
+
+          h4 {
+            font-size: 1rem;
+            margin: 0 0 4px 0;
+            color: $text-light;
+          }
+
+          p {
+            color: $text-muted;
+            font-size: 0.8rem;
+            margin: 0;
+            font-weight: 500;
+          }
+        }
+      }
+    }
+  }
+
+  // 11. CEO Message
+  .ceo-section {
+    .ceo-container {
+      display: flex;
+      align-items: center;
+      gap: 60px;
+      background: linear-gradient(135deg, rgba(15, 23, 42, 0.5), rgba(3, 7, 18, 0.95));
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      border-radius: 32px;
+      padding: 60px;
+
+      @media (max-width: 900px) {
+        flex-direction: column;
+        padding: 40px 25px;
+        gap: 40px;
+      }
+
+      .ceo-photo {
+        flex: 0.8;
+        display: flex;
+        justify-content: center;
+
+        img {
+          width: 100%;
+          max-width: 320px;
+          height: auto;
+          border-radius: 24px;
+          border: 2px solid rgba($gold-primary, 0.2);
+          box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
+        }
+      }
+
+      .ceo-content {
+        flex: 1.2;
+
+        .ceo-tag {
+          color: $gold-primary;
+          font-weight: 700;
+          letter-spacing: 0.1em;
+          text-transform: uppercase;
+          font-size: 0.85rem;
+          margin-bottom: 12px;
+          display: block;
+        }
+
+        h2 {
+          font-size: 2.5rem;
+          margin-bottom: 24px;
+        }
+
+        p {
+          color: $text-muted;
+          font-size: 1.05rem;
+          line-height: 1.8;
+          margin-bottom: 30px;
+        }
+
+        .ceo-signature-block {
+          border-top: 1px solid rgba(255, 255, 255, 0.08);
+          padding-top: 20px;
+
+          .ceo-name {
+            font-size: 1.25rem;
+            font-weight: 700;
+            margin: 0 0 4px 0;
+          }
+
+          .ceo-title {
+            font-size: 0.9rem;
+            color: $text-muted;
+            margin: 0 0 15px 0;
+          }
+
+          .signature {
+            font-family: $font-ceo;
+            font-size: 2rem;
+            color: $gold-primary;
+            letter-spacing: 0.05em;
+            margin: 0;
+            opacity: 0.9;
+          }
+        }
+      }
+    }
+  }
+
+  // 12. Footer & Final CTA
+  .footer-section {
+    background-color: #010409;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+
+    .cta-banner {
+      background: linear-gradient(135deg, rgba($gold-primary, 0.05) 0%, rgba(3, 7, 18, 0.5) 100%);
+      border: 1px solid rgba($gold-primary, 0.15);
+      border-radius: 24px;
+      padding: 60px;
+      text-align: center;
+      margin-bottom: 80px;
+
+      h2 {
+        font-size: 2.8rem;
+        margin-bottom: 15px;
+
+        @media (max-width: 768px) {
+          font-size: 2rem;
+        }
+      }
+
+      p {
+        color: $text-muted;
+        font-size: 1.15rem;
+        max-width: 600px;
+        margin: 0 auto 35px auto;
+        line-height: 1.6;
+      }
+
+      .cta-buttons {
+        display: flex;
+        justify-content: center;
+        gap: 20px;
+
+        @media (max-width: 480px) {
+          flex-direction: column;
+          align-items: stretch;
+        }
+
+        .btn-call {
+          text-decoration: none;
+        }
+      }
+    }
+
+    .footer-grid {
+      display: grid;
+      grid-template-columns: 2fr repeat(3, 1fr);
+      gap: 40px;
+      margin-bottom: 60px;
+
+      @media (max-width: 900px) {
+        grid-template-columns: 1fr 1fr;
+      }
+      @media (max-width: 480px) {
+        grid-template-columns: 1fr;
+      }
+
+      .footer-col {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+
+        h4 {
+          font-size: 1.1rem;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+          color: $text-light;
+          border-left: 2px solid $gold-primary;
+          padding-left: 10px;
+          margin: 0;
+        }
+
+        p {
+          color: $text-muted;
+          font-size: 0.9rem;
+          line-height: 1.6;
+          margin: 0;
+        }
+
+        .footer-logo {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          font-weight: 800;
+          font-size: 1.25rem;
+          color: $text-light;
+          text-decoration: none;
+        }
+
+        ul {
+          list-style: none;
+          padding: 0;
+          margin: 0;
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+
+          li {
+            a {
+              color: $text-muted;
+              text-decoration: none;
+              font-size: 0.9rem;
+              transition: color 0.3s;
+
+              &:hover {
+                color: $gold-primary;
+              }
+            }
+
+            span {
+              font-size: 0.9rem;
+              color: $text-muted;
+            }
+          }
+        }
+      }
+    }
+
+    .footer-bottom {
+      border-top: 1px solid rgba(255, 255, 255, 0.05);
+      padding: 30px 0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      color: $text-muted;
+      font-size: 0.85rem;
+
+      @media (max-width: 600px) {
+        flex-direction: column;
+        gap: 15px;
+        text-align: center;
+      }
+
+      .social-icons {
+        display: flex;
+        gap: 15px;
+
+        a {
+          color: $text-muted;
+          font-size: 1.2rem;
+          transition: color 0.3s;
+
+          &:hover {
+            color: $gold-primary;
+          }
+        }
+      }
+    }
+  }
+}
+
+// Fade In Animation Keyframes
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
