@@ -42,7 +42,7 @@ exports.register = async (req, res) => {
 };
 
 exports.login = async (req, res) => {
-  const { email, password } = req.body;
+  const { email, password, isAdminLogin } = req.body;
 
   try {
     const userResult = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
@@ -55,6 +55,17 @@ exports.login = async (req, res) => {
     // Plain text comparison
     if (password !== user.password) {
       return res.status(400).json({ msg: 'Invalid Credentials' });
+    }
+
+    // Role validation based on login portal
+    if (user.role === 'admin') {
+      if (!isAdminLogin) {
+        return res.status(403).json({ msg: 'Admins are not allowed to log in from here. Please use the admin portal.' });
+      }
+    } else {
+      if (isAdminLogin) {
+        return res.status(403).json({ msg: 'Access denied. Regular users cannot log in from the admin portal.' });
+      }
     }
 
     const getModuleType = (email, currentType) => {

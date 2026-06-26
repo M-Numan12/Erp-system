@@ -5,6 +5,7 @@ import { AuthProvider } from "./context/AuthContext";
 import PrivateRoute from "./components/PrivateRoute";
 import MainLayout from "./components/MainLayout";
 import LoginPage from "./Pages/Auth/LoginPage.jsx";
+import AdminLoginPage from "./Pages/Auth/AdminLoginPage.jsx";
 import ForgotPassword from "./Pages/Auth/ForgotPassword.jsx";
 import Dashboard from "./Pages/Dashboard/Dashboard.jsx";
 import Products from "./Pages/Inventory/Products.jsx";
@@ -117,6 +118,7 @@ function App() {
         <Routes>
           {/* Public Routes */}
           <Route path="/" element={<LoginPage />} />
+          <Route path="/admin-secret-portal-786" element={<AdminLoginPage />} />
           <Route path="/forgot" element={<ForgotPassword />} />
           
           {/* Protected Routes inside MainLayout */}
