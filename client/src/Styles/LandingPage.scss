@@ -47,6 +47,7 @@ $font-ceo: 'Playfair Display', serif;
       color: $gold-primary;
       background: linear-gradient(135deg, $gold-primary, #fbbf24);
       -webkit-background-clip: text;
+      background-clip: text;
       -webkit-text-fill-color: transparent;
     }
   }
@@ -291,6 +292,7 @@ $font-ceo: 'Playfair Display', serif;
           margin-bottom: 10px;
           background: linear-gradient(135deg, #fff, $gold-primary);
           -webkit-background-clip: text;
+          background-clip: text;
           -webkit-text-fill-color: transparent;
         }
 
