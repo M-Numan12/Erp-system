@@ -1021,7 +1021,13 @@ export default function Billing({ type }) {
                       </div>
                       <div className="p-inputgroup">
                         <span className="p-inputgroup-addon"><Phone size={16} /></span>
-                        <InputText placeholder="Phone Number" value={customerPhone} onChange={(e) => setCustomerPhone(e.target.value)} />
+                        <InputText placeholder="Phone Number" value={customerPhone} onChange={(e) => {
+                          let val = e.target.value;
+                          if (val.startsWith('0')) {
+                            val = val.substring(1);
+                          }
+                          setCustomerPhone(val);
+                        }} />
                       </div>
                       <div className="p-inputgroup">
                         <span className="p-inputgroup-addon"><MapPin size={16} /></span>

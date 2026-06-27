@@ -654,8 +654,14 @@ export default function Customers({ type }) {
                   <label>Phone Number</label>
                   <div className="input-wrapper">
                     <Phone size={18} />
-                    <input type="text" value={form.phone} placeholder="e.g. 0300-1234567"
-                      onChange={(e) => setForm({ ...form, phone: e.target.value })} />
+                    <input type="text" value={form.phone} placeholder="e.g. 300-1234567"
+                      onChange={(e) => {
+                        let val = e.target.value;
+                        if (val.startsWith('0')) {
+                          val = val.substring(1);
+                        }
+                        setForm({ ...form, phone: val });
+                      }} />
                   </div>
                 </div>
                 <div className="form-group">
