@@ -450,7 +450,7 @@ const LandingPage = () => {
         <div className="ceo-container">
           <div className="ceo-photo">
             <img 
-              src="https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&fit=crop&w=400&q=80" 
+              src="/ceo.jpg" 
               alt="CEO Mian Hassam Ahmad" 
             />
           </div>
