@@ -18,14 +18,17 @@ function sanitizeWhatsAppPhone(phone) {
   if (clean.startsWith('00')) {
     clean = clean.substring(2);
   }
-  if (clean.startsWith('92')) {
-    if (clean.startsWith('920')) {
-      clean = '92' + clean.substring(3);
-    }
-  } else if (clean.startsWith('0')) {
+  if (clean.startsWith('0')) {
     clean = '92' + clean.substring(1);
-  } else if (clean.length === 10 && clean.startsWith('3')) {
+  }
+  if (clean.length === 10 && clean.startsWith('3')) {
     clean = '92' + clean;
+  }
+  if (clean.startsWith('920')) {
+    clean = '92' + clean.substring(3);
+  }
+  if (clean.startsWith('923') && clean.length > 12) {
+    clean = clean.substring(0, 12);
   }
   return clean;
 }

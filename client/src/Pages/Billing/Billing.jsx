@@ -95,14 +95,17 @@ export default function Billing({ type }) {
     if (phone.startsWith('00')) {
       phone = phone.substring(2);
     }
-    if (phone.startsWith('92')) {
-      if (phone.startsWith('920')) {
-        phone = '92' + phone.substring(3);
-      }
-    } else if (phone.startsWith('0')) {
+    if (phone.startsWith('0')) {
       phone = '92' + phone.substring(1);
-    } else if (phone.length === 10 && phone.startsWith('3')) {
+    }
+    if (phone.length === 10 && phone.startsWith('3')) {
       phone = '92' + phone;
+    }
+    if (phone.startsWith('920')) {
+      phone = '92' + phone.substring(3);
+    }
+    if (phone.startsWith('923') && phone.length > 12) {
+      phone = phone.substring(0, 12);
     }
 
     setLoading(true);
