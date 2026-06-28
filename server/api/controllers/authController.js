@@ -1,5 +1,60 @@
 const jwt = require('jsonwebtoken');
 const pool = require('../config/db');
+const axios = require('axios');
+
+const checkAndAlertNewDevice = async (user, ip, userAgent) => {
+  try {
+    const deviceCheck = await pool.query(
+      'SELECT * FROM user_devices WHERE user_id = $1 AND ip_address = $2 AND user_agent = $3',
+      [user.id, ip, userAgent]
+    );
+
+    if (deviceCheck.rows.length === 0) {
+      console.log(`🔍 New device detected for user ${user.email} (IP: ${ip})`);
+
+      // Geolocation lookup
+      let location = null;
+      if (ip && ip !== '127.0.0.1' && ip !== '::1' && !ip.startsWith('192.168.')) {
+        try {
+          const geoRes = await axios.get(`https://ipapi.co/${ip}/json/`, { timeout: 3000 });
+          if (geoRes.data && !geoRes.data.error) {
+            location = geoRes.data;
+          }
+        } catch (geoErr) {
+          console.warn("Failed to fetch geolocation details:", geoErr.message);
+        }
+      }
+
+      // Parse OS and Browser for DB record
+      let deviceName = 'Unknown';
+      try {
+        const ua = userAgent || '';
+        const os = ua.includes('Windows') ? 'Windows' : ua.includes('Mac') ? 'macOS' : ua.includes('Android') ? 'Android' : ua.includes('iPhone') ? 'iOS' : 'Linux';
+        const browser = ua.includes('Firefox') ? 'Firefox' : ua.includes('Chrome') ? 'Chrome' : ua.includes('Safari') ? 'Safari' : 'Browser';
+        deviceName = `${os} / ${browser}`;
+      } catch (e) {}
+
+      // Send alert email asynchronously
+      const emailService = require('../utils/emailService');
+      await emailService.sendNewDeviceAlert({ user, ip, userAgent, location });
+
+      // Register device
+      await pool.query(
+        'INSERT INTO user_devices (user_id, ip_address, user_agent, device_name) VALUES ($1, $2, $3, $4) ON CONFLICT DO NOTHING',
+        [user.id, ip, userAgent, deviceName]
+      );
+    } else {
+      // Update last login timestamp
+      await pool.query(
+        'UPDATE user_devices SET last_login_at = CURRENT_TIMESTAMP WHERE id = $1',
+        [deviceCheck.rows[0].id]
+      );
+    }
+  } catch (err) {
+    console.error("Error in checkAndAlertNewDevice:", err.message);
+  }
+};
+
 
 exports.register = async (req, res) => {
   const { name, email, password } = req.body;
@@ -87,6 +142,16 @@ exports.login = async (req, res) => {
         module_type: finalModuleType
       }
     };
+
+    // Extract IP Address and User-Agent
+    const rawIp = req.headers['x-forwarded-for'] 
+      ? req.headers['x-forwarded-for'].split(',')[0].trim() 
+      : req.ip || req.connection.remoteAddress;
+    const ip = rawIp.replace('::ffff:', '');
+    const userAgent = req.headers['user-agent'] || '';
+
+    // Run device security check and email notification asynchronously
+    checkAndAlertNewDevice({ id: user.id, name: user.name, email: user.email, role: user.role, module_type: finalModuleType }, ip, userAgent);
 
     jwt.sign(
       payload,

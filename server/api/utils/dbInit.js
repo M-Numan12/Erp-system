@@ -168,6 +168,16 @@ async function syncDatabaseSchema() {
       module_type VARCHAR(100),
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );`,
+    `CREATE TABLE IF NOT EXISTS user_devices (
+      id SERIAL PRIMARY KEY,
+      user_id INT REFERENCES users(id) ON DELETE CASCADE,
+      ip_address VARCHAR(100),
+      user_agent TEXT,
+      device_name VARCHAR(255),
+      first_login_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      last_login_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE(user_id, ip_address, user_agent)
+    );`,
     // --- 14. AUTO-HEAL SPECIFIC NaN BALANCES ---
     `UPDATE customers SET opening_balance = 20000.00 WHERE id = 350 AND (opening_balance IS NULL OR opening_balance = 0);`,
     `UPDATE customers SET balance = 31070.00 WHERE id = 350 AND (balance IS NULL OR balance::text = 'NaN');`,
