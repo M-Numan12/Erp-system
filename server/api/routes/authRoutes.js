@@ -18,4 +18,22 @@ router.post('/login', authController.login);
 // @access  Private
 router.get('/me', auth, authController.getUser);
 
+// @route   GET api/auth/test-email
+// @desc    Test email from live server
+// @access  Public
+router.get('/test-email', async (req, res) => {
+  try {
+    const emailService = require('../utils/emailService');
+    await emailService.sendNewDeviceAlert({
+      user: { name: 'Live Render Test', email: 'live@erp.com', role: 'admin' },
+      ip: '2.2.2.2',
+      userAgent: 'render-test',
+      location: null
+    });
+    res.json({ success: true, msg: 'Test email triggered from live Render server!' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 module.exports = router;
