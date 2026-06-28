@@ -2,18 +2,6 @@ const express = require('express');
 const router = express.Router();
 const bankController = require('../controllers/bankController');
 const auth = require('../middleware/auth');
-const pool = require('../config/db');
-
-// Temporary authenticated debug route to inspect expenses summary
-router.get('/debug-expenses-summary', auth, async (req, res) => {
-  try {
-    const result = await pool.query('SELECT module_type, COUNT(*) FROM expenses GROUP BY module_type');
-    const all = await pool.query('SELECT id, description, expense_type, category, amount, expense_date, payment_type, module_type FROM expenses ORDER BY id DESC LIMIT 50');
-    res.json({ summary: result.rows, latest: all.rows });
-  } catch(e) {
-    res.status(500).json({ error: e.message });
-  }
-});
 
 // Get real-time balances for all accounts
 router.get('/balances', auth, bankController.getBalances);
