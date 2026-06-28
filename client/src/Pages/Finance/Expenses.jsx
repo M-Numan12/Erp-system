@@ -190,7 +190,7 @@ export default function Expenses({ type }) {
       const amt = parseFloat(form.amount || 0);
       const currentAvailable = liveBalances[targetAccountName] || 0;
       
-      if (amt > currentAvailable) {
+      if (form.payment_source === 'Bank' && amt > currentAvailable) {
         setLoading(false);
         return;
       }
