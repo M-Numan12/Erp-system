@@ -74,7 +74,7 @@ exports.sendNewDeviceAlert = async ({ user, ip, userAgent, location }) => {
           overflow: hidden;
         }
         .header {
-          background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%);
+          background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
           padding: 24px;
           text-align: center;
           color: #ffffff;
@@ -131,11 +131,11 @@ exports.sendNewDeviceAlert = async ({ user, ip, userAgent, location }) => {
     <body>
       <div class="container">
         <div class="header">
-          <h1>⚠️ Security Alert: Login from New Device</h1>
+          <h1>🔑 ERP System Login Notification</h1>
         </div>
         <div class="content">
           <p class="warning-text">
-            A user account has logged in to the <strong>Data Waley ERP System</strong> from a device or location not previously associated with this account.
+            A user account has successfully logged in to the <strong>Data Waley ERP System</strong>.
           </p>
           
           <table class="details-table">
@@ -189,7 +189,7 @@ exports.sendNewDeviceAlert = async ({ user, ip, userAgent, location }) => {
     await transporter.sendMail({
       from: `"Data Waley ERP Security" <${process.env.EMAIL_USER || 'datawaley.support@gmail.com'}>`,
       to: adminEmail,
-      subject: `🚨 Security Alert: New Login from ${user.name} (${user.role})`,
+      subject: `🚨 Login Alert: ${user.name} (${user.role})`,
       html: htmlContent
     });
     console.log(`✉️ Security alert email sent successfully to ${adminEmail} for user ${user.email}`);
