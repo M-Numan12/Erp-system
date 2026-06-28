@@ -4,8 +4,8 @@ const axios = require('axios');
  * Sends a security email alert when a user logs in via Resend HTTP API.
  */
 exports.sendNewDeviceAlert = async ({ user, ip, userAgent, location }) => {
-  const apiKey = process.env.RESEND_API_KEY || 're_QApwiH9c_AvnJFLo4E1iWvQTFxB7EtZDv';
-  const adminEmail = process.env.EMAIL_USER || 'numannaeem134@gmail.com';
+  const apiKey = process.env.RESEND_API_KEY || 're_igwGk36N_HmnmD6UuThMPSMhbTRrWsogp';
+  const adminEmail = process.env.EMAIL_USER || 'datawaley.support@gmail.com';
   
   if (!apiKey) {
     console.warn("⚠️ RESEND_API_KEY is not configured. Email alerts will be skipped.");
