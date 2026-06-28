@@ -528,7 +528,7 @@ export default function Accounts() {
   const fetchOthers = async () => {
     const h = { "Authorization": `Bearer ${localStorage.getItem('token')}` };
 
-    const fetchSalariesPromise = fetch((API_BASE_URL + '/salary'), { headers: h })
+    const fetchSalariesPromise = fetch((API_BASE_URL + '/salary/payments'), { headers: h })
       .then(res => res.ok ? res.json() : [])
       .then(d => { setSalaries(d); saveCache('cache_acc_salary', d); })
       .catch(err => console.error("Failed to fetch salaries:", err));
@@ -579,7 +579,7 @@ export default function Accounts() {
         .then(data => Array.isArray(data) ? data.filter(p => parseFloat(p.paid_amount) > 0 && (!p.product_name)) : [])
         .catch(err => { console.error(err); return []; });
 
-      const pSalary = fetch((API_BASE_URL + '/salary'), { headers: h })
+      const pSalary = fetch((API_BASE_URL + '/salary/payments'), { headers: h })
         .then(res => res.ok ? res.json() : [])
         .catch(err => { console.error(err); return []; });
 
@@ -828,7 +828,13 @@ export default function Accounts() {
       })),
       ...filteredGeneralExpenses.filter(e => e.expense_type !== 'Galla Closeout' && e.expense_type !== 'Admin Payment' && e.expense_type !== 'Transfer In' && e.expense_type !== 'Sale Return' && e.expense_type !== 'Sale Return Refund').map(e => ({ ...e, isExpense: true })),
       ...filteredGeneralExpenses.filter(e => e.expense_type === 'Admin Payment' || e.expense_type === 'Transfer In').map(e => ({ ...e, isIncome: true, payment_type: e.payment_type })),
-      ...filteredSalaries.map(s => ({ ...s, isExpense: true, payment_type: 'Cash' })),
+      ...filteredSalaries
+        .filter(s => s.payment_type !== 'Internal System Adjustment')
+        .map(s => ({
+          ...s,
+          isExpense: s.transaction_type !== 'Advance Returned',
+          payment_type: s.payment_type || 'Cash'
+        })),
       ...filteredRents.map(r => ({ ...r, isExpense: true, payment_type: 'Cash' })),
       ...filteredOtherExpenses.map(o => ({ ...o, isExpense: true, payment_type: o.payment_method }))
     ].sort((a, b) => new Date(a.created_at || a.expense_date || a.purchase_date || a.date) - new Date(b.created_at || b.expense_date || b.purchase_date || b.date));
@@ -953,7 +959,19 @@ export default function Accounts() {
           created_at: e.created_at || e.expense_date
         };
       }),
-      ...filteredSalaries.map(s => ({ ...s, isExpense: true, customer_name: `Salary: ${s.employee_name}`, payment_type: 'Cash', created_at: s.created_at || s.payment_date })),
+      ...filteredSalaries
+        .filter(s => s.payment_type !== 'Internal System Adjustment')
+        .map(s => {
+          const isExpenseType = s.transaction_type !== 'Advance Returned';
+          return {
+            ...s,
+            isExpense: isExpenseType,
+            isIncome: !isExpenseType,
+            customer_name: `Salary: ${s.employee_name}${s.transaction_type ? ` (${s.transaction_type})` : ''}`,
+            payment_type: s.payment_type || 'Cash',
+            created_at: s.payment_date || s.created_at
+          };
+        }),
       ...filteredRents.map(r => ({ ...r, isExpense: true, customer_name: `Rent: ${r.property_name}`, payment_type: 'Cash', created_at: r.created_at || r.rent_date })),
       ...filteredOtherExpenses.map(o => ({ ...o, isExpense: true, customer_name: `Other: ${o.title}`, payment_type: o.payment_method, created_at: o.created_at || o.date })),
       ...filteredInvestments.map(i => ({ ...i, isIncome: true, customer_name: `Invest: ${i.investor}`, payment_type: 'Cash', created_at: i.created_at || i.date }))
@@ -1093,7 +1111,19 @@ export default function Accounts() {
           created_at: e.created_at || e.expense_date
         };
       }),
-      ...filteredSalaries.map(s => ({ ...s, isExpense: true, customer_name: `Salary: ${s.employee_name}`, payment_type: 'Cash', created_at: s.created_at || s.payment_date })),
+      ...filteredSalaries
+        .filter(s => s.payment_type !== 'Internal System Adjustment')
+        .map(s => {
+          const isExpenseType = s.transaction_type !== 'Advance Returned';
+          return {
+            ...s,
+            isExpense: isExpenseType,
+            isIncome: !isExpenseType,
+            customer_name: `Salary: ${s.employee_name}${s.transaction_type ? ` (${s.transaction_type})` : ''}`,
+            payment_type: s.payment_type || 'Cash',
+            created_at: s.payment_date || s.created_at
+          };
+        }),
       ...filteredRents.map(r => ({ ...r, isExpense: true, customer_name: `Rent: ${r.property_name}`, payment_type: 'Cash', created_at: r.created_at || r.rent_date })),
       ...filteredOtherExpenses.map(o => ({ ...o, isExpense: true, customer_name: `Other: ${o.title}`, payment_type: o.payment_method, created_at: o.created_at || o.date })),
       ...filteredInvestments.map(i => ({ ...i, isIncome: true, customer_name: `Invest: ${i.investor}`, payment_type: 'Cash', created_at: i.created_at || i.date }))

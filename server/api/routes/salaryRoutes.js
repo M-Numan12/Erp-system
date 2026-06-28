@@ -198,6 +198,29 @@ router.post('/pay', auth, async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+// Get all salary payments
+router.get('/payments', auth, async (req, res) => {
+  try {
+    const { type } = req.query;
+    let query = 'SELECT * FROM salary_payments';
+    let params = [];
+
+    if (isAdmin(req)) {
+      if (type) {
+        query += ' WHERE module_type = $1';
+        params.push(type);
+      }
+    } else {
+      query += ' WHERE module_type = $1';
+      params.push(req.user.module_type || 'Retail 1');
+    }
+
+    query += ' ORDER BY payment_date DESC, id DESC';
+    const result = await pool.query(query, params);
+    res.json(result.rows);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
 router.delete('/:id', auth, async (req, res) => {
   try {
     await pool.query('DELETE FROM salary WHERE id=$1 AND (module_type=$2 OR $3)', [req.params.id, req.user.module_type || 'Retail 1', isAdmin(req)]);
