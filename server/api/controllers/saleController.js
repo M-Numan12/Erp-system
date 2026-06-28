@@ -28,15 +28,15 @@ exports.getSales = async (req, res) => {
     }
 
     if (!isAdmin(req) && req.query.ignore_date_limit !== 'true') {
-      // Limit non-admin users to the last 15 days
-      conditions.push("created_at >= NOW() - INTERVAL '15 days'");
+      // Limit non-admin users to the last 30 days
+      conditions.push("created_at >= NOW() - INTERVAL '30 days'");
     }
 
     if (conditions.length > 0) {
       query += ' WHERE ' + conditions.join(' AND ');
     }
 
-    const limit = req.query.limit ? parseInt(req.query.limit) : 500;
+    const limit = req.query.limit ? parseInt(req.query.limit) : 5000;
     query += ` ORDER BY created_at DESC LIMIT $${params.length + 1}`;
     params.push(limit);
     const result = await pool.query(query, params);

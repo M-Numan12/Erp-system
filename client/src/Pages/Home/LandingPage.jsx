@@ -1,21 +1,21 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import '../../Styles/LandingPage.scss';
-import { 
-  Building2, 
-  ShieldCheck, 
-  Truck, 
-  Users, 
-  Calendar, 
-  MapPin, 
-  Phone, 
-  Mail, 
-  Clock, 
-  Star, 
-  ArrowRight, 
-  CheckCircle2, 
-  Database, 
-  Warehouse, 
+import {
+  Building2,
+  ShieldCheck,
+  Truck,
+  Users,
+  Calendar,
+  MapPin,
+  Phone,
+  Mail,
+  Clock,
+  Star,
+  ArrowRight,
+  CheckCircle2,
+  Database,
+  Warehouse,
   Award,
   ChevronRight
 } from 'lucide-react';
@@ -29,7 +29,7 @@ const LandingPage = () => {
           <Building2 size={28} color="#b89047" />
           <span>Data Waley <span className="gold-accent">Cement</span></span>
         </Link>
-        
+
         <nav className="nav-links">
           <a href="#products">Products</a>
           <a href="#about">About Legacy</a>
@@ -37,11 +37,7 @@ const LandingPage = () => {
           <a href="#ceo-message">CEO Message</a>
           <a href="#contact">Contact</a>
         </nav>
-        
-        <div className="portal-buttons">
-          <Link to="/login" className="btn-portal-user">Staff Portal</Link>
-          <Link to="/portal-admin" className="btn-portal-admin">Admin Portal</Link>
-        </div>
+
       </header>
 
       {/* 2. Hero Section */}
@@ -50,7 +46,7 @@ const LandingPage = () => {
           <span className="hero-tag">ESTABLISHED 1978</span>
           <h1>BUILDING LAHORE <br /><span className="gold-accent">SINCE 1978</span></h1>
           <p className="hero-desc">
-            Your trusted partner for premium construction materials. Supplying high-grade cement, 
+            Your trusted partner for premium construction materials. Supplying high-grade cement,
             steel sariya, bricks, and aggregates to Punjab's landmark developments for over 46 years.
           </p>
           <div className="hero-ctas">
@@ -89,10 +85,10 @@ const LandingPage = () => {
         <div className="vision-content">
           <h2>BUILDING A STRONGER <span className="gold-accent">PAKISTAN</span></h2>
           <p>
-            For more than four decades, Data Waley Cement Depot has stood as a symbol of reliability 
-            and strength in Punjab's construction sector. We empower builders, developers, and homeowners 
-            by delivering premium-grade brick, cement, and steel materials that stand the test of time. 
-            Our commitment is rooted in integrity, ensuring that every grain of sand and bar of steel 
+            For more than four decades, Data Waley Cement Depot has stood as a symbol of reliability
+            and strength in Punjab's construction sector. We empower builders, developers, and homeowners
+            by delivering premium-grade brick, cement, and steel materials that stand the test of time.
+            Our commitment is rooted in integrity, ensuring that every grain of sand and bar of steel
             we supply contributes to a safer, stronger, and more prosperous nation.
           </p>
         </div>
@@ -108,8 +104,8 @@ const LandingPage = () => {
         <div className="products-grid">
           {/* Cement Card */}
           <div className="product-card glass-card">
-            <div 
-              className="product-image" 
+            <div
+              className="product-image"
               style={{ backgroundImage: `url('https://images.unsplash.com/photo-1589939705384-5185137a7f0f?auto=format&fit=crop&w=600&q=80')` }}
             ></div>
             <div className="product-info">
@@ -118,7 +114,7 @@ const LandingPage = () => {
                 <h3>Premium Cement</h3>
               </div>
               <p>
-                Providing high-strength OPC and SRC cements suitable for heavy foundations, slabs, 
+                Providing high-strength OPC and SRC cements suitable for heavy foundations, slabs,
                 and all general construction work. Engineered for durability and crack resistance.
               </p>
               <div className="brand-badges">
@@ -133,8 +129,8 @@ const LandingPage = () => {
 
           {/* Steel Card */}
           <div className="product-card glass-card">
-            <div 
-              className="product-image" 
+            <div
+              className="product-image"
               style={{ backgroundImage: `url('https://images.unsplash.com/photo-1504917595217-d4dc5ebe6122?auto=format&fit=crop&w=600&q=80')` }}
             ></div>
             <div className="product-info">
@@ -143,7 +139,7 @@ const LandingPage = () => {
                 <h3>Grade-60 Steel Sariya</h3>
               </div>
               <p>
-                Deformed steel rebars featuring high yield strength, outstanding bendability, 
+                Deformed steel rebars featuring high yield strength, outstanding bendability,
                 and excellent bond strength with concrete. Ideal for residential and commercial RCC structures.
               </p>
               <div className="brand-badges">
@@ -157,8 +153,8 @@ const LandingPage = () => {
 
           {/* Bricks Card */}
           <div className="product-card glass-card">
-            <div 
-              className="product-image" 
+            <div
+              className="product-image"
               style={{ backgroundImage: `url('https://images.unsplash.com/photo-1590069261209-f8e9b8642343?auto=format&fit=crop&w=600&q=80')` }}
             ></div>
             <div className="product-info">
@@ -167,7 +163,7 @@ const LandingPage = () => {
                 <h3>Kailash Clay Bricks</h3>
               </div>
               <p>
-                Premium clay bricks, thoroughly baked in traditional kilns. Offers rich red color, 
+                Premium clay bricks, thoroughly baked in traditional kilns. Offers rich red color,
                 precise rectangular dimensions, high compressive strength, and low water absorption.
               </p>
               <div className="brand-badges">
@@ -180,8 +176,8 @@ const LandingPage = () => {
 
           {/* Aggregates Card */}
           <div className="product-card glass-card">
-            <div 
-              className="product-image" 
+            <div
+              className="product-image"
               style={{ backgroundImage: `url('https://images.unsplash.com/photo-1578328819058-b69f3a3b0f6b?auto=format&fit=crop&w=600&q=80')` }}
             ></div>
             <div className="product-info">
@@ -190,7 +186,7 @@ const LandingPage = () => {
                 <h3>Aggregates & Sand</h3>
               </div>
               <p>
-                Sourced from Margalla and Sargodha hills. Clean river sand and bajri, screened 
+                Sourced from Margalla and Sargodha hills. Clean river sand and bajri, screened
                 and washed to ensure high concrete strength and superior plaster finishes.
               </p>
               <div className="brand-badges">
@@ -210,8 +206,8 @@ const LandingPage = () => {
           <div className="tech-content">
             <h2>POWERED BY TECHNOLOGY. <br /><span className="gold-accent">DRIVEN BY TRUST.</span></h2>
             <p className="tech-desc">
-              We leverage modern enterprise resource planning (ERP) technology to manage our supply chain 
-              seamlessly. From order booking to final delivery, our digital system ensures precision, 
+              We leverage modern enterprise resource planning (ERP) technology to manage our supply chain
+              seamlessly. From order booking to final delivery, our digital system ensures precision,
               accountability, and transparency for every bag of cement and ton of steel.
             </p>
             <div className="tech-bullets">
@@ -239,9 +235,9 @@ const LandingPage = () => {
             </div>
           </div>
           <div className="tech-visual">
-            <img 
-              src="https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&w=600&q=80" 
-              alt="Analytics Dashboard" 
+            <img
+              src="https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&w=600&q=80"
+              alt="Analytics Dashboard"
             />
           </div>
         </div>
@@ -290,9 +286,9 @@ const LandingPage = () => {
           <div className="supply-content">
             <h2>SUPPLY ACROSS <br /><span className="gold-accent">ALL OF PUNJAB</span></h2>
             <p>
-              With a robust distribution network and a dedicated heavy-vehicle transport fleet, 
-              we possess the logistics power to supply raw materials to projects of any scale. 
-              Whether it is a single-family residential home in Lahore or a large-scale commercial highway 
+              With a robust distribution network and a dedicated heavy-vehicle transport fleet,
+              we possess the logistics power to supply raw materials to projects of any scale.
+              Whether it is a single-family residential home in Lahore or a large-scale commercial highway
               infrastructure project in Punjab, we deliver strength to your doorstep.
             </p>
             <div className="supply-features">
@@ -307,18 +303,18 @@ const LandingPage = () => {
             </div>
           </div>
           <div className="supply-images">
-            <img 
-              src="https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?auto=format&fit=crop&w=400&q=80" 
-              alt="Logistics warehouse" 
+            <img
+              src="https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?auto=format&fit=crop&w=400&q=80"
+              alt="Logistics warehouse"
               className="full-width-img"
             />
-            <img 
-              src="https://images.unsplash.com/photo-1516576888888-8888b19240f5?auto=format&fit=crop&w=200&q=80" 
-              alt="Cement bag loading" 
+            <img
+              src="https://images.unsplash.com/photo-1516576888888-8888b19240f5?auto=format&fit=crop&w=200&q=80"
+              alt="Cement bag loading"
             />
-            <img 
-              src="https://images.unsplash.com/photo-1601584115197-04ecc0da31d7?auto=format&fit=crop&w=200&q=80" 
-              alt="Delivery Truck" 
+            <img
+              src="https://images.unsplash.com/photo-1601584115197-04ecc0da31d7?auto=format&fit=crop&w=200&q=80"
+              alt="Delivery Truck"
             />
           </div>
         </div>
@@ -351,10 +347,10 @@ const LandingPage = () => {
                 <span><span className="info-label">Hours:</span>Monday - Saturday: 8:00 AM - 8:00 PM</span>
               </div>
             </div>
-            <a 
-              href="https://maps.google.com" 
-              target="_blank" 
-              rel="noopener noreferrer" 
+            <a
+              href="https://maps.google.com"
+              target="_blank"
+              rel="noopener noreferrer"
               className="btn-outline btn-map"
             >
               Get Directions <ChevronRight size={16} />
@@ -381,10 +377,10 @@ const LandingPage = () => {
                 <span><span className="info-label">Hours:</span>Monday - Saturday: 8:00 AM - 8:00 PM</span>
               </div>
             </div>
-            <a 
-              href="https://maps.google.com" 
-              target="_blank" 
-              rel="noopener noreferrer" 
+            <a
+              href="https://maps.google.com"
+              target="_blank"
+              rel="noopener noreferrer"
               className="btn-outline btn-map"
             >
               Get Directions <ChevronRight size={16} />
@@ -404,8 +400,8 @@ const LandingPage = () => {
               {[...Array(5)].map((_, i) => <Star key={i} size={18} fill="#b89047" color="#b89047" />)}
             </div>
             <p className="quote">
-              "We have been buying cement and grade-60 steel from Data Waley for over a decade now. 
-              Their stock reliability is unparalleled. Even during extreme market shortages, they fulfilled 
+              "We have been buying cement and grade-60 steel from Data Waley for over a decade now.
+              Their stock reliability is unparalleled. Even during extreme market shortages, they fulfilled
               our warehouse requirements without raising prices unfairly."
             </p>
             <div className="client-info">
@@ -419,8 +415,8 @@ const LandingPage = () => {
               {[...Array(5)].map((_, i) => <Star key={i} size={18} fill="#b89047" color="#b89047" />)}
             </div>
             <p className="quote">
-              "Their new digital billing system is incredibly convenient. I can check our loading receipts, 
-              verify outstanding dues, and get automated statements instantly. Extremely professional operation 
+              "Their new digital billing system is incredibly convenient. I can check our loading receipts,
+              verify outstanding dues, and get automated statements instantly. Extremely professional operation
               for a traditional market."
             </p>
             <div className="client-info">
@@ -434,7 +430,7 @@ const LandingPage = () => {
               {[...Array(5)].map((_, i) => <Star key={i} size={18} fill="#b89047" color="#b89047" />)}
             </div>
             <p className="quote">
-              "Fast same-day delivery is the main reason we partner with them. When we are pouring concrete, 
+              "Fast same-day delivery is the main reason we partner with them. When we are pouring concrete,
               any delay in cement supply costs thousands. Data Waley's fleet always delivers on time, without fail."
             </p>
             <div className="client-info">
@@ -449,20 +445,20 @@ const LandingPage = () => {
       <section id="ceo-message" className="ceo-section section-padding">
         <div className="ceo-container">
           <div className="ceo-photo">
-            <img 
-              src="/ceo.jpg" 
-              alt="CEO Mian Hassam Ahmad" 
+            <img
+              src="/ceo.jpg"
+              alt="CEO Mian Hassam Ahmad"
             />
           </div>
           <div className="ceo-content">
             <span className="ceo-tag">A Message From Our CEO</span>
             <h2>BUILDING TRUST. <br /><span className="gold-accent">DELIVERING EXCELLENCE.</span></h2>
             <p>
-              "Since our inception in 1978, the core philosophy of Data Waley Cement Depot has been simple: 
-              provide materials of such outstanding strength and reliability that our customers can build 
-              with absolute confidence. We do not just sell cement and steel; we provide the foundational 
-              strength for homes where families grow, and infrastructures where the nation thrives. 
-              As we step into a digital era powered by modern ERP logistics, our commitment to honesty, 
+              "Since our inception in 1978, the core philosophy of Data Waley Cement Depot has been simple:
+              provide materials of such outstanding strength and reliability that our customers can build
+              with absolute confidence. We do not just sell cement and steel; we provide the foundational
+              strength for homes where families grow, and infrastructures where the nation thrives.
+              As we step into a digital era powered by modern ERP logistics, our commitment to honesty,
               fair pricing, and customer satisfaction remains as unshakeable as the concrete we supply."
             </p>
             <div className="ceo-signature-block">
@@ -494,7 +490,7 @@ const LandingPage = () => {
               <span>Data Waley <span className="gold-accent">Cement</span></span>
             </Link>
             <p>
-              Premium construction raw material distributor supplying cement, grade-60 steel rebars, 
+              Premium construction raw material distributor supplying cement, grade-60 steel rebars,
               kiln-baked clay bricks, and quality aggregates across Punjab since 1978.
             </p>
           </div>
@@ -540,6 +536,10 @@ const LandingPage = () => {
           </div>
         </div>
       </footer>
+      <div className="portal-buttons">
+        <Link to="/login" className="btn-portal-user">Staff Portal</Link>
+        {/* <Link to="/portal-admin" className="btn-portal-admin">Admin Portal</Link> */}
+      </div>
     </div>
   );
 };

@@ -295,10 +295,10 @@ export default function Billing({ type }) {
     const dateFiltered = sales.filter(s => {
       const saleDate = s.created_at ? new Date(s.created_at) : null;
       if (user?.role !== 'admin' && saleDate) {
-        const fifteenDaysAgo = new Date();
-        fifteenDaysAgo.setDate(fifteenDaysAgo.getDate() - 15);
-        fifteenDaysAgo.setHours(0, 0, 0, 0);
-        if (saleDate < fifteenDaysAgo) return false;
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+        thirtyDaysAgo.setHours(0, 0, 0, 0);
+        if (saleDate < thirtyDaysAgo) return false;
       }
 
       const saleDateStr = s.created_at ? new Date(s.created_at).toLocaleDateString('en-CA') : '';
@@ -308,7 +308,7 @@ export default function Billing({ type }) {
       if (salesDateFilter === "Yesterday") {
         return saleDateStr === yesterdayStr;
       }
-      return true; // "All Time" or "Last 15 Days"
+      return true; // "All Time" or "Last 30 Days"
     });
 
     if (!salesSearch.trim()) return dateFiltered;
@@ -1328,7 +1328,7 @@ export default function Billing({ type }) {
                 />
               </div>
               <div style={{ display: 'flex', gap: '8px', background: '#f1f5f9', padding: '4px', borderRadius: '12px' }}>
-                {(user?.role === 'admin' ? ["Today", "Yesterday", "All Time"] : ["Today", "Yesterday", "Last 15 Days"]).map(d => (
+                {(user?.role === 'admin' ? ["Today", "Yesterday", "All Time"] : ["Today", "Yesterday", "Last 30 Days"]).map(d => (
                   <button
                     type="button"
                     key={d}
