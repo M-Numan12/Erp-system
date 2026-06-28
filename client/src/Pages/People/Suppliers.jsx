@@ -156,7 +156,6 @@ export default function Suppliers({ type }) {
       const data = await res.json();
       const finalRecs = Array.isArray(data) ? data : [];
       setRecords(finalRecs);
-      localStorage.setItem(`cache_suppliers_records_${activeTab}`, JSON.stringify(finalRecs));
       return finalRecs;
     } catch (err) {
       console.error("Failed to fetch suppliers", err);
@@ -172,7 +171,6 @@ export default function Suppliers({ type }) {
       const data = await res.json();
       const finalBanks = Array.isArray(data) ? data : [];
       setBankAccounts(finalBanks);
-      localStorage.setItem(`cache_banks_list`, JSON.stringify(finalBanks));
     } catch (err) {
       console.error("Failed to fetch banks", err);
     }
@@ -180,16 +178,12 @@ export default function Suppliers({ type }) {
 
   useEffect(() => { 
     if (!activeTab) return;
-    try {
-      const cached = localStorage.getItem(`cache_suppliers_records_${activeTab}`);
-      const cachedBanks = localStorage.getItem(`cache_banks_list`);
-      if (cached) setRecords(JSON.parse(cached));
-      if (cachedBanks) setBankAccounts(JSON.parse(cachedBanks));
-    } catch (e) {
-      console.error(e);
-    }
     fetchRecords(); 
     fetchBanks();
+    const interval = setInterval(() => {
+      fetchRecords();
+    }, 15000);
+    return () => clearInterval(interval);
   }, [activeTab]);
 
   // If Admin and no counter selected, show selection screen

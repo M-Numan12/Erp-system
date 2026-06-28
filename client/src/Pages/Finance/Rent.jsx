@@ -73,7 +73,6 @@ export default function Rent({ type }) {
       const data = await res.json();
       const finalRecs = Array.isArray(data) ? data : [];
       setRecords(finalRecs);
-      localStorage.setItem(`cache_rent_${activeTab}`, JSON.stringify(finalRecs));
     } catch (err) {
       console.error("Failed to fetch rent records", err);
     }
@@ -81,11 +80,9 @@ export default function Rent({ type }) {
 
   useEffect(() => { 
     if (!activeTab) return;
-    try {
-      const cached = localStorage.getItem(`cache_rent_${activeTab}`);
-      if (cached) setRecords(JSON.parse(cached));
-    } catch (e) { console.error(e); }
     fetchRecords(); 
+    const interval = setInterval(fetchRecords, 15000);
+    return () => clearInterval(interval);
   }, [activeTab]);
 
   const handleSubmit = async (e) => {

@@ -76,7 +76,6 @@ export default function Investment({ type }) {
       const data = await res.json();
       const finalRecs = Array.isArray(data) ? data : [];
       setRecords(finalRecs);
-      localStorage.setItem(`cache_investments_${activeTab}`, JSON.stringify(finalRecs));
     } catch (err) {
       console.error("Failed to fetch investments", err);
     }
@@ -84,11 +83,9 @@ export default function Investment({ type }) {
 
   useEffect(() => { 
     if (!activeTab) return;
-    try {
-      const cached = localStorage.getItem(`cache_investments_${activeTab}`);
-      if (cached) setRecords(JSON.parse(cached));
-    } catch (e) { console.error(e); }
     fetchRecords(); 
+    const interval = setInterval(fetchRecords, 15000);
+    return () => clearInterval(interval);
   }, [activeTab]);
 
   const handleSubmit = async (e) => {

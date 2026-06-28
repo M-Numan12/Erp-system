@@ -90,7 +90,6 @@ export default function Products({ type }) {
       const data = await res.json();
       const finalProducts = Array.isArray(data) ? data : [];
       setProducts(finalProducts);
-      localStorage.setItem(`cache_products_${activeTab}`, JSON.stringify(finalProducts));
     } catch (err) {
       console.error("Failed to fetch products", err);
     }
@@ -98,13 +97,9 @@ export default function Products({ type }) {
 
   useEffect(() => { 
     if (!activeTab) return;
-    try {
-      const cached = localStorage.getItem(`cache_products_${activeTab}`);
-      if (cached) setProducts(JSON.parse(cached));
-    } catch (e) {
-      console.error(e);
-    }
     fetchProducts(); 
+    const interval = setInterval(fetchProducts, 15000);
+    return () => clearInterval(interval);
   }, [activeTab]);
 
   // If Admin and no counter selected, show selection screen

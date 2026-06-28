@@ -97,6 +97,8 @@ export default function Staff({ type }) {
 
   useEffect(() => { 
     fetchRecords(); 
+    const interval = setInterval(fetchRecords, 15000);
+    return () => clearInterval(interval);
   }, [activeTab]);
 
   if (user?.role === 'admin' && !activeTab && !type) {

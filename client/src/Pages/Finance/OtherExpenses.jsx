@@ -79,7 +79,6 @@ export default function OtherExpenses({ type }) {
       const data = await res.json();
       const finalRecs = Array.isArray(data) ? data : [];
       setRecords(finalRecs);
-      localStorage.setItem(`cache_otherexpenses_${activeTab}`, JSON.stringify(finalRecs));
     } catch (err) {
       console.error("Failed to fetch other expenses", err);
     }
@@ -87,11 +86,9 @@ export default function OtherExpenses({ type }) {
 
   useEffect(() => { 
     if (!activeTab) return;
-    try {
-      const cached = localStorage.getItem(`cache_otherexpenses_${activeTab}`);
-      if (cached) setRecords(JSON.parse(cached));
-    } catch (e) { console.error(e); }
     fetchRecords(); 
+    const interval = setInterval(fetchRecords, 15000);
+    return () => clearInterval(interval);
   }, [activeTab]);
 
   const handleSubmit = async (e) => {

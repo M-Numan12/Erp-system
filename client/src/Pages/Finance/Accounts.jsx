@@ -461,21 +461,7 @@ export default function Accounts() {
 
   // Helper to save cache for a key
   const saveCache = (key, data) => {
-    try {
-      const token = localStorage.getItem('token') || sessionStorage.getItem('token');
-      if (!token) return;
-      let uId = user?.id;
-      if (!uId) {
-        const payloadStr = token.split('.')[1];
-        if (payloadStr) {
-          const payload = JSON.parse(atob(payloadStr));
-          uId = payload.user?.id;
-        }
-      }
-      if (uId) {
-        localStorage.setItem(`${key}_${uId}`, JSON.stringify(data));
-      }
-    } catch (e) { console.error(e); }
+    // Disabled to always fetch fresh data from DB
   };
 
   // Fetch bank accounts
@@ -493,7 +479,7 @@ export default function Accounts() {
     }
   };
 
-  // Fetch sales for payment summary
+  // Fetch sales for payment overview
   const fetchSales = async () => {
     try {
       const res = await fetch((API_BASE_URL + '/sales?limit=10000&ignore_date_limit=true'), {
@@ -645,44 +631,6 @@ export default function Accounts() {
   // Initialise data on mount
   useEffect(() => {
     let isMounted = true;
-    try {
-      const token = localStorage.getItem('token') || sessionStorage.getItem('token');
-      let uId = null;
-      if (token) {
-        const payloadStr = token.split('.')[1];
-        if (payloadStr) {
-          const payload = JSON.parse(atob(payloadStr));
-          uId = payload.user?.id;
-        }
-      }
-      if (uId) {
-        const cBanks = localStorage.getItem(`cache_acc_banks_${uId}`);
-        const cSales = localStorage.getItem(`cache_acc_sales_${uId}`);
-        const cSupPay = localStorage.getItem(`cache_acc_sup_pay_${uId}`);
-        const cSalary = localStorage.getItem(`cache_acc_salary_${uId}`);
-        const cRent = localStorage.getItem(`cache_acc_rent_${uId}`);
-        const cInvest = localStorage.getItem(`cache_acc_invest_${uId}`);
-        const cOtherExp = localStorage.getItem(`cache_acc_other_exp_${uId}`);
-        const cGenExp = localStorage.getItem(`cache_acc_gen_exp_${uId}`);
-        const cSummary = localStorage.getItem(`cache_acc_summary_balances_${uId}`);
-        const cAdminRec = localStorage.getItem(`cache_acc_admin_received_${uId}`);
-
-        if (cBanks) setAccounts(JSON.parse(cBanks));
-        if (cSales) setSales(JSON.parse(cSales));
-        if (cSupPay) setSupplierPayments(JSON.parse(cSupPay));
-        if (cSalary) setSalaries(JSON.parse(cSalary));
-        if (cRent) setRents(JSON.parse(cRent));
-        if (cInvest) setInvestments(JSON.parse(cInvest));
-        if (cOtherExp) setOtherExpenses(JSON.parse(cOtherExp));
-        if (cGenExp) setGeneralExpenses(JSON.parse(cGenExp));
-        if (cSummary) setCachedSummary(JSON.parse(cSummary));
-        if (cAdminRec) setCachedAdminReceived(JSON.parse(cAdminRec));
-
-        if (cSummary) {
-          setInitialLoading(false);
-        }
-      }
-    } catch (e) { console.error(e); }
 
     const loadData = async () => {
       try {
@@ -700,11 +648,13 @@ export default function Accounts() {
     };
 
     loadData();
+    const interval = setInterval(loadData, 15000);
 
     return () => {
       isMounted = false;
+      clearInterval(interval);
     };
-  }, []);
+  }, [activeTab]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();

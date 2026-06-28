@@ -171,9 +171,6 @@ export default function Labours({ type }) {
       }
       setPayForm(prev => ({ ...prev, payment_type: firstOption }));
       setGlobalPayForm(prev => ({ ...prev, payment_type: firstOption }));
-
-      localStorage.setItem(`cache_labours_${activeTab}`, JSON.stringify(finalLabours));
-      localStorage.setItem(`cache_workhistory_${activeTab}`, JSON.stringify(finalWork));
     } catch (err) {
       console.error(err);
     } finally {
@@ -183,13 +180,11 @@ export default function Labours({ type }) {
 
   useEffect(() => {
     if (!activeTab) return;
-    try {
-      const cachedLabours = localStorage.getItem(`cache_labours_${activeTab}`);
-      const cachedWork = localStorage.getItem(`cache_workhistory_${activeTab}`);
-      if (cachedLabours) setLabours(JSON.parse(cachedLabours));
-      if (cachedWork) setWorkHistory(JSON.parse(cachedWork));
-    } catch (e) { console.error(e); }
     fetchData();
+    const interval = setInterval(() => {
+      fetchData();
+    }, 15000);
+    return () => clearInterval(interval);
   }, [activeTab]);
 
   const handleSubmit = async (e) => {

@@ -213,7 +213,6 @@ export default function Customers({ type }) {
       const data = await res.json();
       const finalRecs = Array.isArray(data) ? data : [];
       setRecords(finalRecs);
-      localStorage.setItem(`cache_customers_${activeTab}`, JSON.stringify(finalRecs));
 
       const banksRes = await fetch(`${API_BASE_URL}/banks`, {
         headers: { "Authorization": `Bearer ${localStorage.getItem('token')}` }
@@ -221,7 +220,6 @@ export default function Customers({ type }) {
       const banksData = await banksRes.json();
       const finalBanks = Array.isArray(banksData) ? banksData : [];
       setBankAccounts(finalBanks);
-      localStorage.setItem(`cache_banks_list`, JSON.stringify(finalBanks));
       return finalRecs;
     } catch (err) {
       console.error("Failed to fetch data", err);
@@ -231,15 +229,9 @@ export default function Customers({ type }) {
 
   useEffect(() => {
     if (!activeTab) return;
-    try {
-      const cached = localStorage.getItem(`cache_customers_${activeTab}`);
-      const cachedBanks = localStorage.getItem(`cache_banks_list`);
-      if (cached) setRecords(JSON.parse(cached));
-      if (cachedBanks) setBankAccounts(JSON.parse(cachedBanks));
-    } catch (e) {
-      console.error(e);
-    }
     fetchRecords();
+    const interval = setInterval(fetchRecords, 15000);
+    return () => clearInterval(interval);
   }, [activeTab]);
 
   // If Admin and no counter selected, show selection screen

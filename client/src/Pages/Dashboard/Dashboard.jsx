@@ -13,14 +13,7 @@ import "../../Styles/Dashboard.scss";
 
 export default function Dashboard() {
   const { user } = useContext(AuthContext);
-  const [stats, setStats] = useState(() => {
-    try {
-      const cached = localStorage.getItem("cache_dashboard_stats");
-      return cached ? JSON.parse(cached) : { products: 0, lowStock: 0, customers: 0, monthlyExpenses: 0 };
-    } catch {
-      return { products: 0, lowStock: 0, customers: 0, monthlyExpenses: 0 };
-    }
-  });
+  const [stats, setStats] = useState({ products: 0, lowStock: 0, customers: 0, monthlyExpenses: 0 });
 
   const [currentTime, setCurrentTime] = useState(new Date());
 
@@ -38,7 +31,6 @@ export default function Dashboard() {
 
         const counterQuery = user?.role === 'admin' ? '' : `?type=${user?.module_type}`;
 
-        // Concurrently fetch all major system data entities to perfectly fill caches globally for ultra-fast response times.
         const [prodRes, expRes, custRes, supRes, transRes] = await Promise.all([
           fetch(`${API_BASE_URL}/products${counterQuery}`, { headers }),
           fetch(`${API_BASE_URL}/expenses${counterQuery}`, { headers }),
@@ -55,27 +47,6 @@ export default function Dashboard() {
           transRes.ok ? transRes.json() : []
         ]);
 
-        // Global pre-loading caching logic
-        const modes = user?.role === 'admin' ? ['Wholesale', 'Retail 1', 'Retail 2'] : [user?.module_type || 'Wholesale'];
-        
-        modes.forEach(mode => {
-          // If admin fetched all (no counter query), we filter by module_type. If operator fetched their specific, it's already filtered.
-          const filterFn = (item) => user?.role === 'admin' ? ((item.module_type || item.sale_type || 'Wholesale') === mode) : true;
-          
-          const filteredProds = Array.isArray(products) ? products.filter(filterFn) : [];
-          const filteredCusts = Array.isArray(customers) ? customers.filter(filterFn) : [];
-          const filteredSups = Array.isArray(suppliers) ? suppliers.filter(filterFn) : [];
-          const filteredTrans = Array.isArray(transport) ? transport.filter(filterFn) : [];
-          
-          localStorage.setItem(`cache_products_${mode}`, JSON.stringify(filteredProds));
-          localStorage.setItem(`cache_customers_${mode}`, JSON.stringify(filteredCusts));
-          localStorage.setItem(`cache_suppliers_records_${mode}`, JSON.stringify(filteredSups));
-          // Support alternate naming convention in some files
-          localStorage.setItem(`cache_suppliers_${mode}`, JSON.stringify(filteredSups)); 
-          localStorage.setItem(`cache_transport_${mode}`, JSON.stringify(filteredTrans));
-          localStorage.setItem(`cache_vehicles_${mode}`, JSON.stringify(filteredTrans));
-        });
-
         // Extract standard stats for Dashboard view rendering
         if (Array.isArray(products) && Array.isArray(expenses) && Array.isArray(customers)) {
           const newStats = {
@@ -85,13 +56,14 @@ export default function Dashboard() {
             monthlyExpenses: Array.isArray(expenses) ? expenses.reduce((sum, e) => sum + parseFloat(e.amount || 0), 0) : 0
           };
           setStats(newStats);
-          localStorage.setItem("cache_dashboard_stats", JSON.stringify(newStats));
         }
       } catch (err) {
-        console.error("Universal cache pre-fetching failed silently", err);
+        console.error("Dashboard stats fetching failed", err);
       }
     };
     fetchStats();
+    const interval = setInterval(fetchStats, 15000);
+    return () => clearInterval(interval);
   }, [user]);
 
   const modules = [

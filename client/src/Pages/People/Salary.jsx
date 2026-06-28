@@ -115,18 +115,18 @@ export default function Salary({ type }) {
       const data = await res.json();
       const finalRecs = Array.isArray(data) ? data : [];
       setRecords(finalRecs);
-      localStorage.setItem(`cache_salary_${activeTab}`, JSON.stringify(finalRecs));
     } catch (err) { console.error(err); }
   };
 
   useEffect(() => { 
     if (!activeTab) return;
-    try {
-      const cached = localStorage.getItem(`cache_salary_${activeTab}`);
-      if (cached) setRecords(JSON.parse(cached));
-    } catch (e) { console.error(e); }
     fetchRecords(); 
     fetchInitialData();
+    const interval = setInterval(() => {
+      fetchRecords();
+      fetchInitialData();
+    }, 15000);
+    return () => clearInterval(interval);
   }, [activeTab]);
 
   // Refetch balances whenever modal pops up and default selection to positive account

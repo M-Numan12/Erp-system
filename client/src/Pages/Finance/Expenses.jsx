@@ -144,7 +144,6 @@ export default function Expenses({ type }) {
       const data = await res.json();
       const finalRecs = Array.isArray(data) ? data : [];
       setRecords(finalRecs);
-      localStorage.setItem(`cache_expenses_${activeTab}`, JSON.stringify(finalRecs));
     } catch (err) { console.error(err); }
   };
 
@@ -170,13 +169,13 @@ export default function Expenses({ type }) {
 
   useEffect(() => { 
     if (!activeTab) return;
-    try {
-      const cached = localStorage.getItem(`cache_expenses_${activeTab}`);
-      if (cached) setRecords(JSON.parse(cached));
-    } catch (e) { console.error(e); }
     fetchRecords();
     fetchBanks();
     fetchPersonalVehicles();
+    const interval = setInterval(() => {
+      fetchRecords();
+    }, 15000);
+    return () => clearInterval(interval);
   }, [activeTab]);
 
   const handleSubmit = async (e) => {

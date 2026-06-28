@@ -105,10 +105,6 @@ export default function Stock({ type }) {
       setProducts(newProds);
       setSuppliers(newSups);
       setVehicles(newVehs);
-
-      localStorage.setItem(`cache_products_${activeTab}`, JSON.stringify(newProds));
-      localStorage.setItem(`cache_suppliers_${activeTab}`, JSON.stringify(newSups));
-      localStorage.setItem(`cache_vehicles_${activeTab}`, JSON.stringify(newVehs));
     } catch (err) {
       console.error(err);
     } finally {
@@ -118,21 +114,10 @@ export default function Stock({ type }) {
 
   useEffect(() => {
     if (!activeTab) return;
-    // Pre-load from cache instantly for 0ms delay
-    try {
-      const cachedProds = localStorage.getItem(`cache_products_${activeTab}`);
-      const cachedSups = localStorage.getItem(`cache_suppliers_${activeTab}`);
-      const cachedVehs = localStorage.getItem(`cache_vehicles_${activeTab}`);
-      if (cachedProds) setProducts(JSON.parse(cachedProds));
-      if (cachedSups) setSuppliers(JSON.parse(cachedSups));
-      if (cachedVehs) setVehicles(JSON.parse(cachedVehs));
-
-      // If there's no cache, show loader, else run silently in background
-      if (!cachedProds) setLoading(true);
-    } catch (e) {
-      setLoading(true);
-    }
+    setLoading(true);
     fetchData();
+    const interval = setInterval(fetchData, 15000);
+    return () => clearInterval(interval);
   }, [activeTab]);
 
   // If Admin and no counter selected, show selection screen

@@ -186,17 +186,14 @@ export default function Transport({ type }) {
       const data = res.data;
       const finalRecs = Array.isArray(data) ? data : [];
       setRecords(finalRecs);
-      localStorage.setItem(`cache_transport_${activeCounter}`, JSON.stringify(finalRecs));
     } catch (err) { console.error(err); }
   };
 
   useEffect(() => { 
     if (!activeCounter) return;
-    try {
-      const cached = localStorage.getItem(`cache_transport_${activeCounter}`);
-      if (cached) setRecords(JSON.parse(cached));
-    } catch (e) { console.error(e); }
     fetchRecords(); 
+    const interval = setInterval(fetchRecords, 15000);
+    return () => clearInterval(interval);
   }, [activeCounter]);
 
   const handleSubmit = async (e) => {
