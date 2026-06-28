@@ -253,7 +253,7 @@ async function sendWhatsAppDocument(to, base64Data, filename = 'Ledger.pdf') {
  * Formats and triggers billing receipts for both the Customer and Admin
  */
 async function sendWhatsAppBill(sale, items) {
-  const adminPhone = process.env.ADMIN_PHONE || '923004269347'; // Default fallback admin phone
+  const adminPhone = process.env.ADMIN_PHONE || '923214294301'; // Default fallback admin phone
   const isWholesale = !sale.sale_type || String(sale.sale_type).toLowerCase() === 'wholesale';
 
   // 1. Build Items List for Admin (always has rates)

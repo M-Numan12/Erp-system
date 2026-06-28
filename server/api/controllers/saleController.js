@@ -27,7 +27,7 @@ exports.getSales = async (req, res) => {
       params.push(activeTab);
     }
 
-    if (!isAdmin(req)) {
+    if (!isAdmin(req) && req.query.ignore_date_limit !== 'true') {
       // Limit non-admin users to the last 15 days
       conditions.push("created_at >= NOW() - INTERVAL '15 days'");
     }
@@ -328,7 +328,7 @@ exports.receivePayment = async (req, res) => {
       `-----------------------------------------`;
 
     if (custPhone) await sendWhatsAppMessage(custPhone, paymentMessage);
-    const adminPhone = process.env.ADMIN_PHONE || '923004269347';
+    const adminPhone = process.env.ADMIN_PHONE || '923214294301';
     const adminMessage = `🚨 *ADMIN COPY: PAYMENT RECEIPT*\n\n${paymentMessage}`;
     await sendWhatsAppMessage(adminPhone, adminMessage);
 
@@ -375,7 +375,7 @@ exports.undoPayment = async (req, res) => {
       `-----------------------------`;
 
     if (custPhone) await sendWhatsAppMessage(custPhone, message);
-    const adminPhone = process.env.ADMIN_PHONE || '923004269347';
+    const adminPhone = process.env.ADMIN_PHONE || '923214294301';
     const adminMsg = `🚨 *ADMIN COPY: PAYMENT REVERSED*\n\n${message}`;
     await sendWhatsAppMessage(adminPhone, adminMsg);
 

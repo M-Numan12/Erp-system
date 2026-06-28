@@ -4,7 +4,7 @@ async function testUltraMsgDirect() {
   console.log('🚀 Triggering direct UltraMsg API Test...');
   const apiUrl = 'https://api.ultramsg.com/instance174172/messages/chat';
   const token = '4722xwbvpu3mdq18';
-  const to = '923004269347'; // Admin Phone
+  const to = '923214294301'; // Admin Phone
   const body = '🔔 *DATA WALEY CEMENT ERP: TEST MESSAGE* \n\nHello! This is a real-time live connection test for your automatic WhatsApp billing system.';
 
   const params = new URLSearchParams();

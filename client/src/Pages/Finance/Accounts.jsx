@@ -496,7 +496,7 @@ export default function Accounts() {
   // Fetch sales for payment summary
   const fetchSales = async () => {
     try {
-      const res = await fetch((API_BASE_URL + '/sales?limit=10000'), {
+      const res = await fetch((API_BASE_URL + '/sales?limit=10000&ignore_date_limit=true'), {
         headers: { "Authorization": `Bearer ${localStorage.getItem('token')}` }
       });
       const data = await res.json();
@@ -570,7 +570,7 @@ export default function Accounts() {
         .then(res => res.ok ? res.json() : [])
         .catch(err => { console.error(err); return []; });
 
-      const pSales = fetch((API_BASE_URL + '/sales?limit=10000'), { headers: h })
+      const pSales = fetch((API_BASE_URL + '/sales?limit=10000&ignore_date_limit=true'), { headers: h })
         .then(res => res.ok ? res.json() : [])
         .catch(err => { console.error(err); return []; });
 
