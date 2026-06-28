@@ -1,35 +1,17 @@
-const nodemailer = require('nodemailer');
-
-// Setup SMTP Transporter using environment variables
-const getTransporter = () => {
-  const user = process.env.EMAIL_USER || 'datawaley.support@gmail.com';
-  const pass = process.env.EMAIL_PASS;
-
-  if (!pass) {
-    console.warn("⚠️ EMAIL_PASS is not configured. Email alerts will be skipped.");
-    return null;
-  }
-
-  return nodemailer.createTransport({
-    host: 'smtp.gmail.com',
-    port: 587,
-    secure: false, // Must be false for port 587 (upgrades to STARTTLS)
-    auth: { user, pass },
-    tls: {
-      rejectUnauthorized: false
-    }
-  });
-};
+const axios = require('axios');
 
 /**
- * Sends a security email alert when a user logs in from a new device/IP.
+ * Sends a security email alert when a user logs in via Resend HTTP API.
  */
 exports.sendNewDeviceAlert = async ({ user, ip, userAgent, location }) => {
-  const transporter = getTransporter();
-  if (!transporter) return;
-
-  const adminEmail = 'datawaley.support@gmail.com';
+  const apiKey = process.env.RESEND_API_KEY || 're_QApwiH9c_AvnJFLo4E1iWvQTFxB7EtZDv';
+  const adminEmail = process.env.EMAIL_USER || 'numannaeem134@gmail.com';
   
+  if (!apiKey) {
+    console.warn("⚠️ RESEND_API_KEY is not configured. Email alerts will be skipped.");
+    return;
+  }
+
   // Format device info from User-Agent string
   let deviceName = 'Unknown Device / Browser';
   try {
@@ -191,14 +173,24 @@ exports.sendNewDeviceAlert = async ({ user, ip, userAgent, location }) => {
   `;
 
   try {
-    await transporter.sendMail({
-      from: `"Data Waley ERP Security" <${process.env.EMAIL_USER || 'datawaley.support@gmail.com'}>`,
+    const res = await axios.post('https://api.resend.com/emails', {
+      from: 'Data Waley Security <onboarding@resend.dev>',
       to: adminEmail,
       subject: `🚨 Login Alert: ${user.name} (${user.role})`,
       html: htmlContent
+    }, {
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json'
+      }
     });
-    console.log(`✉️ Security alert email sent successfully to ${adminEmail} for user ${user.email}`);
+
+    console.log(`✉️ Resend email sent successfully to ${adminEmail} (Status: ${res.status})`);
   } catch (err) {
-    console.error("❌ Failed to send login alert email:", err.message);
+    if (err.response) {
+      console.error("❌ Resend API failed:", err.response.data);
+    } else {
+      console.error("❌ Failed to send login alert email via Resend:", err.message);
+    }
   }
 };
