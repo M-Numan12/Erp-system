@@ -17,13 +17,23 @@ exports.getSales = async (req, res) => {
 
     const activeTab = isAdmin(req) ? type : (req.user.module_type || 'Retail 1');
 
+    let conditions = [];
     if (activeTab) {
       if (activeTab === 'Wholesale') {
-        query += ' WHERE (sale_type=$1 OR sale_type IS NULL)';
+        conditions.push('(sale_type = $1 OR sale_type IS NULL)');
       } else {
-        query += ' WHERE sale_type=$1';
+        conditions.push('sale_type = $1');
       }
       params.push(activeTab);
+    }
+
+    if (!isAdmin(req)) {
+      // Limit non-admin users to the last 15 days
+      conditions.push("created_at >= NOW() - INTERVAL '15 days'");
+    }
+
+    if (conditions.length > 0) {
+      query += ' WHERE ' + conditions.join(' AND ');
     }
 
     const limit = req.query.limit ? parseInt(req.query.limit) : 500;
