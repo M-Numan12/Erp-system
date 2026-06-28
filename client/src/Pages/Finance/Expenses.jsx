@@ -64,7 +64,7 @@ export default function Expenses({ type }) {
   const [payForm, setPayForm] = useState({ source: 'Cash', bank: '' });
   const [liveBalances, setLiveBalances] = useState({});
   const [personalVehicles, setPersonalVehicles] = useState([]);
-  const [dateFilter, setDateFilter] = useState("Today");
+  const [dateFilter, setDateFilter] = useState("All Time");
 
   useEffect(() => {
     if (showModal || showPayModal) {
