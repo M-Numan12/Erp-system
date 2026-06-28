@@ -244,9 +244,9 @@ export default function Accounts() {
       return totalCash;
     }
     const match = filteredAccounts.find(b => checkAccountMatch(method, b));
-    if (match) return paymentSummary[match.id] || 0;
+    if (match) return parseFloat(match.current_balance) || 0;
     const summaryKey = Object.keys(paymentSummary).find(k => k.toLowerCase() === method.toLowerCase());
-    return summaryKey ? paymentSummary[summaryKey] : 0;
+    return summaryKey ? (paymentSummary[summaryKey] || 0) : 0;
   };
 
   const handleAdminBankSubmit = async (e) => {
@@ -895,8 +895,16 @@ export default function Accounts() {
     return calculatedPaymentSummary;
   }, [calculatedPaymentSummary, cachedSummary, isFreshDataLoaded]);
 
-  const totalCash = paymentSummary['Cash'] || 0;
-  const totalBank = filteredAccounts.filter(acc => !checkIsCash(acc) && acc.module_type !== 'Admin Recipient').reduce((sum, acc) => sum + Math.max(0, paymentSummary[acc.id] || 0), 0);
+  const totalCash = useMemo(() => {
+    const cashAcc = filteredAccounts.find(acc => checkIsCash(acc) && acc.module_type !== 'Admin Recipient');
+    return cashAcc ? (parseFloat(cashAcc.current_balance) || 0) : 0;
+  }, [filteredAccounts]);
+
+  const totalBank = useMemo(() => {
+    return filteredAccounts
+      .filter(acc => !checkIsCash(acc) && acc.module_type !== 'Admin Recipient')
+      .reduce((sum, acc) => sum + Math.max(0, parseFloat(acc.current_balance) || 0), 0);
+  }, [filteredAccounts]);
 
   const calculatedAdminReceived = useMemo(() => {
     const isToday = (dateStr) => {
@@ -1273,7 +1281,7 @@ export default function Accounts() {
       ...filteredAccounts
     ];
     return baseAccounts.map(acc => {
-      let bal = checkIsCash(acc) ? (paymentSummary['Cash'] || 0) : (paymentSummary[acc.id] || 0);
+      let bal = acc.current_balance !== undefined ? (parseFloat(acc.current_balance) || 0) : (checkIsCash(acc) ? (paymentSummary['Cash'] || 0) : (paymentSummary[acc.id] || 0));
       if (acc.module_type === 'Admin Recipient') {
         bal = getAdminBankBalance(acc);
       }
