@@ -35,7 +35,7 @@ module.exports = async function (req, res, next) {
 
       console.log(`🔑 [Auth Middleware] Checking User: ${req.user.id}, IP: ${ip}, UA: "${userAgent}"`);
 
-      // Find an approved device for this user with the same User-Agent signature
+      // Check device approval status
       const deviceResult = await pool.query(
         'SELECT * FROM user_devices WHERE user_id = $1 AND user_agent = $2 AND is_approved = true',
         [parseInt(req.user.id, 10), userAgent]
@@ -44,22 +44,48 @@ module.exports = async function (req, res, next) {
       console.log(`🔑 [Auth Middleware] Approved devices found in DB: ${deviceResult.rows.length}`);
 
       if (deviceResult.rows.length === 0) {
-        console.warn(`❌ [Auth Middleware] Access DENIED for user ${req.user.id}. No approved device matching UA: "${userAgent}"`);
-        return res.status(401).json({ msg: 'Session expired or device unauthorized. Please log in again.' });
-      }
+        // Check if this user has ANY devices registered in the database
+        const countResult = await pool.query(
+          'SELECT COUNT(*) FROM user_devices WHERE user_id = $1',
+          [parseInt(req.user.id, 10)]
+        );
+        const hasAnyDevices = parseInt(countResult.rows[0].count, 10) > 0;
 
-      // If IP has changed, dynamically update the device IP in the database
-      const activeDevice = deviceResult.rows[0];
-      if (activeDevice.ip_address !== ip) {
-        pool.query(
-          'UPDATE user_devices SET ip_address = $1, last_login_at = CURRENT_TIMESTAMP WHERE id = $2',
-          [ip, activeDevice.id]
-        ).catch(err => console.error('Failed to update device IP in middleware:', err.message));
+        if (!hasAnyDevices) {
+          // Migration path: This user was logged in before the update and has 0 registered devices.
+          // Auto-approve and register their current active device to prevent logging them out.
+          let deviceName = 'Migrated Device';
+          try {
+            const ua = userAgent || '';
+            const os = ua.includes('Windows') ? 'Windows' : ua.includes('Mac') ? 'macOS' : ua.includes('Android') ? 'Android' : ua.includes('iPhone') ? 'iOS' : 'Linux';
+            const browser = ua.includes('Firefox') ? 'Firefox' : ua.includes('Chrome') ? 'Chrome' : ua.includes('Safari') ? 'Safari' : 'Browser';
+            deviceName = `${os} / ${browser}`;
+          } catch (e) {}
+
+          console.log(`🚀 [Auth Middleware] Auto-migrating and approving active session for user ${req.user.id}`);
+          await pool.query(
+            `INSERT INTO user_devices (user_id, ip_address, user_agent, device_name, is_approved, location, last_login_at) 
+             VALUES ($1, $2, $3, $4, true, 'Local / Unknown', CURRENT_TIMESTAMP)`,
+            [parseInt(req.user.id, 10), ip, userAgent, deviceName]
+          );
+        } else {
+          console.warn(`❌ [Auth Middleware] Access DENIED for user ${req.user.id}. No approved device matching UA: "${userAgent}"`);
+          return res.status(401).json({ msg: 'Session expired or device unauthorized. Please log in again.' });
+        }
       } else {
-        pool.query(
-          'UPDATE user_devices SET last_login_at = CURRENT_TIMESTAMP WHERE id = $2',
-          [activeDevice.id]
-        ).catch(err => {});
+        // If IP has changed, dynamically update the device IP in the database
+        const activeDevice = deviceResult.rows[0];
+        if (activeDevice.ip_address !== ip) {
+          pool.query(
+            'UPDATE user_devices SET ip_address = $1, last_login_at = CURRENT_TIMESTAMP WHERE id = $2',
+            [ip, activeDevice.id]
+          ).catch(err => console.error('Failed to update device IP in middleware:', err.message));
+        } else {
+          pool.query(
+            'UPDATE user_devices SET last_login_at = CURRENT_TIMESTAMP WHERE id = $2',
+            [activeDevice.id]
+          ).catch(err => {});
+        }
       }
     }
     next();
