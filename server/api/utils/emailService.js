@@ -1,5 +1,13 @@
 const axios = require('axios');
 
+const normalizeUserAgent = (ua) => {
+  if (!ua) return 'Unknown';
+  return ua
+    .replace(/\d+[\d.]*/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+};
+
 /**
  * Sends a security email alert when a user logs in via Resend HTTP API.
  */
@@ -268,7 +276,8 @@ exports.sendDeviceApprovalRequest = async ({ user, ip, userAgent, location, lati
   }
 
   // Construct approval & rejection links
-  const encUA = encodeURIComponent(userAgent || '');
+  const normalizedUA = normalizeUserAgent(userAgent);
+  const encUA = encodeURIComponent(normalizedUA);
   const approveUrl = `${backendUrl}/api/auth/device-action?action=approve&userId=${user.id}&ip=${ip}&ua=${encUA}`;
   const rejectUrl = `${backendUrl}/api/auth/device-action?action=reject&userId=${user.id}&ip=${ip}&ua=${encUA}`;
 

@@ -2,6 +2,14 @@ const jwt = require('jsonwebtoken');
 const pool = require('../config/db');
 const axios = require('axios');
 
+const normalizeUserAgent = (ua) => {
+  if (!ua) return 'Unknown';
+  return ua
+    .replace(/\d+[\d.]*/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+};
+
 const checkAndAlertNewDevice = async (user, ip, userAgent, coords = null) => {
   try {
     console.log(`🔍 Login detected for user ${user.email} (IP: ${ip})`);
@@ -43,13 +51,15 @@ const checkAndAlertNewDevice = async (user, ip, userAgent, coords = null) => {
       ? `${location.city || 'Unknown City'}, ${location.country || 'Unknown Country'}`
       : 'Local / Unknown';
 
+    const normalizedUA = normalizeUserAgent(userAgent);
+
     // Register/update device entry
     await pool.query(
       `INSERT INTO user_devices (user_id, ip_address, user_agent, device_name, location, latitude, longitude, last_login_at) 
        VALUES ($1, $2, $3, $4, $5, $6, $7, CURRENT_TIMESTAMP) 
        ON CONFLICT (user_id, ip_address, user_agent) 
        DO UPDATE SET last_login_at = CURRENT_TIMESTAMP, location = EXCLUDED.location, latitude = EXCLUDED.latitude, longitude = EXCLUDED.longitude`,
-      [user.id, ip, userAgent, deviceName, locationStr, lat, lon]
+      [user.id, ip, normalizedUA, deviceName, locationStr, lat, lon]
     );
   } catch (err) {
     console.error("Error in checkAndAlertNewDevice:", err.message);
@@ -158,58 +168,82 @@ exports.login = async (req, res) => {
       lon = parseFloat(coords.longitude);
     }
 
-    // Check device approval status
-    const deviceResult = await pool.query(
-      'SELECT * FROM user_devices WHERE user_id = $1 AND ip_address = $2 AND user_agent = $3',
-      [user.id, ip, userAgent]
+    const normalizedUA = normalizeUserAgent(userAgent);
+
+    // 1. Check if there is an approved device with the same user agent (normalized or raw)
+    const approvedDeviceResult = await pool.query(
+      'SELECT * FROM user_devices WHERE user_id = $1 AND is_approved = true AND (user_agent = $2 OR user_agent = $3)',
+      [user.id, normalizedUA, userAgent]
     );
 
     let isApproved = false;
-    if (deviceResult.rows.length > 0) {
-      isApproved = deviceResult.rows[0].is_approved;
-      if (lat && lon) {
-        await pool.query(
-          'UPDATE user_devices SET latitude = $1, longitude = $2, last_login_at = CURRENT_TIMESTAMP WHERE id = $3',
-          [lat, lon, deviceResult.rows[0].id]
-        );
-      } else {
-        await pool.query(
-          'UPDATE user_devices SET last_login_at = CURRENT_TIMESTAMP WHERE id = $3',
-          [deviceResult.rows[0].id]
-        );
-      }
-    } else {
-      // It's a new device!
-      // Admin is auto-approved to prevent lockout. Others default to pending.
-      isApproved = (user.role === 'admin');
+    if (approvedDeviceResult.rows.length > 0) {
+      isApproved = true;
+      const approvedDevice = approvedDeviceResult.rows[0];
 
-      // Geolocation lookup
-      let location = null;
-      let locationStr = 'Local / Unknown';
-      if (ip && ip !== '127.0.0.1' && ip !== '::1' && !ip.startsWith('192.168.')) {
+      // Update its IP address, location, etc. (and upgrade UA to normalized)
+      let locationStr = approvedDevice.location;
+      if (ip && ip !== approvedDevice.ip_address && ip !== '127.0.0.1' && ip !== '::1' && !ip.startsWith('192.168.')) {
         try {
           const geoRes = await axios.get(`http://ip-api.com/json/${ip}`, { timeout: 3000 });
           if (geoRes.data && geoRes.data.status === 'success') {
-            location = geoRes.data;
             locationStr = `${geoRes.data.city || 'Unknown City'}, ${geoRes.data.country || 'Unknown Country'}`;
           }
         } catch (geoErr) {}
       }
 
-      let deviceName = 'Unknown Device';
-      try {
-        const ua = userAgent || '';
-        const os = ua.includes('Windows') ? 'Windows' : ua.includes('Mac') ? 'macOS' : ua.includes('Android') ? 'Android' : ua.includes('iPhone') ? 'iOS' : 'Linux';
-        const browser = ua.includes('Firefox') ? 'Firefox' : ua.includes('Chrome') ? 'Chrome' : ua.includes('Safari') ? 'Safari' : 'Browser';
-        deviceName = `${os} / ${browser}`;
-      } catch (e) {}
-
       await pool.query(
-        `INSERT INTO user_devices (user_id, ip_address, user_agent, device_name, is_approved, location, latitude, longitude, last_login_at) 
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, CURRENT_TIMESTAMP)`,
-        [user.id, ip, userAgent, deviceName, isApproved, locationStr, lat, lon]
+        `UPDATE user_devices 
+         SET ip_address = $1, location = $2, latitude = $3, longitude = $4, last_login_at = CURRENT_TIMESTAMP, user_agent = $5 
+         WHERE id = $6`,
+        [ip, locationStr, lat || approvedDevice.latitude, lon || approvedDevice.longitude, normalizedUA, approvedDevice.id]
+      );
+    } else {
+      // 2. Check if there is a pending (unapproved) device with the same IP and UA
+      const pendingDeviceResult = await pool.query(
+        'SELECT * FROM user_devices WHERE user_id = $1 AND ip_address = $2 AND (user_agent = $3 OR user_agent = $4)',
+        [user.id, ip, normalizedUA, userAgent]
       );
 
+      if (pendingDeviceResult.rows.length > 0) {
+        const pendingDevice = pendingDeviceResult.rows[0];
+        isApproved = pendingDevice.is_approved;
+        await pool.query(
+          'UPDATE user_devices SET latitude = $1, longitude = $2, last_login_at = CURRENT_TIMESTAMP, user_agent = $3 WHERE id = $4',
+          [lat || pendingDevice.latitude, lon || pendingDevice.longitude, normalizedUA, pendingDevice.id]
+        );
+      } else {
+        // It's a new device!
+        // Admin is auto-approved to prevent lockout. Others default to pending.
+        isApproved = (user.role === 'admin');
+
+        // Geolocation lookup
+        let location = null;
+        let locationStr = 'Local / Unknown';
+        if (ip && ip !== '127.0.0.1' && ip !== '::1' && !ip.startsWith('192.168.')) {
+          try {
+            const geoRes = await axios.get(`http://ip-api.com/json/${ip}`, { timeout: 3000 });
+            if (geoRes.data && geoRes.data.status === 'success') {
+              location = geoRes.data;
+              locationStr = `${geoRes.data.city || 'Unknown City'}, ${geoRes.data.country || 'Unknown Country'}`;
+            }
+          } catch (geoErr) {}
+        }
+
+        let deviceName = 'Unknown Device';
+        try {
+          const ua = userAgent || '';
+          const os = ua.includes('Windows') ? 'Windows' : ua.includes('Mac') ? 'macOS' : ua.includes('Android') ? 'Android' : ua.includes('iPhone') ? 'iOS' : 'Linux';
+          const browser = ua.includes('Firefox') ? 'Firefox' : ua.includes('Chrome') ? 'Chrome' : ua.includes('Safari') ? 'Safari' : 'Browser';
+          deviceName = `${os} / ${browser}`;
+        } catch (e) {}
+
+        await pool.query(
+          `INSERT INTO user_devices (user_id, ip_address, user_agent, device_name, is_approved, location, latitude, longitude, last_login_at) 
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, CURRENT_TIMESTAMP)`,
+          [user.id, ip, normalizedUA, deviceName, isApproved, locationStr, lat, lon]
+        );
+      }
     }
 
     if (!isApproved) {
@@ -409,14 +443,15 @@ exports.deviceAction = async (req, res) => {
     let title = '';
     let message = '';
     let color = '';
+    const normalizedUA = normalizeUserAgent(ua);
 
     if (action === 'approve') {
       const result = await pool.query(
         `UPDATE user_devices 
          SET is_approved = true 
-         WHERE user_id = $1 AND ip_address = $2 AND user_agent = $3 
+         WHERE user_id = $1 AND ip_address = $2 AND (user_agent = $3 OR user_agent = $4) 
          RETURNING *`,
-        [parseInt(userId, 10), ip, ua]
+        [parseInt(userId, 10), ip, normalizedUA, ua]
       );
 
       if (result.rows.length === 0) {
@@ -431,9 +466,9 @@ exports.deviceAction = async (req, res) => {
     } else if (action === 'reject') {
       const result = await pool.query(
         `DELETE FROM user_devices 
-         WHERE user_id = $1 AND ip_address = $2 AND user_agent = $3 
+         WHERE user_id = $1 AND ip_address = $2 AND (user_agent = $3 OR user_agent = $4) 
          RETURNING *`,
-        [parseInt(userId, 10), ip, ua]
+        [parseInt(userId, 10), ip, normalizedUA, ua]
       );
 
       if (result.rows.length === 0) {

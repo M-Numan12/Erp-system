@@ -1,6 +1,14 @@
 const jwt = require('jsonwebtoken');
 const pool = require('../config/db');
 
+const normalizeUserAgent = (ua) => {
+  if (!ua) return 'Unknown';
+  return ua
+    .replace(/\d+[\d.]*/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+};
+
 module.exports = async function (req, res, next) {
   // Get token from header
   const authHeader = req.header('Authorization');
@@ -33,12 +41,13 @@ module.exports = async function (req, res, next) {
       const ip = rawIp.replace('::ffff:', '');
       const userAgent = req.headers['user-agent'] || '';
 
-      console.log(`🔑 [Auth Middleware] Checking User: ${req.user.id}, IP: ${ip}, UA: "${userAgent}"`);
+      const normalizedUA = normalizeUserAgent(userAgent);
+      console.log(`🔑 [Auth Middleware] Checking User: ${req.user.id}, IP: ${ip}, UA: "${userAgent}" (Normalized: "${normalizedUA}")`);
 
-      // Check device approval status
+      // Check device approval status matching normalized or legacy raw UA
       const deviceResult = await pool.query(
-        'SELECT * FROM user_devices WHERE user_id = $1 AND user_agent = $2 AND is_approved = true',
-        [parseInt(req.user.id, 10), userAgent]
+        'SELECT * FROM user_devices WHERE user_id = $1 AND is_approved = true AND (user_agent = $2 OR user_agent = $3)',
+        [parseInt(req.user.id, 10), normalizedUA, userAgent]
       );
 
       console.log(`🔑 [Auth Middleware] Approved devices found in DB: ${deviceResult.rows.length}`);
@@ -66,7 +75,7 @@ module.exports = async function (req, res, next) {
           await pool.query(
             `INSERT INTO user_devices (user_id, ip_address, user_agent, device_name, is_approved, location, last_login_at) 
              VALUES ($1, $2, $3, $4, true, 'Local / Unknown', CURRENT_TIMESTAMP)`,
-            [parseInt(req.user.id, 10), ip, userAgent, deviceName]
+            [parseInt(req.user.id, 10), ip, normalizedUA, deviceName]
           );
         } else {
           console.warn(`❌ [Auth Middleware] Access DENIED for user ${req.user.id}. No approved device matching UA: "${userAgent}"`);
@@ -76,29 +85,29 @@ module.exports = async function (req, res, next) {
         // Find if we have a row that matches the current IP exactly
         const exactMatch = deviceResult.rows.find(d => d.ip_address === ip);
         if (exactMatch) {
-          // Update last activity for the exact matching IP
+          // Update last activity and ensure user_agent is normalized
           pool.query(
-            'UPDATE user_devices SET last_login_at = CURRENT_TIMESTAMP WHERE id = $1',
-            [exactMatch.id]
+            'UPDATE user_devices SET last_login_at = CURRENT_TIMESTAMP, user_agent = $1 WHERE id = $2',
+            [normalizedUA, exactMatch.id]
           ).catch(err => {});
         } else {
           // Check if this IP is already registered in ANY row for this user & UA
           pool.query(
-            'SELECT id FROM user_devices WHERE user_id = $1 AND ip_address = $2 AND user_agent = $3',
-            [parseInt(req.user.id, 10), ip, userAgent]
+            'SELECT id FROM user_devices WHERE user_id = $1 AND ip_address = $2 AND (user_agent = $3 OR user_agent = $4)',
+            [parseInt(req.user.id, 10), ip, normalizedUA, userAgent]
           ).then(checkRes => {
             if (checkRes.rows.length > 0) {
-              // Already exists. Just update its last activity.
+              // Already exists. Just update its last activity and normalize UA
               pool.query(
-                'UPDATE user_devices SET last_login_at = CURRENT_TIMESTAMP WHERE id = $1',
-                [checkRes.rows[0].id]
+                'UPDATE user_devices SET last_login_at = CURRENT_TIMESTAMP, user_agent = $1 WHERE id = $2',
+                [normalizedUA, checkRes.rows[0].id]
               ).catch(err => {});
             } else {
-              // Safe to update the approved device's IP!
+              // Safe to update the approved device's IP and normalize UA!
               const activeDevice = deviceResult.rows[0];
               pool.query(
-                'UPDATE user_devices SET ip_address = $1, last_login_at = CURRENT_TIMESTAMP WHERE id = $2',
-                [ip, activeDevice.id]
+                'UPDATE user_devices SET ip_address = $1, last_login_at = CURRENT_TIMESTAMP, user_agent = $2 WHERE id = $3',
+                [ip, normalizedUA, activeDevice.id]
               ).catch(err => {});
             }
           }).catch(err => {});
