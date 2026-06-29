@@ -185,20 +185,30 @@ exports.login = async (req, res) => {
         [user.id, ip, userAgent, deviceName, isApproved, locationStr]
       );
 
-      if (!isApproved) {
-        // Send device approval request email to admin
-        const emailService = require('../utils/emailService');
-        await emailService.sendDeviceApprovalRequest({ 
-          user: { id: user.id, name: user.name, email: user.email, role: user.role, module_type: finalModuleType }, 
-          ip, 
-          userAgent, 
-          location 
-        });
+    }
+
+    if (!isApproved) {
+      // Send device approval request email to admin
+      let location = null;
+      if (ip && ip !== '127.0.0.1' && ip !== '::1' && !ip.startsWith('192.168.')) {
+        try {
+          const geoRes = await axios.get(`https://ipapi.co/${ip}/json/`, { timeout: 3000 });
+          if (geoRes.data && !geoRes.data.error) {
+            location = geoRes.data;
+          }
+        } catch (geoErr) {}
+      }
+      const emailService = require('../utils/emailService');
+      await emailService.sendDeviceApprovalRequest({ 
+        user: { id: user.id, name: user.name, email: user.email, role: user.role, module_type: finalModuleType }, 
+        ip, 
+        userAgent, 
+        location 
+      });
 
       return res.status(403).json({ 
         msg: 'Login from this device is pending admin approval. A notification has been sent to the admin. Please try logging in again after approval.' 
       });
-      }
     }
 
     // Run device security check and email notification asynchronously (only if already approved)
