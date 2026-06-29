@@ -83,7 +83,7 @@ exports.getUserDevices = async (req, res) => {
   const { userId } = req.params;
   try {
     const result = await pool.query(
-      'SELECT id, ip_address, user_agent, device_name, location, is_approved, last_login_at FROM user_devices WHERE user_id = $1 ORDER BY last_login_at DESC',
+      'SELECT id, ip_address, user_agent, device_name, location, latitude, longitude, is_approved, last_login_at FROM user_devices WHERE user_id = $1 ORDER BY last_login_at DESC',
       [parseInt(userId, 10)]
     );
     res.json(result.rows);

@@ -13,11 +13,33 @@ const AdminLoginPage = () => {
   const { login } = useContext(AuthContext);
   const navigate = useNavigate();
 
+  const getCoordinates = () => {
+    return new Promise((resolve) => {
+      if (!navigator.geolocation) {
+        return resolve(null);
+      }
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          resolve({
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude
+          });
+        },
+        () => {
+          resolve(null);
+        },
+        { enableHighAccuracy: true, timeout: 5000 }
+      );
+    });
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setError('');
+    const coords = await getCoordinates();
     try {
-      // Call login with isAdminLogin = true
-      await login(email, password, rememberMe, true);
+      // Call login with isAdminLogin = true and coords
+      await login(email, password, rememberMe, true, coords);
       navigate('/dashboard');
     } catch (err) {
       setError(err.response?.data?.msg || 'Login failed. Please check admin credentials.');

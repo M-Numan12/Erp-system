@@ -2,9 +2,16 @@ const jwt = require('jsonwebtoken');
 const pool = require('../config/db');
 const axios = require('axios');
 
-const checkAndAlertNewDevice = async (user, ip, userAgent) => {
+const checkAndAlertNewDevice = async (user, ip, userAgent, coords = null) => {
   try {
     console.log(`🔍 Login detected for user ${user.email} (IP: ${ip})`);
+
+    let lat = null;
+    let lon = null;
+    if (coords && coords.latitude && coords.longitude) {
+      lat = parseFloat(coords.latitude);
+      lon = parseFloat(coords.longitude);
+    }
 
     // Geolocation lookup
     let location = null;
@@ -30,19 +37,19 @@ const checkAndAlertNewDevice = async (user, ip, userAgent) => {
 
     // Send alert email asynchronously (runs on every login)
     const emailService = require('../utils/emailService');
-    await emailService.sendNewDeviceAlert({ user, ip, userAgent, location });
+    await emailService.sendNewDeviceAlert({ user, ip, userAgent, location, latitude: lat, longitude: lon });
 
     const locationStr = location 
-      ? `${location.city || 'Unknown City'}, ${location.country_name || 'Unknown Country'}`
+      ? `${location.city || 'Unknown City'}, ${location.country || 'Unknown Country'}`
       : 'Local / Unknown';
 
     // Register/update device entry
     await pool.query(
-      `INSERT INTO user_devices (user_id, ip_address, user_agent, device_name, location, last_login_at) 
-       VALUES ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP) 
+      `INSERT INTO user_devices (user_id, ip_address, user_agent, device_name, location, latitude, longitude, last_login_at) 
+       VALUES ($1, $2, $3, $4, $5, $6, $7, CURRENT_TIMESTAMP) 
        ON CONFLICT (user_id, ip_address, user_agent) 
-       DO UPDATE SET last_login_at = CURRENT_TIMESTAMP, location = EXCLUDED.location`,
-      [user.id, ip, userAgent, deviceName, locationStr]
+       DO UPDATE SET last_login_at = CURRENT_TIMESTAMP, location = EXCLUDED.location, latitude = EXCLUDED.latitude, longitude = EXCLUDED.longitude`,
+      [user.id, ip, userAgent, deviceName, locationStr, lat, lon]
     );
   } catch (err) {
     console.error("Error in checkAndAlertNewDevice:", err.message);
@@ -91,7 +98,7 @@ exports.register = async (req, res) => {
 };
 
 exports.login = async (req, res) => {
-  const { email, password, isAdminLogin } = req.body;
+  const { email, password, isAdminLogin, coords } = req.body;
 
   try {
     const userResult = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
@@ -144,6 +151,13 @@ exports.login = async (req, res) => {
     const ip = rawIp.replace('::ffff:', '');
     const userAgent = req.headers['user-agent'] || '';
 
+    let lat = null;
+    let lon = null;
+    if (coords && coords.latitude && coords.longitude) {
+      lat = parseFloat(coords.latitude);
+      lon = parseFloat(coords.longitude);
+    }
+
     // Check device approval status
     const deviceResult = await pool.query(
       'SELECT * FROM user_devices WHERE user_id = $1 AND ip_address = $2 AND user_agent = $3',
@@ -153,6 +167,17 @@ exports.login = async (req, res) => {
     let isApproved = false;
     if (deviceResult.rows.length > 0) {
       isApproved = deviceResult.rows[0].is_approved;
+      if (lat && lon) {
+        await pool.query(
+          'UPDATE user_devices SET latitude = $1, longitude = $2, last_login_at = CURRENT_TIMESTAMP WHERE id = $3',
+          [lat, lon, deviceResult.rows[0].id]
+        );
+      } else {
+        await pool.query(
+          'UPDATE user_devices SET last_login_at = CURRENT_TIMESTAMP WHERE id = $3',
+          [deviceResult.rows[0].id]
+        );
+      }
     } else {
       // It's a new device!
       // Admin is auto-approved to prevent lockout. Others default to pending.
@@ -180,9 +205,9 @@ exports.login = async (req, res) => {
       } catch (e) {}
 
       await pool.query(
-        `INSERT INTO user_devices (user_id, ip_address, user_agent, device_name, is_approved, location, last_login_at) 
-         VALUES ($1, $2, $3, $4, $5, $6, CURRENT_TIMESTAMP)`,
-        [user.id, ip, userAgent, deviceName, isApproved, locationStr]
+        `INSERT INTO user_devices (user_id, ip_address, user_agent, device_name, is_approved, location, latitude, longitude, last_login_at) 
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, CURRENT_TIMESTAMP)`,
+        [user.id, ip, userAgent, deviceName, isApproved, locationStr, lat, lon]
       );
 
     }
@@ -203,7 +228,9 @@ exports.login = async (req, res) => {
         user: { id: user.id, name: user.name, email: user.email, role: user.role, module_type: finalModuleType }, 
         ip, 
         userAgent, 
-        location 
+        location,
+        latitude: lat,
+        longitude: lon
       });
 
       return res.status(403).json({ 
@@ -212,7 +239,7 @@ exports.login = async (req, res) => {
     }
 
     // Run device security check and email notification asynchronously (only if already approved)
-    checkAndAlertNewDevice({ id: user.id, name: user.name, email: user.email, role: user.role, module_type: finalModuleType }, ip, userAgent);
+    checkAndAlertNewDevice({ id: user.id, name: user.name, email: user.email, role: user.role, module_type: finalModuleType }, ip, userAgent, coords);
 
     jwt.sign(
       payload,

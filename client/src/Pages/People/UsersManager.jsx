@@ -270,9 +270,21 @@ export default function UsersManager() {
                       <td style={{ padding: '14px 16px', color: '#0f172a', fontSize: '13.5px', fontWeight: '500' }}>{d.device_name}</td>
                       <td style={{ padding: '14px 16px', color: '#475569', fontSize: '13.5px', fontFamily: 'monospace' }}>{d.ip_address}</td>
                       <td style={{ padding: '14px 16px', color: '#0f172a', fontSize: '13.5px' }}>
-                        <span style={{ display: 'inline-flex', alignItems: 'center', background: '#eff6ff', color: '#2563eb', padding: '4px 8px', borderRadius: '6px', fontSize: '12px', fontWeight: '600' }}>
-                          📍 {d.location || 'Local / Unknown'}
-                        </span>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'flex-start' }}>
+                          <span style={{ display: 'inline-flex', alignItems: 'center', background: '#eff6ff', color: '#2563eb', padding: '4px 8px', borderRadius: '6px', fontSize: '12px', fontWeight: '600' }}>
+                            📍 {d.location || 'Local / Unknown'}
+                          </span>
+                          {d.latitude && d.longitude && (
+                            <a 
+                              href={`https://www.google.com/maps/search/?api=1&query=${d.latitude},${d.longitude}`} 
+                              target="_blank" 
+                              rel="noopener noreferrer" 
+                              style={{ color: '#2563eb', textDecoration: 'underline', fontSize: '11px', fontWeight: '600', marginLeft: '4px' }}
+                            >
+                              Open in Maps 🗺️
+                            </a>
+                          )}
+                        </div>
                       </td>
                       <td style={{ padding: '14px 16px', color: '#64748b', fontSize: '13.5px' }}>
                         {new Date(d.last_login_at).toLocaleString('en-US', { timeZone: 'Asia/Karachi' })}

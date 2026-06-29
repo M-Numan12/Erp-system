@@ -40,8 +40,8 @@ export const AuthProvider = ({ children }) => {
     loadUser();
   }, []);
 
-  const login = async (email, password, rememberMe, isAdminLogin = false) => {
-    const res = await api.post('/auth/login', { email, password, isAdminLogin });
+  const login = async (email, password, rememberMe, isAdminLogin = false, coords = null) => {
+    const res = await api.post('/auth/login', { email, password, isAdminLogin, coords });
     if (rememberMe) {
       localStorage.setItem('token', res.data.token);
       sessionStorage.removeItem('token');

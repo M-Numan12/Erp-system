@@ -3,7 +3,7 @@ const axios = require('axios');
 /**
  * Sends a security email alert when a user logs in via Resend HTTP API.
  */
-exports.sendNewDeviceAlert = async ({ user, ip, userAgent, location }) => {
+exports.sendNewDeviceAlert = async ({ user, ip, userAgent, location, latitude, longitude }) => {
   const apiKey = process.env.RESEND_API_KEY || 're_igwGk36N_HmnmD6UuThMPSMhbTRrWsogp';
   const adminEmail = process.env.EMAIL_USER || 'datawaley.support@gmail.com';
   
@@ -34,9 +34,13 @@ exports.sendNewDeviceAlert = async ({ user, ip, userAgent, location }) => {
   }
 
   // Geolocation string formatting
-  const geoStr = location 
+  let geoStr = location 
     ? `${location.city || 'Unknown City'}, ${location.regionName || 'Unknown Region'}, ${location.country || 'Unknown Country'}`
     : 'Pending Geolocation Lookup';
+
+  if (latitude && longitude) {
+    geoStr += ` (<a href="https://www.google.com/maps/search/?api=1&query=${latitude},${longitude}" target="_blank" style="color: #2563eb; font-weight: 600; text-decoration: underline;">Open on Google Maps 📍</a>)`;
+  }
 
   const htmlContent = `
     <!DOCTYPE html>
@@ -225,7 +229,7 @@ exports.sendResetCode = async (email, username, code) => {
 /**
  * Sends a security email alert requesting admin approval for a new device login.
  */
-exports.sendDeviceApprovalRequest = async ({ user, ip, userAgent, location }) => {
+exports.sendDeviceApprovalRequest = async ({ user, ip, userAgent, location, latitude, longitude }) => {
   const apiKey = process.env.RESEND_API_KEY || 're_igwGk36N_HmnmD6UuThMPSMhbTRrWsogp';
   const adminEmail = process.env.EMAIL_USER || 'datawaley.support@gmail.com';
   const backendUrl = process.env.BACKEND_URL || 'https://erp-backend-3rf8.onrender.com';
@@ -255,9 +259,13 @@ exports.sendDeviceApprovalRequest = async ({ user, ip, userAgent, location }) =>
   } catch (e) {}
 
   // Geolocation string formatting
-  const geoStr = location 
+  let geoStr = location 
     ? `${location.city || 'Unknown City'}, ${location.regionName || 'Unknown Region'}, ${location.country || 'Unknown Country'}`
     : 'Pending Geolocation Lookup';
+
+  if (latitude && longitude) {
+    geoStr += ` (<a href="https://www.google.com/maps/search/?api=1&query=${latitude},${longitude}" target="_blank" style="color: #2563eb; font-weight: 600; text-decoration: underline;">Open on Google Maps 📍</a>)`;
+  }
 
   // Construct approval & rejection links
   const encUA = encodeURIComponent(userAgent || '');
