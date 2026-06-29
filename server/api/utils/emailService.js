@@ -194,3 +194,146 @@ exports.sendNewDeviceAlert = async ({ user, ip, userAgent, location }) => {
     }
   }
 };
+
+/**
+ * Sends a password reset code to the user's email via Resend HTTP API.
+ */
+exports.sendResetCode = async (email, username, code) => {
+  const apiKey = process.env.RESEND_API_KEY || 're_igwGk36N_HmnmD6UuThMPSMhbTRrWsogp';
+  
+  if (!apiKey) {
+    console.warn("⚠️ RESEND_API_KEY is not configured. Reset email skipped.");
+    return;
+  }
+
+  const htmlContent = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <style>
+        body {
+          font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+          background-color: #f1f5f9;
+          color: #1e293b;
+          margin: 0;
+          padding: 20px;
+        }
+        .container {
+          max-width: 600px;
+          margin: 0 auto;
+          background: #ffffff;
+          border-radius: 12px;
+          border: 1px solid #cbd5e1;
+          box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+          overflow: hidden;
+        }
+        .header {
+          background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+          padding: 24px;
+          text-align: center;
+          color: #ffffff;
+        }
+        .header h1 {
+          margin: 0;
+          font-size: 20px;
+          font-weight: 700;
+          letter-spacing: 0.5px;
+        }
+        .content {
+          padding: 32px 24px;
+          text-align: center;
+        }
+        .greeting {
+          font-size: 16px;
+          color: #0f172a;
+          margin-bottom: 12px;
+          text-align: left;
+        }
+        .instruction {
+          font-size: 15px;
+          line-height: 1.6;
+          color: #475569;
+          margin-bottom: 24px;
+          text-align: left;
+        }
+        .code-box {
+          display: inline-block;
+          font-size: 32px;
+          font-weight: 800;
+          letter-spacing: 6px;
+          color: #2563eb;
+          background: #eff6ff;
+          padding: 16px 32px;
+          border-radius: 8px;
+          border: 2px dashed #bfdbfe;
+          margin: 12px 0 24px 0;
+        }
+        .expiry-warning {
+          font-size: 13px;
+          color: #ef4444;
+          font-weight: 600;
+          margin-bottom: 16px;
+        }
+        .footer {
+          background-color: #f8fafc;
+          padding: 20px;
+          text-align: center;
+          font-size: 12px;
+          color: #64748b;
+          border-top: 1px solid #e2e8f0;
+        }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1>🔑 Password Reset Verification Code</h1>
+        </div>
+        <div class="content">
+          <p class="greeting">Hi ${username},</p>
+          <p class="instruction">
+            We received a request to reset the password for your account on the <strong>Data Waley ERP System</strong>. Please use the verification code below to proceed:
+          </p>
+          
+          <div class="code-box">${code}</div>
+          
+          <p class="expiry-warning">
+            This verification code is valid for 15 minutes.
+          </p>
+          
+          <p class="instruction" style="font-size: 13px; font-style: italic; color: #64748b;">
+            If you did not request a password reset, please ignore this email or secure your account if you feel suspicious.
+          </p>
+        </div>
+        <div class="footer">
+          This is an automated security notification from Data Waley ERP System.<br>
+          © 2026 Data Waley Inc. All Rights Reserved.
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+
+  try {
+    const res = await axios.post('https://api.resend.com/emails', {
+      from: 'Data Waley Security <onboarding@resend.dev>',
+      to: email,
+      subject: `🔑 Reset Code: ${code}`,
+      html: htmlContent
+    }, {
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json'
+      }
+    });
+
+    console.log(`✉️ Reset code email sent successfully to ${email} (Status: ${res.status})`);
+  } catch (err) {
+    if (err.response) {
+      console.error("❌ Resend API failed:", err.response.data);
+    } else {
+      console.error("❌ Failed to send reset code email via Resend:", err.message);
+    }
+  }
+};

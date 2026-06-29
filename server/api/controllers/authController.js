@@ -186,3 +186,116 @@ exports.getUser = async (req, res) => {
     res.status(500).send('Server Error');
   }
 };
+
+exports.forgotPassword = async (req, res) => {
+  const { email, username, role } = req.body;
+
+  if (!email || !username || !role) {
+    return res.status(400).json({ msg: 'Please provide all details (email, username, and role).' });
+  }
+
+  try {
+    // 1. Verify user exists with matching email, name/username, and role/module_type
+    const userResult = await pool.query(
+      `SELECT * FROM users 
+       WHERE LOWER(email) = LOWER($1) 
+         AND LOWER(name) = LOWER($2) 
+         AND (LOWER(role) = LOWER($3) OR LOWER(module_type) = LOWER($3))`,
+      [email.trim(), username.trim(), role.trim()]
+    );
+
+    if (userResult.rows.length === 0) {
+      return res.status(400).json({ msg: 'No matching account found with these details.' });
+    }
+
+    const user = userResult.rows[0];
+
+    // 2. Generate a 6-digit verification code
+    const code = Math.floor(100000 + Math.random() * 900000).toString();
+
+    // 3. Clear any existing codes for this email and save the new one
+    await pool.query('DELETE FROM password_resets WHERE LOWER(email) = LOWER($1)', [email.trim()]);
+    
+    const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes expiry
+    await pool.query(
+      'INSERT INTO password_resets (email, code, expires_at) VALUES ($1, $2, $3)',
+      [email.trim().toLowerCase(), code, expiresAt]
+    );
+
+    // 4. Send code via Email
+    const emailService = require('../utils/emailService');
+    await emailService.sendResetCode(email.trim(), user.name, code);
+
+    // 5. Always log the code to server console for testing/verification safety
+    console.log(`🔑 PASSWORD RESET CODE GENERATED: [${code}] for email: <${email.trim()}>`);
+
+    res.json({ success: true, msg: 'Verification code sent to your email.' });
+  } catch (err) {
+    console.error('Error in forgotPassword:', err.message);
+    res.status(500).send('Server Error');
+  }
+};
+
+exports.verifyCode = async (req, res) => {
+  const { email, code } = req.body;
+
+  if (!email || !code) {
+    return res.status(400).json({ msg: 'Please provide email and verification code.' });
+  }
+
+  try {
+    const result = await pool.query(
+      `SELECT * FROM password_resets 
+       WHERE LOWER(email) = LOWER($1) 
+         AND code = $2 
+         AND expires_at > NOW()`,
+      [email.trim(), code.trim()]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(400).json({ msg: 'Invalid or expired verification code.' });
+    }
+
+    res.json({ success: true, msg: 'Code verified successfully.' });
+  } catch (err) {
+    console.error('Error in verifyCode:', err.message);
+    res.status(500).send('Server Error');
+  }
+};
+
+exports.resetPassword = async (req, res) => {
+  const { email, code, password } = req.body;
+
+  if (!email || !code || !password) {
+    return res.status(400).json({ msg: 'Please provide email, verification code, and new password.' });
+  }
+
+  try {
+    // 1. Verify code again to ensure request integrity
+    const result = await pool.query(
+      `SELECT * FROM password_resets 
+       WHERE LOWER(email) = LOWER($1) 
+         AND code = $2 
+         AND expires_at > NOW()`,
+      [email.trim(), code.trim()]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(400).json({ msg: 'Invalid or expired verification code.' });
+    }
+
+    // 2. Update user's password in plain text (as per existing schema)
+    await pool.query(
+      'UPDATE users SET password = $1 WHERE LOWER(email) = LOWER($2)',
+      [password, email.trim()]
+    );
+
+    // 3. Cleanup verification code
+    await pool.query('DELETE FROM password_resets WHERE LOWER(email) = LOWER($1)', [email.trim()]);
+
+    res.json({ success: true, msg: 'Password reset successful. You can now login.' });
+  } catch (err) {
+    console.error('Error in resetPassword:', err.message);
+    res.status(500).send('Server Error');
+  }
+};

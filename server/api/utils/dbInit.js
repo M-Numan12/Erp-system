@@ -199,7 +199,16 @@ async function syncDatabaseSchema() {
     `DROP TABLE IF EXISTS stock_logs CASCADE;`,
     `CREATE OR REPLACE VIEW stock AS SELECT id AS product_id, name AS product_name, brand, category, stock_quantity, unit, cost_price, price AS retail_price, module_type, created_at FROM products;`,
     // --- 17. DROP UNUSED LEGACY COLUMNS ---
-    `ALTER TABLE bank_accounts DROP COLUMN IF EXISTS "Current Balance";`
+    `ALTER TABLE bank_accounts DROP COLUMN IF EXISTS "Current Balance";`,
+
+    // --- 18. PASSWORD RESETS TABLE ---
+    `CREATE TABLE IF NOT EXISTS password_resets (
+      id SERIAL PRIMARY KEY,
+      email VARCHAR(255) NOT NULL,
+      code VARCHAR(6) NOT NULL,
+      expires_at TIMESTAMP NOT NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );`
   ];
 
   let totalExecuted = 0;
