@@ -33,13 +33,28 @@ module.exports = async function (req, res, next) {
       const ip = rawIp.replace('::ffff:', '');
       const userAgent = req.headers['user-agent'] || '';
 
+      // Find an approved device for this user with the same User-Agent signature
       const deviceResult = await pool.query(
-        'SELECT * FROM user_devices WHERE user_id = $1 AND ip_address = $2 AND user_agent = $3 AND is_approved = true',
-        [req.user.id, ip, userAgent]
+        'SELECT * FROM user_devices WHERE user_id = $1 AND user_agent = $2 AND is_approved = true',
+        [req.user.id, userAgent]
       );
 
       if (deviceResult.rows.length === 0) {
         return res.status(401).json({ msg: 'Session expired or device unauthorized. Please log in again.' });
+      }
+
+      // If IP has changed, dynamically update the device IP in the database
+      const activeDevice = deviceResult.rows[0];
+      if (activeDevice.ip_address !== ip) {
+        pool.query(
+          'UPDATE user_devices SET ip_address = $1, last_login_at = CURRENT_TIMESTAMP WHERE id = $2',
+          [ip, activeDevice.id]
+        ).catch(err => console.error('Failed to update device IP in middleware:', err.message));
+      } else {
+        pool.query(
+          'UPDATE user_devices SET last_login_at = CURRENT_TIMESTAMP WHERE id = $2',
+          [activeDevice.id]
+        ).catch(err => {});
       }
     }
     next();
