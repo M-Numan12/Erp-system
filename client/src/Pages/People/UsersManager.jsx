@@ -29,6 +29,8 @@ export default function UsersManager() {
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [formData, setFormData] = useState({ name: '', email: '', password: '', role: 'user', module_type: '', permissions: [] });
+  const [devices, setDevices] = useState([]);
+  const [loadingDevices, setLoadingDevices] = useState(false);
 
   useEffect(() => {
     fetchUsers();
@@ -40,6 +42,18 @@ export default function UsersManager() {
       setUsers(res.data);
     } catch (err) {
       console.error('Failed to fetch users', err);
+    }
+  };
+
+  const fetchDevices = async (userId) => {
+    setLoadingDevices(true);
+    try {
+      const res = await api.get(`/users/${userId}/devices`);
+      setDevices(res.data);
+    } catch (err) {
+      console.error('Failed to fetch user devices', err);
+    } finally {
+      setLoadingDevices(false);
     }
   };
 
@@ -71,6 +85,7 @@ export default function UsersManager() {
       permissions: userPermissions
     });
     setShowForm(true);
+    fetchDevices(user.id);
   };
 
   const handleSubmit = async (e) => {
@@ -88,6 +103,7 @@ export default function UsersManager() {
       setShowForm(false);
       setEditingId(null);
       setFormData({ name: '', email: '', password: '', role: 'user', module_type: '', permissions: [] });
+      setDevices([]);
       fetchUsers();
     } catch (err) {
       alert(err.response?.data?.msg || 'Error saving user');
@@ -103,6 +119,20 @@ export default function UsersManager() {
     }
   };
 
+  const handleLogoutDevice = async (deviceId) => {
+    if (window.confirm('Are you sure you want to force logout and revoke this device?')) {
+      try {
+        await api.delete(`/users/devices/${deviceId}`);
+        if (editingId) {
+          fetchDevices(editingId);
+        }
+      } catch (err) {
+        console.error('Failed to logout device', err);
+        alert(err.response?.data?.msg || 'Error logging out device');
+      }
+    }
+  };
+
   return (
     <div className="users-manager">
       <div className="header">
@@ -112,6 +142,7 @@ export default function UsersManager() {
           if (editingId) {
             setEditingId(null);
             setFormData({ name: '', email: '', password: '', role: 'user', module_type: '', permissions: [] });
+            setDevices([]);
           }
         }}>
           <UserPlus size={20} /> {showForm ? 'Cancel' : 'Add User'}
@@ -201,39 +232,100 @@ export default function UsersManager() {
         </form>
       )}
 
-      <div className="table-container">
-        <table>
-          <thead>
-            <tr>
-              <th>Name</th>
-              <th>Email</th>
-              <th>Role</th>
-              <th>Module Type</th>
-              <th>Permissions</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {users.map(u => (
-              <tr key={u.id}>
-                <td>{u.name}</td>
-                <td>{u.email}</td>
-                <td style={{ textTransform: 'capitalize' }}>{u.role}</td>
-                <td>{u.module_type || 'None'}</td>
-                <td className="perms-cell">
-                  {u.permissions?.length ? u.permissions.join(', ') : 'None'}
-                </td>
-                <td>
-                  <ActionMenu 
-                    onEdit={() => handleEditClick(u)} 
-                    onDelete={() => handleDelete(u.id)} 
-                  />
-                </td>
+      {editingId ? (
+        <div className="devices-container" style={{ marginTop: '24px', background: 'white', padding: '24px', borderRadius: '12px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
+          <h3 style={{ margin: '0 0 16px 0', fontSize: '18px', color: '#0f172a', fontWeight: '600' }}>Active Sessions & Devices</h3>
+          {loadingDevices ? (
+            <p style={{ color: '#64748b' }}>Loading active sessions...</p>
+          ) : devices.length === 0 ? (
+            <p style={{ color: '#64748b', fontSize: '14.5px' }}>No active logged-in devices found for this user.</p>
+          ) : (
+            <div className="table-container" style={{ overflowX: 'auto', border: '1px solid #e2e8f0', borderRadius: '8px' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                <thead>
+                  <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
+                    <th style={{ padding: '12px 16px', fontWeight: '600', color: '#475569', fontSize: '13.5px' }}>Device / OS / Browser</th>
+                    <th style={{ padding: '12px 16px', fontWeight: '600', color: '#475569', fontSize: '13.5px' }}>IP Address</th>
+                    <th style={{ padding: '12px 16px', fontWeight: '600', color: '#475569', fontSize: '13.5px' }}>Live Location</th>
+                    <th style={{ padding: '12px 16px', fontWeight: '600', color: '#475569', fontSize: '13.5px' }}>Last Activity</th>
+                    <th style={{ padding: '12px 16px', fontWeight: '600', color: '#475569', fontSize: '13.5px', textAlign: 'center' }}>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {devices.map(d => (
+                    <tr key={d.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                      <td style={{ padding: '14px 16px', color: '#0f172a', fontSize: '13.5px', fontWeight: '500' }}>{d.device_name}</td>
+                      <td style={{ padding: '14px 16px', color: '#475569', fontSize: '13.5px', fontFamily: 'monospace' }}>{d.ip_address}</td>
+                      <td style={{ padding: '14px 16px', color: '#0f172a', fontSize: '13.5px' }}>
+                        <span style={{ display: 'inline-flex', alignItems: 'center', background: '#eff6ff', color: '#2563eb', padding: '4px 8px', borderRadius: '6px', fontSize: '12px', fontWeight: '600' }}>
+                          📍 {d.location || 'Local / Unknown'}
+                        </span>
+                      </td>
+                      <td style={{ padding: '14px 16px', color: '#64748b', fontSize: '13.5px' }}>
+                        {new Date(d.last_login_at).toLocaleString('en-US', { timeZone: 'Asia/Karachi' })}
+                      </td>
+                      <td style={{ padding: '14px 16px', textAlign: 'center' }}>
+                        <button 
+                          onClick={() => handleLogoutDevice(d.id)}
+                          style={{
+                            backgroundColor: '#ef4444',
+                            color: '#ffffff',
+                            border: 'none',
+                            padding: '8px 16px',
+                            borderRadius: '6px',
+                            fontSize: '12.5px',
+                            fontWeight: '600',
+                            cursor: 'pointer',
+                            transition: 'opacity 0.2s'
+                          }}
+                          onMouseOver={(e) => e.target.style.opacity = '0.85'}
+                          onMouseOut={(e) => e.target.style.opacity = '1'}
+                        >
+                          Force Logout
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      ) : (
+        <div className="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Role</th>
+                <th>Module Type</th>
+                <th>Permissions</th>
+                <th>Actions</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+            </thead>
+            <tbody>
+              {users.map(u => (
+                <tr key={u.id}>
+                  <td>{u.name}</td>
+                  <td>{u.email}</td>
+                  <td style={{ textTransform: 'capitalize' }}>{u.role}</td>
+                  <td>{u.module_type || 'None'}</td>
+                  <td className="perms-cell">
+                    {u.permissions?.length ? u.permissions.join(', ') : 'None'}
+                  </td>
+                  <td>
+                    <ActionMenu 
+                      onEdit={() => handleEditClick(u)} 
+                      onDelete={() => handleDelete(u.id)} 
+                    />
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 }

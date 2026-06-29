@@ -32,13 +32,17 @@ const checkAndAlertNewDevice = async (user, ip, userAgent) => {
     const emailService = require('../utils/emailService');
     await emailService.sendNewDeviceAlert({ user, ip, userAgent, location });
 
+    const locationStr = location 
+      ? `${location.city || 'Unknown City'}, ${location.country_name || 'Unknown Country'}`
+      : 'Local / Unknown';
+
     // Register/update device entry
     await pool.query(
-      `INSERT INTO user_devices (user_id, ip_address, user_agent, device_name, last_login_at) 
-       VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP) 
+      `INSERT INTO user_devices (user_id, ip_address, user_agent, device_name, location, last_login_at) 
+       VALUES ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP) 
        ON CONFLICT (user_id, ip_address, user_agent) 
-       DO UPDATE SET last_login_at = CURRENT_TIMESTAMP`,
-      [user.id, ip, userAgent, deviceName]
+       DO UPDATE SET last_login_at = CURRENT_TIMESTAMP, location = EXCLUDED.location`,
+      [user.id, ip, userAgent, deviceName, locationStr]
     );
   } catch (err) {
     console.error("Error in checkAndAlertNewDevice:", err.message);
@@ -154,6 +158,19 @@ exports.login = async (req, res) => {
       // Admin is auto-approved to prevent lockout. Others default to pending.
       isApproved = (user.role === 'admin');
 
+      // Geolocation lookup
+      let location = null;
+      let locationStr = 'Local / Unknown';
+      if (ip && ip !== '127.0.0.1' && ip !== '::1' && !ip.startsWith('192.168.')) {
+        try {
+          const geoRes = await axios.get(`https://ipapi.co/${ip}/json/`, { timeout: 3000 });
+          if (geoRes.data && !geoRes.data.error) {
+            location = geoRes.data;
+            locationStr = `${geoRes.data.city || 'Unknown City'}, ${geoRes.data.country_name || 'Unknown Country'}`;
+          }
+        } catch (geoErr) {}
+      }
+
       let deviceName = 'Unknown Device';
       try {
         const ua = userAgent || '';
@@ -163,34 +180,25 @@ exports.login = async (req, res) => {
       } catch (e) {}
 
       await pool.query(
-        `INSERT INTO user_devices (user_id, ip_address, user_agent, device_name, is_approved, last_login_at) 
-         VALUES ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP)`,
-        [user.id, ip, userAgent, deviceName, isApproved]
+        `INSERT INTO user_devices (user_id, ip_address, user_agent, device_name, is_approved, location, last_login_at) 
+         VALUES ($1, $2, $3, $4, $5, $6, CURRENT_TIMESTAMP)`,
+        [user.id, ip, userAgent, deviceName, isApproved, locationStr]
       );
-    }
 
-    if (!isApproved) {
-      // Send device approval request email to admin
-      let location = null;
-      if (ip && ip !== '127.0.0.1' && ip !== '::1' && !ip.startsWith('192.168.')) {
-        try {
-          const geoRes = await axios.get(`https://ipapi.co/${ip}/json/`, { timeout: 3000 });
-          if (geoRes.data && !geoRes.data.error) {
-            location = geoRes.data;
-          }
-        } catch (geoErr) {}
-      }
-      const emailService = require('../utils/emailService');
-      await emailService.sendDeviceApprovalRequest({ 
-        user: { id: user.id, name: user.name, email: user.email, role: user.role, module_type: finalModuleType }, 
-        ip, 
-        userAgent, 
-        location 
-      });
+      if (!isApproved) {
+        // Send device approval request email to admin
+        const emailService = require('../utils/emailService');
+        await emailService.sendDeviceApprovalRequest({ 
+          user: { id: user.id, name: user.name, email: user.email, role: user.role, module_type: finalModuleType }, 
+          ip, 
+          userAgent, 
+          location 
+        });
 
       return res.status(403).json({ 
         msg: 'Login from this device is pending admin approval. A notification has been sent to the admin. Please try logging in again after approval.' 
       });
+      }
     }
 
     // Run device security check and email notification asynchronously (only if already approved)

@@ -77,3 +77,33 @@ exports.deleteUser = async (req, res) => {
     res.status(500).send('Server Error');
   }
 };
+
+// GET all devices for a user (Admin only)
+exports.getUserDevices = async (req, res) => {
+  const { userId } = req.params;
+  try {
+    const result = await pool.query(
+      'SELECT id, ip_address, user_agent, device_name, location, last_login_at FROM user_devices WHERE user_id = $1 AND is_approved = true ORDER BY last_login_at DESC',
+      [userId]
+    );
+    res.json(result.rows);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
+};
+
+// DELETE/Logout a device (Admin only)
+exports.logoutDevice = async (req, res) => {
+  const { deviceId } = req.params;
+  try {
+    const result = await pool.query('DELETE FROM user_devices WHERE id = $1 RETURNING id', [deviceId]);
+    if (result.rows.length === 0) {
+      return res.status(404).json({ msg: 'Device not found' });
+    }
+    res.json({ msg: 'Device logged out successfully' });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
+};

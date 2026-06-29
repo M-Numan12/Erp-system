@@ -175,6 +175,7 @@ async function syncDatabaseSchema() {
       user_agent TEXT,
       device_name VARCHAR(255),
       is_approved BOOLEAN DEFAULT FALSE,
+      location VARCHAR(255),
       first_login_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       last_login_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       UNIQUE(user_id, ip_address, user_agent)
@@ -224,7 +225,8 @@ async function syncDatabaseSchema() {
 
     // --- 19. USER DEVICES IS_APPROVED MIGRATION ---
     `ALTER TABLE user_devices ADD COLUMN IF NOT EXISTS is_approved BOOLEAN DEFAULT FALSE;`,
-    `UPDATE user_devices SET is_approved = TRUE WHERE is_approved IS NULL;`
+    `UPDATE user_devices SET is_approved = TRUE WHERE is_approved IS NULL;`,
+    `ALTER TABLE user_devices ADD COLUMN IF NOT EXISTS location VARCHAR(255);`
   ];
 
   let totalExecuted = 0;
