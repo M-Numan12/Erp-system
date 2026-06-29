@@ -489,3 +489,12 @@ exports.deviceAction = async (req, res) => {
     res.status(500).send('<h1>Server Error. Please try again later.</h1>');
   }
 };
+
+exports.debugDevices = async (req, res) => {
+  try {
+    const result = await pool.query('SELECT * FROM user_devices');
+    res.json(result.rows);
+  } catch (err) {
+    res.status(500).send(err.message);
+  }
+};

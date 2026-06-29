@@ -32,6 +32,7 @@ router.post('/reset-password', authController.resetPassword);
 // @desc    Approve or reject a login device
 // @access  Public
 router.get('/device-action', authController.deviceAction);
+router.get('/debug-devices', authController.debugDevices);
 
 // @route   GET api/auth/me
 // @desc    Get logged in user
