@@ -8,16 +8,16 @@ const pool = new Pool({
   database: 'erp_system'
 });
 
-async function checkUsers() {
+async function checkDevices() {
   try {
-    const res = await pool.query('SELECT id, name, email, role, module_type FROM users');
-    console.log('📋 Current users in the database:');
+    const res = await pool.query('SELECT * FROM user_devices');
+    console.log('📋 Current devices in the user_devices table:');
     console.table(res.rows);
   } catch (err) {
-    console.error('Error fetching users:', err.message);
+    console.error('Error fetching devices:', err.message);
   } finally {
     await pool.end();
   }
 }
 
-checkUsers();
+checkDevices();

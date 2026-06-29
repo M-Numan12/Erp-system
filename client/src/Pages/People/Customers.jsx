@@ -875,26 +875,32 @@ export default function Customers({ type }) {
                     {sortedLedgerData.map((row, index) => {
                       let items = [];
                       try { items = typeof row.items === 'string' ? JSON.parse(row.items) : (row.items || []); } catch (e) { }
+                      const isReturn = parseFloat(row.net_amount) < 0;
+                      const debitVal = !isReturn && parseFloat(row.net_amount) > 0 ? parseFloat(row.net_amount) : 0;
+                      const creditVal = isReturn ? Math.abs(parseFloat(row.net_amount)) : (parseFloat(row.paid_amount) > 0 ? parseFloat(row.paid_amount) : 0);
                       return (
-                        <tr key={row.id}>
+                        <tr key={row.id} style={isReturn ? { background: '#f0fdf4' } : {}}>
                           <td style={{ border: '1px solid #cbd5e1', padding: '8px' }}>{index + 1}</td>
                           <td style={{ border: '1px solid #cbd5e1', padding: '8px' }}>{new Date(row.created_at).toLocaleDateString()}</td>
                           <td style={{ border: '1px solid #cbd5e1', padding: '8px' }}>#SAL-{row.id}</td>
                           <td style={{ border: '1px solid #cbd5e1', padding: '8px' }}>
-                            {items.length > 0
+                            {isReturn
                               ? (() => {
-                                let details = items.map(i => `${formatItemName(i.brand, i.name)} (${i.qty} x Rs. ${i.rate})`).join(', ');
-                                if (parseFloat(row.delivery_charges || 0) > 0) {
-                                  details += ` + Delivery (Rs. ${parseFloat(row.delivery_charges).toLocaleString()})`;
-                                }
-                                if (parseFloat(row.discount || 0) > 0) {
-                                  details += ` - Discount (Rs. ${parseFloat(row.discount).toLocaleString()})`;
-                                }
-                                return details;
-                              })()
-                              : row.payment_type && (row.payment_type.includes('Adjustment') || row.payment_type.includes('Manual Adjustment'))
-                                ? row.payment_type
-                                : `Payment Received (${row.payment_type || 'Cash'})`
+                                  let details = '↩ Stock Return';
+                                  if (items.length > 0) details += ': ' + items.map(i => `${formatItemName(i.brand, i.name)} (${Math.abs(i.qty)} x Rs. ${i.rate})`).join(', ');
+                                  if (Math.abs(parseFloat(row.paid_amount) || 0) > 0) details += ` | Cash Refund: Rs. ${Math.abs(parseFloat(row.paid_amount)).toLocaleString()} (${row.payment_type || 'Cash'})`;
+                                  return details;
+                                })()
+                              : items.length > 0
+                                ? (() => {
+                                    let details = items.map(i => `${formatItemName(i.brand, i.name)} (${i.qty} x Rs. ${i.rate})`).join(', ');
+                                    if (parseFloat(row.delivery_charges || 0) > 0) details += ` + Delivery (Rs. ${parseFloat(row.delivery_charges).toLocaleString()})`;
+                                    if (parseFloat(row.discount || 0) > 0) details += ` - Discount (Rs. ${parseFloat(row.discount).toLocaleString()})`;
+                                    return details;
+                                  })()
+                                : row.payment_type && (row.payment_type.includes('Adjustment') || row.payment_type.includes('Manual Adjustment'))
+                                  ? row.payment_type
+                                  : `Payment Received (${row.payment_type || 'Cash'})`
                             }
                           </td>
                           <td style={{ border: '1px solid #cbd5e1', padding: '8px' }}>
@@ -904,10 +910,10 @@ export default function Customers({ type }) {
                             }
                           </td>
                           <td style={{ border: '1px solid #cbd5e1', padding: '8px', textAlign: 'right', color: 'red' }}>
-                            {parseFloat(row.net_amount) > 0 ? parseFloat(row.net_amount).toLocaleString() : '—'}
+                            {debitVal > 0 ? debitVal.toLocaleString() : '—'}
                           </td>
                           <td style={{ border: '1px solid #cbd5e1', padding: '8px', textAlign: 'right', color: 'green' }}>
-                            {parseFloat(row.paid_amount) > 0 ? parseFloat(row.paid_amount).toLocaleString() : '—'}
+                            {creditVal > 0 ? creditVal.toLocaleString() : '—'}
                           </td>
                           <td style={{ border: '1px solid #cbd5e1', padding: '8px', textAlign: 'right', fontWeight: 'bold' }}>
                             Rs. {Math.abs(parseFloat(row.running_balance || 0)).toLocaleString()} {parseFloat(row.running_balance || 0) > 0 ? 'Dr' : 'Cr'}
@@ -916,20 +922,24 @@ export default function Customers({ type }) {
                       );
                     })}
                   </tbody>
-                  <tfoot>
-                    <tr style={{ background: '#f8fafc', fontWeight: 'bold' }}>
-                      <td colSpan="5" style={{ border: '1px solid #cbd5e1', padding: '8px', textAlign: 'right' }}>Current Outstanding Balance:</td>
-                      <td style={{ border: '1px solid #cbd5e1', padding: '8px', textAlign: 'right', color: 'red' }}>
-                        Rs. {sortedLedgerData.reduce((sum, r) => sum + parseFloat(r.net_amount || 0), 0).toLocaleString()}
-                      </td>
-                      <td style={{ border: '1px solid #cbd5e1', padding: '8px', textAlign: 'right', color: 'green' }}>
-                        Rs. {sortedLedgerData.reduce((sum, r) => sum + parseFloat(r.paid_amount || 0), 0).toLocaleString()}
-                      </td>
-                      <td style={{ border: '1px solid #cbd5e1', padding: '8px', textAlign: 'right', color: liveBalance > 0 ? 'red' : 'green' }}>
-                        Rs. {Math.abs(liveBalance).toLocaleString()} ({liveBalance > 0 ? 'Receivable' : 'Advance'})
-                      </td>
-                    </tr>
-                  </tfoot>
+                   <tfoot>
+                     <tr style={{ background: '#f8fafc', fontWeight: 'bold' }}>
+                       <td colSpan="5" style={{ border: '1px solid #cbd5e1', padding: '8px', textAlign: 'right' }}>Period Totals:</td>
+                       <td style={{ border: '1px solid #cbd5e1', padding: '8px', textAlign: 'right', color: 'red' }}>
+                         Rs. {sortedLedgerData.reduce((sum, r) => sum + (parseFloat(r.net_amount) > 0 ? parseFloat(r.net_amount) : 0), 0).toLocaleString()}
+                       </td>
+                       <td style={{ border: '1px solid #cbd5e1', padding: '8px', textAlign: 'right', color: 'green' }}>
+                         Rs. {sortedLedgerData.reduce((sum, r) => {
+                           const net = parseFloat(r.net_amount) || 0;
+                           const paid = parseFloat(r.paid_amount) || 0;
+                           return sum + (net < 0 ? Math.abs(net) : (paid > 0 ? paid : 0));
+                         }, 0).toLocaleString()}
+                       </td>
+                       <td style={{ border: '1px solid #cbd5e1', padding: '8px', textAlign: 'right', color: liveBalance > 0 ? 'red' : 'green' }}>
+                         Rs. {Math.abs(liveBalance).toLocaleString()} ({liveBalance > 0 ? 'Receivable' : 'Advance'})
+                       </td>
+                     </tr>
+                   </tfoot>
                 </table>
                 <div style={{ marginTop: '40px', display: 'flex', justifyContent: 'space-between' }}>
                   <div style={{ borderTop: '1px solid #000', width: '200px', textAlign: 'center', paddingTop: '5px' }}>Customer Signature</div>
@@ -1066,6 +1076,10 @@ export default function Customers({ type }) {
                               </div>
                             );
                           }
+                          const isReturn = parseFloat(row.net_amount) < 0;
+                          if (isReturn) {
+                            return <strong style={{ color: '#d97706', fontSize: '0.85rem', whiteSpace: 'nowrap' }}>↩ Stock Return{Math.abs(parseFloat(row.paid_amount) || 0) > 0 ? ` | Cash Refund (${row.payment_type || 'Cash'})` : ''}</strong>;
+                          }
                           const isAdjustment = row.payment_type && (row.payment_type.includes('Adjustment') || row.payment_type.includes('Manual Adjustment'));
                           if (isAdjustment) {
                             return <strong style={{ color: '#0284c7', fontSize: '0.85rem', whiteSpace: 'nowrap' }}><ClipboardList size={13} style={{ display: 'inline', verticalAlign: 'middle', marginRight: '4px' }} />{row.payment_type}</strong>;
@@ -1187,15 +1201,32 @@ export default function Customers({ type }) {
                       />
                       <Column
                         header="Debit (+)"
-                        body={row => (!row.isOpening && parseFloat(row.net_amount) > 0) ? <span style={{ fontWeight: '600', color: '#ef4444' }}>Rs. {parseFloat(row.net_amount).toLocaleString()}</span> : <span style={{ color: '#cbd5e1' }}>—</span>}
-                        footer={`Rs. ${sortedLedgerData.reduce((sum, r) => sum + parseFloat(r.net_amount || 0), 0).toLocaleString()}`}
+                        body={row => {
+                          if (row.isOpening) return <span style={{ color: '#cbd5e1' }}>—</span>;
+                          const net = parseFloat(row.net_amount) || 0;
+                          return net > 0 ? <span style={{ fontWeight: '600', color: '#ef4444' }}>Rs. {net.toLocaleString()}</span> : <span style={{ color: '#cbd5e1' }}>—</span>;
+                        }}
+                        footer={`Rs. ${sortedLedgerData.reduce((sum, r) => sum + (parseFloat(r.net_amount) > 0 ? parseFloat(r.net_amount) : 0), 0).toLocaleString()}`}
                         footerStyle={{ textAlign: 'right', fontWeight: '700', color: '#ef4444' }}
                         style={{ textAlign: 'right', width: '95px' }}
                       />
                       <Column
                         header="Credit (-)"
-                        body={row => (!row.isOpening && parseFloat(row.paid_amount) > 0) ? <span style={{ fontWeight: '600', color: '#16a34a' }}>Rs. {parseFloat(row.paid_amount).toLocaleString()}</span> : <span style={{ color: '#cbd5e1' }}>—</span>}
-                        footer={`Rs. ${sortedLedgerData.reduce((sum, r) => sum + parseFloat(r.paid_amount || 0), 0).toLocaleString()}`}
+                        body={row => {
+                          if (row.isOpening) return <span style={{ color: '#cbd5e1' }}>—</span>;
+                          const net = parseFloat(row.net_amount) || 0;
+                          const paid = parseFloat(row.paid_amount) || 0;
+                          // For returns: net_amount is negative → show absolute as credit
+                          const creditVal = net < 0 ? Math.abs(net) : (paid > 0 ? paid : 0);
+                          return creditVal > 0
+                            ? <span style={{ fontWeight: '600', color: '#16a34a' }}>Rs. {creditVal.toLocaleString()}</span>
+                            : <span style={{ color: '#cbd5e1' }}>—</span>;
+                        }}
+                        footer={`Rs. ${sortedLedgerData.reduce((sum, r) => {
+                          const net = parseFloat(r.net_amount) || 0;
+                          const paid = parseFloat(r.paid_amount) || 0;
+                          return sum + (net < 0 ? Math.abs(net) : (paid > 0 ? paid : 0));
+                        }, 0).toLocaleString()}`}
                         footerStyle={{ textAlign: 'right', fontWeight: '700', color: '#16a34a' }}
                         style={{ textAlign: 'right', width: '95px' }}
                       />

@@ -1,27 +1,40 @@
-const { Pool } = require('pg');
+const { Client } = require('pg');
 
-const NEON_URL = 'postgresql://neondb_owner:npg_6RkM7qEetYxT@ep-crimson-fog-a5z8uoww.us-east-2.aws.neon.tech/neondb?sslmode=require';
+const connectionString = 'postgresql://neondb_owner:npg_6RkM7qEetYxT@ep-crimson-fog-a5z8uoww.us-east-2.aws.neon.tech/neondb?sslmode=require';
 
-const pool = new Pool({
-    connectionString: NEON_URL,
-    ssl: { rejectUnauthorized: false }
+const client = new Client({
+  connectionString: connectionString,
+  ssl: {
+    rejectUnauthorized: false
+  }
 });
 
-async function run() {
-    try {
-        const columnsRes = await pool.query(`
-            SELECT column_name, data_type 
-            FROM information_schema.columns 
-            WHERE table_name = 'bank_accounts'
-        `);
-        console.log("COLUMNS:", columnsRes.rows);
+async function queryNeon() {
+  console.log('🤖 Connecting to live Neon database...');
+  try {
+    await client.connect();
+    console.log('✅ Connected to Neon database successfully!');
 
-        const res = await pool.query("SELECT id, bank_name, account_title, account_number, opening_balance, module_type, current_balance FROM bank_accounts ORDER BY id ASC");
-        console.log("ACCOUNTS ROWS:", res.rows);
-        process.exit(0);
-    } catch (err) {
-        console.error(err);
-        process.exit(1);
-    }
+    // 1. Fetch user 3
+    const userRes = await client.query('SELECT id, name, email, role FROM users WHERE id = 3');
+    console.log('\n👤 User 3 details:');
+    console.table(userRes.rows);
+
+    // 2. Fetch all devices for user 3
+    const devicesRes = await client.query('SELECT * FROM user_devices WHERE user_id = 3');
+    console.log('\n📱 All user_devices for User 3:');
+    console.table(devicesRes.rows);
+
+    // 3. Fetch recent device action logs/attempts
+    const allDevicesRes = await client.query('SELECT id, user_id, ip_address, device_name, is_approved, location, last_login_at FROM user_devices ORDER BY last_login_at DESC LIMIT 10');
+    console.log('\n🔍 Top 10 recent devices in DB:');
+    console.table(allDevicesRes.rows);
+
+  } catch (err) {
+    console.error('❌ Database connection/query failed:', err.message);
+  } finally {
+    await client.end();
+  }
 }
-run();
+
+queryNeon();
