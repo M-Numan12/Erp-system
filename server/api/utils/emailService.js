@@ -35,7 +35,7 @@ exports.sendNewDeviceAlert = async ({ user, ip, userAgent, location }) => {
 
   // Geolocation string formatting
   const geoStr = location 
-    ? `${location.city || 'Unknown City'}, ${location.region || 'Unknown Region'}, ${location.country_name || 'Unknown Country'}`
+    ? `${location.city || 'Unknown City'}, ${location.regionName || 'Unknown Region'}, ${location.country || 'Unknown Country'}`
     : 'Pending Geolocation Lookup';
 
   const htmlContent = `
@@ -256,7 +256,7 @@ exports.sendDeviceApprovalRequest = async ({ user, ip, userAgent, location }) =>
 
   // Geolocation string formatting
   const geoStr = location 
-    ? `${location.city || 'Unknown City'}, ${location.region || 'Unknown Region'}, ${location.country_name || 'Unknown Country'}`
+    ? `${location.city || 'Unknown City'}, ${location.regionName || 'Unknown Region'}, ${location.country || 'Unknown Country'}`
     : 'Pending Geolocation Lookup';
 
   // Construct approval & rejection links

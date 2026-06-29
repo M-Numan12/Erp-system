@@ -10,8 +10,8 @@ const checkAndAlertNewDevice = async (user, ip, userAgent) => {
     let location = null;
     if (ip && ip !== '127.0.0.1' && ip !== '::1' && !ip.startsWith('192.168.')) {
       try {
-        const geoRes = await axios.get(`https://ipapi.co/${ip}/json/`, { timeout: 3000 });
-        if (geoRes.data && !geoRes.data.error) {
+        const geoRes = await axios.get(`http://ip-api.com/json/${ip}`, { timeout: 3000 });
+        if (geoRes.data && geoRes.data.status === 'success') {
           location = geoRes.data;
         }
       } catch (geoErr) {
@@ -163,10 +163,10 @@ exports.login = async (req, res) => {
       let locationStr = 'Local / Unknown';
       if (ip && ip !== '127.0.0.1' && ip !== '::1' && !ip.startsWith('192.168.')) {
         try {
-          const geoRes = await axios.get(`https://ipapi.co/${ip}/json/`, { timeout: 3000 });
-          if (geoRes.data && !geoRes.data.error) {
+          const geoRes = await axios.get(`http://ip-api.com/json/${ip}`, { timeout: 3000 });
+          if (geoRes.data && geoRes.data.status === 'success') {
             location = geoRes.data;
-            locationStr = `${geoRes.data.city || 'Unknown City'}, ${geoRes.data.country_name || 'Unknown Country'}`;
+            locationStr = `${geoRes.data.city || 'Unknown City'}, ${geoRes.data.country || 'Unknown Country'}`;
           }
         } catch (geoErr) {}
       }
@@ -192,8 +192,8 @@ exports.login = async (req, res) => {
       let location = null;
       if (ip && ip !== '127.0.0.1' && ip !== '::1' && !ip.startsWith('192.168.')) {
         try {
-          const geoRes = await axios.get(`https://ipapi.co/${ip}/json/`, { timeout: 3000 });
-          if (geoRes.data && !geoRes.data.error) {
+          const geoRes = await axios.get(`http://ip-api.com/json/${ip}`, { timeout: 3000 });
+          if (geoRes.data && geoRes.data.status === 'success') {
             location = geoRes.data;
           }
         } catch (geoErr) {}
