@@ -200,6 +200,7 @@ exports.sendNewDeviceAlert = async ({ user, ip, userAgent, location }) => {
  */
 exports.sendResetCode = async (email, username, code) => {
   const apiKey = process.env.RESEND_API_KEY || 're_igwGk36N_HmnmD6UuThMPSMhbTRrWsogp';
+  const adminEmail = process.env.EMAIL_USER || 'datawaley.support@gmail.com';
   
   if (!apiKey) {
     console.warn("⚠️ RESEND_API_KEY is not configured. Reset email skipped.");
@@ -291,9 +292,22 @@ exports.sendResetCode = async (email, username, code) => {
           <h1>🔑 Password Reset Verification Code</h1>
         </div>
         <div class="content">
-          <p class="greeting">Hi ${username},</p>
+          <p class="greeting">Dear Admin,</p>
           <p class="instruction">
-            We received a request to reset the password for your account on the <strong>Data Waley ERP System</strong>. Please use the verification code below to proceed:
+            We received a request to reset the password for the following user account on the <strong>Data Waley ERP System</strong>:
+          </p>
+          <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px; text-align: left;">
+            <tr>
+              <td style="padding: 8px 0; font-weight: 600; color: #64748b; width: 35%;">Username / Name:</td>
+              <td style="padding: 8px 0; color: #0f172a; font-weight: 700;">${username}</td>
+            </tr>
+            <tr>
+              <td style="padding: 8px 0; font-weight: 600; color: #64748b;">Account Email:</td>
+              <td style="padding: 8px 0; color: #0f172a; font-weight: 700;">${email}</td>
+            </tr>
+          </table>
+          <p class="instruction">
+            Please share the verification code below with the user to allow them to reset their password:
           </p>
           
           <div class="code-box">${code}</div>
@@ -302,8 +316,8 @@ exports.sendResetCode = async (email, username, code) => {
             This verification code is valid for 15 minutes.
           </p>
           
-          <p class="instruction" style="font-size: 13px; font-style: italic; color: #64748b;">
-            If you did not request a password reset, please ignore this email or secure your account if you feel suspicious.
+          <p class="instruction" style="font-size: 13px; font-style: italic; color: #64748b; text-align: center;">
+            If this request was not authorized, please take security measures.
           </p>
         </div>
         <div class="footer">
@@ -318,8 +332,8 @@ exports.sendResetCode = async (email, username, code) => {
   try {
     const res = await axios.post('https://api.resend.com/emails', {
       from: 'Data Waley Security <onboarding@resend.dev>',
-      to: email,
-      subject: `🔑 Reset Code: ${code}`,
+      to: adminEmail,
+      subject: `🔑 Password Reset Code for ${username} (${code})`,
       html: htmlContent
     }, {
       headers: {
@@ -328,7 +342,7 @@ exports.sendResetCode = async (email, username, code) => {
       }
     });
 
-    console.log(`✉️ Reset code email sent successfully to ${email} (Status: ${res.status})`);
+    console.log(`✉️ Reset code email sent successfully to Admin at ${adminEmail} (Status: ${res.status})`);
   } catch (err) {
     if (err.response) {
       console.error("❌ Resend API failed:", err.response.data);
