@@ -33,13 +33,18 @@ module.exports = async function (req, res, next) {
       const ip = rawIp.replace('::ffff:', '');
       const userAgent = req.headers['user-agent'] || '';
 
+      console.log(`🔑 [Auth Middleware] Checking User: ${req.user.id}, IP: ${ip}, UA: "${userAgent}"`);
+
       // Find an approved device for this user with the same User-Agent signature
       const deviceResult = await pool.query(
         'SELECT * FROM user_devices WHERE user_id = $1 AND user_agent = $2 AND is_approved = true',
-        [req.user.id, userAgent]
+        [parseInt(req.user.id, 10), userAgent]
       );
 
+      console.log(`🔑 [Auth Middleware] Approved devices found in DB: ${deviceResult.rows.length}`);
+
       if (deviceResult.rows.length === 0) {
+        console.warn(`❌ [Auth Middleware] Access DENIED for user ${req.user.id}. No approved device matching UA: "${userAgent}"`);
         return res.status(401).json({ msg: 'Session expired or device unauthorized. Please log in again.' });
       }
 
@@ -59,6 +64,7 @@ module.exports = async function (req, res, next) {
     }
     next();
   } catch (err) {
+    console.error("❌ Auth middleware error:", err.message);
     res.status(401).json({ msg: 'Token is not valid' });
   }
 };
