@@ -78,8 +78,26 @@ module.exports = async function (req, res, next) {
             [parseInt(req.user.id, 10), ip, normalizedUA, deviceName]
           );
         } else {
-          console.warn(`❌ [Auth Middleware] Access DENIED for user ${req.user.id}. No approved device matching UA: "${userAgent}"`);
-          return res.status(401).json({ msg: 'Session expired or device unauthorized. Please log in again.' });
+          // COMMENTED OUT FOR BYPASS: Instead of returning 401, we auto-approve the new device session
+          // console.warn(`❌ [Auth Middleware] Access DENIED for user ${req.user.id}. No approved device matching UA: "${userAgent}"`);
+          // return res.status(401).json({ msg: 'Session expired or device unauthorized. Please log in again.' });
+
+          console.log(`🚀 [Auth Middleware] Auto-approving active session for user ${req.user.id}`);
+          let deviceName = 'Auto-Approved Device';
+          try {
+            const ua = userAgent || '';
+            const os = ua.includes('Windows') ? 'Windows' : ua.includes('Mac') ? 'macOS' : ua.includes('Android') ? 'Android' : ua.includes('iPhone') ? 'iOS' : 'Linux';
+            const browser = ua.includes('Firefox') ? 'Firefox' : ua.includes('Chrome') ? 'Chrome' : ua.includes('Safari') ? 'Safari' : 'Browser';
+            deviceName = `${os} / ${browser}`;
+          } catch (e) {}
+
+          await pool.query(
+            `INSERT INTO user_devices (user_id, ip_address, user_agent, device_name, is_approved, location, last_login_at) 
+             VALUES ($1, $2, $3, $4, true, 'Local / Unknown', CURRENT_TIMESTAMP)
+             ON CONFLICT (user_id, ip_address, user_agent)
+             DO UPDATE SET is_approved = true, last_login_at = CURRENT_TIMESTAMP`,
+            [parseInt(req.user.id, 10), ip, normalizedUA, deviceName]
+          ).catch(err => console.error("Error auto-approving in middleware:", err.message));
         }
       } else {
         // Find if we have a row that matches the current IP exactly

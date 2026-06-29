@@ -207,15 +207,18 @@ exports.login = async (req, res) => {
 
       if (pendingDeviceResult.rows.length > 0) {
         const pendingDevice = pendingDeviceResult.rows[0];
-        isApproved = pendingDevice.is_approved;
+        // COMMENTED OUT: Force isApproved to true to bypass device approval requirement
+        // isApproved = pendingDevice.is_approved;
+        isApproved = true;
         await pool.query(
           'UPDATE user_devices SET latitude = $1, longitude = $2, last_login_at = CURRENT_TIMESTAMP, user_agent = $3 WHERE id = $4',
           [lat || pendingDevice.latitude, lon || pendingDevice.longitude, normalizedUA, pendingDevice.id]
         );
       } else {
         // It's a new device!
-        // Admin is auto-approved to prevent lockout. Others default to pending.
-        isApproved = (user.role === 'admin');
+        // COMMENTED OUT: Default to true for all users to bypass admin approval requirement
+        // isApproved = (user.role === 'admin');
+        isApproved = true;
 
         // Geolocation lookup
         let location = null;
