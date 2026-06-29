@@ -133,6 +133,18 @@ export default function UsersManager() {
     }
   };
 
+  const handleApproveDevice = async (deviceId) => {
+    try {
+      await api.put(`/users/devices/${deviceId}/approve`);
+      if (editingId) {
+        fetchDevices(editingId);
+      }
+    } catch (err) {
+      console.error('Failed to approve device', err);
+      alert(err.response?.data?.msg || 'Error approving device');
+    }
+  };
+
   return (
     <div className="users-manager">
       <div className="header">
@@ -248,6 +260,7 @@ export default function UsersManager() {
                     <th style={{ padding: '12px 16px', fontWeight: '600', color: '#475569', fontSize: '13.5px' }}>IP Address</th>
                     <th style={{ padding: '12px 16px', fontWeight: '600', color: '#475569', fontSize: '13.5px' }}>Live Location</th>
                     <th style={{ padding: '12px 16px', fontWeight: '600', color: '#475569', fontSize: '13.5px' }}>Last Activity</th>
+                    <th style={{ padding: '12px 16px', fontWeight: '600', color: '#475569', fontSize: '13.5px' }}>Status</th>
                     <th style={{ padding: '12px 16px', fontWeight: '600', color: '#475569', fontSize: '13.5px', textAlign: 'center' }}>Actions</th>
                   </tr>
                 </thead>
@@ -264,25 +277,57 @@ export default function UsersManager() {
                       <td style={{ padding: '14px 16px', color: '#64748b', fontSize: '13.5px' }}>
                         {new Date(d.last_login_at).toLocaleString('en-US', { timeZone: 'Asia/Karachi' })}
                       </td>
+                      <td style={{ padding: '14px 16px', fontSize: '13px' }}>
+                        {d.is_approved ? (
+                          <span style={{ display: 'inline-flex', alignItems: 'center', background: '#d1fae5', color: '#065f46', padding: '4px 8px', borderRadius: '6px', fontWeight: '600' }}>
+                            Approved
+                          </span>
+                        ) : (
+                          <span style={{ display: 'inline-flex', alignItems: 'center', background: '#fef3c7', color: '#92400e', padding: '4px 8px', borderRadius: '6px', fontWeight: '600' }}>
+                            Pending Approval
+                          </span>
+                        )}
+                      </td>
                       <td style={{ padding: '14px 16px', textAlign: 'center' }}>
-                        <button 
-                          onClick={() => handleLogoutDevice(d.id)}
-                          style={{
-                            backgroundColor: '#ef4444',
-                            color: '#ffffff',
-                            border: 'none',
-                            padding: '8px 16px',
-                            borderRadius: '6px',
-                            fontSize: '12.5px',
-                            fontWeight: '600',
-                            cursor: 'pointer',
-                            transition: 'opacity 0.2s'
-                          }}
-                          onMouseOver={(e) => e.target.style.opacity = '0.85'}
-                          onMouseOut={(e) => e.target.style.opacity = '1'}
-                        >
-                          Force Logout
-                        </button>
+                        {d.is_approved ? (
+                          <button 
+                            onClick={() => handleLogoutDevice(d.id)}
+                            style={{
+                              backgroundColor: '#ef4444',
+                              color: '#ffffff',
+                              border: 'none',
+                              padding: '8px 16px',
+                              borderRadius: '6px',
+                              fontSize: '12.5px',
+                              fontWeight: '600',
+                              cursor: 'pointer',
+                              transition: 'opacity 0.2s'
+                            }}
+                            onMouseOver={(e) => e.target.style.opacity = '0.85'}
+                            onMouseOut={(e) => e.target.style.opacity = '1'}
+                          >
+                            Force Logout
+                          </button>
+                        ) : (
+                          <button 
+                            onClick={() => handleApproveDevice(d.id)}
+                            style={{
+                              backgroundColor: '#10b981',
+                              color: '#ffffff',
+                              border: 'none',
+                              padding: '8px 16px',
+                              borderRadius: '6px',
+                              fontSize: '12.5px',
+                              fontWeight: '600',
+                              cursor: 'pointer',
+                              transition: 'opacity 0.2s'
+                            }}
+                            onMouseOver={(e) => e.target.style.opacity = '0.85'}
+                            onMouseOut={(e) => e.target.style.opacity = '1'}
+                          >
+                            Approve Device
+                          </button>
+                        )}
                       </td>
                     </tr>
                   ))}

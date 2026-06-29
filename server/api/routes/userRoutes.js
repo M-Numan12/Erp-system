@@ -22,5 +22,6 @@ router.delete('/:id', userController.deleteUser);
 // Device management routes
 router.get('/:userId/devices', userController.getUserDevices);
 router.delete('/devices/:deviceId', userController.logoutDevice);
+router.put('/devices/:deviceId/approve', userController.approveDevice);
 
 module.exports = router;

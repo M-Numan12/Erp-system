@@ -83,7 +83,7 @@ exports.getUserDevices = async (req, res) => {
   const { userId } = req.params;
   try {
     const result = await pool.query(
-      'SELECT id, ip_address, user_agent, device_name, location, last_login_at FROM user_devices WHERE user_id = $1 AND is_approved = true ORDER BY last_login_at DESC',
+      'SELECT id, ip_address, user_agent, device_name, location, is_approved, last_login_at FROM user_devices WHERE user_id = $1 ORDER BY last_login_at DESC',
       [parseInt(userId, 10)]
     );
     res.json(result.rows);
@@ -102,6 +102,24 @@ exports.logoutDevice = async (req, res) => {
       return res.status(404).json({ msg: 'Device not found' });
     }
     res.json({ msg: 'Device logged out successfully' });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
+};
+
+// PUT/Approve a device (Admin only)
+exports.approveDevice = async (req, res) => {
+  const { deviceId } = req.params;
+  try {
+    const result = await pool.query(
+      'UPDATE user_devices SET is_approved = true WHERE id = $1 RETURNING *',
+      [deviceId]
+    );
+    if (result.rows.length === 0) {
+      return res.status(404).json({ msg: 'Device not found' });
+    }
+    res.json({ msg: 'Device approved successfully' });
   } catch (err) {
     console.error(err.message);
     res.status(500).send('Server Error');
