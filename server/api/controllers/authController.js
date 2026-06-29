@@ -379,7 +379,7 @@ exports.deviceAction = async (req, res) => {
          SET is_approved = true 
          WHERE user_id = $1 AND ip_address = $2 AND user_agent = $3 
          RETURNING *`,
-        [userId, ip, ua]
+        [parseInt(userId, 10), ip, ua]
       );
 
       if (result.rows.length === 0) {
@@ -396,7 +396,7 @@ exports.deviceAction = async (req, res) => {
         `DELETE FROM user_devices 
          WHERE user_id = $1 AND ip_address = $2 AND user_agent = $3 
          RETURNING *`,
-        [userId, ip, ua]
+        [parseInt(userId, 10), ip, ua]
       );
 
       if (result.rows.length === 0) {
