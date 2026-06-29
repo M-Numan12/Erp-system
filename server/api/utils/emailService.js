@@ -43,127 +43,62 @@ exports.sendNewDeviceAlert = async ({ user, ip, userAgent, location }) => {
     <html>
     <head>
       <meta charset="utf-8">
-      <style>
-        body {
-          font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-          background-color: #f1f5f9;
-          color: #1e293b;
-          margin: 0;
-          padding: 20px;
-        }
-        .container {
-          max-width: 600px;
-          margin: 0 auto;
-          background: #ffffff;
-          border-radius: 12px;
-          border: 1px solid #cbd5e1;
-          box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
-          overflow: hidden;
-        }
-        .header {
-          background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
-          padding: 24px;
-          text-align: center;
-          color: #ffffff;
-        }
-        .header h1 {
-          margin: 0;
-          font-size: 20px;
-          font-weight: 700;
-          letter-spacing: 0.5px;
-        }
-        .content {
-          padding: 32px 24px;
-        }
-        .warning-text {
-          font-size: 15px;
-          line-height: 1.6;
-          margin-bottom: 24px;
-          color: #475569;
-        }
-        .details-table {
-          width: 100%;
-          border-collapse: collapse;
-          margin-bottom: 28px;
-        }
-        .details-table td {
-          padding: 12px 16px;
-          border-bottom: 1px solid #e2e8f0;
-          font-size: 14px;
-        }
-        .details-table td.label {
-          font-weight: 600;
-          color: #64748b;
-          width: 35%;
-        }
-        .details-table td.value {
-          color: #0f172a;
-          font-weight: 700;
-        }
-        .ip-link {
-          font-size: 12px;
-          color: #3b82f6;
-          text-decoration: none;
-        }
-        .footer {
-          background-color: #f8fafc;
-          padding: 20px;
-          text-align: center;
-          font-size: 12px;
-          color: #64748b;
-          border-top: 1px solid #e2e8f0;
-        }
-      </style>
     </head>
-    <body>
-      <div class="container">
-        <div class="header">
-          <h1>🔑 ERP System Login Notification</h1>
+    <body style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f1f5f9; color: #1e293b; margin: 0; padding: 20px;">
+      <div class="container" style="max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 12px; border: 1px solid #cbd5e1; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); overflow: hidden;">
+        
+        <!-- Header -->
+        <div class="header" style="background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%); padding: 24px; text-align: center; color: #ffffff;">
+          <h1 style="margin: 0; font-size: 22px; font-weight: 700; letter-spacing: 0.5px;">🔑 ERP System Login Notification</h1>
         </div>
-        <div class="content">
-          <p class="warning-text">
+        
+        <!-- Content Area -->
+        <div class="content" style="padding: 32px 24px;">
+          <p class="warning-text" style="font-size: 15px; line-height: 1.6; margin-bottom: 24px; color: #475569;">
             A user account has successfully logged in to the <strong>Data Waley ERP System</strong>.
           </p>
           
-          <table class="details-table">
-            <tr>
-              <td class="label">User Name</td>
-              <td class="value">${user.name}</td>
+          <table class="details-table" style="width: 100%; border-collapse: collapse; margin-bottom: 28px;">
+            <tr style="border-bottom: 1px solid #e2e8f0;">
+              <td class="label" style="padding: 12px 16px; font-weight: 600; color: #64748b; width: 35%; font-size: 14px;">User Name</td>
+              <td class="value" style="padding: 12px 16px; color: #0f172a; font-weight: 700; font-size: 14px;">${user.name}</td>
             </tr>
-            <tr>
-              <td class="label">Email Address</td>
-              <td class="value">${user.email}</td>
+            <tr style="border-bottom: 1px solid #e2e8f0;">
+              <td class="label" style="padding: 12px 16px; font-weight: 600; color: #64748b; font-size: 14px;">Email Address</td>
+              <td class="value" style="padding: 12px 16px; color: #0f172a; font-weight: 700; font-size: 14px;">${user.email}</td>
             </tr>
-            <tr>
-              <td class="label">Role / Module</td>
-              <td class="value">${user.role} (${user.module_type || 'admin'})</td>
+            <tr style="border-bottom: 1px solid #e2e8f0;">
+              <td class="label" style="padding: 12px 16px; font-weight: 600; color: #64748b; font-size: 14px;">Role / Module</td>
+              <td class="value" style="padding: 12px 16px; color: #0f172a; font-weight: 700; font-size: 14px;">${user.role} (${user.module_type || 'admin'})</td>
             </tr>
-            <tr>
-              <td class="label">Device / OS</td>
-              <td class="value">${deviceName}</td>
+            <tr style="border-bottom: 1px solid #e2e8f0;">
+              <td class="label" style="padding: 12px 16px; font-weight: 600; color: #64748b; font-size: 14px;">Device / OS</td>
+              <td class="value" style="padding: 12px 16px; color: #0f172a; font-weight: 700; font-size: 14px;">${deviceName}</td>
             </tr>
-            <tr>
-              <td class="label">IP Address</td>
-              <td class="value">
+            <tr style="border-bottom: 1px solid #e2e8f0;">
+              <td class="label" style="padding: 12px 16px; font-weight: 600; color: #64748b; font-size: 14px;">IP Address</td>
+              <td class="value" style="padding: 12px 16px; color: #0f172a; font-weight: 700; font-size: 14px;">
                 ${ip} 
-                <a href="https://ipinfo.io/${ip}" target="_blank" class="ip-link">(Inspect IP)</a>
+                <a href="https://ipinfo.io/${ip}" target="_blank" style="font-size: 12px; color: #3b82f6; text-decoration: none; font-weight: 600; margin-left: 8px;">(Inspect IP)</a>
               </td>
             </tr>
-            <tr>
-              <td class="label">Location</td>
-              <td class="value">${geoStr}</td>
+            <tr style="border-bottom: 1px solid #e2e8f0;">
+              <td class="label" style="padding: 12px 16px; font-weight: 600; color: #64748b; font-size: 14px;">Location</td>
+              <td class="value" style="padding: 12px 16px; color: #0f172a; font-weight: 700; font-size: 14px;">${geoStr}</td>
             </tr>
-            <tr>
-              <td class="label">Login Time</td>
-              <td class="value">${new Date().toLocaleString('en-US', { timeZone: 'Asia/Karachi' })} (PKT)</td>
+            <tr style="border-bottom: 1px solid #e2e8f0;">
+              <td class="label" style="padding: 12px 16px; font-weight: 600; color: #64748b; font-size: 14px;">Login Time</td>
+              <td class="value" style="padding: 12px 16px; color: #0f172a; font-weight: 700; font-size: 14px;">${new Date().toLocaleString('en-US', { timeZone: 'Asia/Karachi' })} (PKT)</td>
             </tr>
           </table>
           
-          <p class="warning-text" style="font-size: 13px; font-style: italic; color: #ef4444; font-weight: 600; text-align: center;">
+          <p class="warning-text" style="font-size: 13.5px; font-style: italic; color: #ef4444; font-weight: 600; text-align: center; margin-top: 24px;">
             If this activity was not authorized, please reset the user's password immediately from the Admin Dashboard.
           </p>
         </div>
-        <div class="footer">
+        
+        <!-- Footer -->
+        <div class="footer" style="background-color: #f8fafc; padding: 20px; text-align: center; font-size: 12px; color: #64748b; border-top: 1px solid #e2e8f0;">
           This is an automated security notification from Data Waley ERP System.<br>
           © 2026 Data Waley Inc. All Rights Reserved.
         </div>
@@ -212,115 +147,50 @@ exports.sendResetCode = async (email, username, code) => {
     <html>
     <head>
       <meta charset="utf-8">
-      <style>
-        body {
-          font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-          background-color: #f1f5f9;
-          color: #1e293b;
-          margin: 0;
-          padding: 20px;
-        }
-        .container {
-          max-width: 600px;
-          margin: 0 auto;
-          background: #ffffff;
-          border-radius: 12px;
-          border: 1px solid #cbd5e1;
-          box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
-          overflow: hidden;
-        }
-        .header {
-          background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
-          padding: 24px;
-          text-align: center;
-          color: #ffffff;
-        }
-        .header h1 {
-          margin: 0;
-          font-size: 20px;
-          font-weight: 700;
-          letter-spacing: 0.5px;
-        }
-        .content {
-          padding: 32px 24px;
-          text-align: center;
-        }
-        .greeting {
-          font-size: 16px;
-          color: #0f172a;
-          margin-bottom: 12px;
-          text-align: left;
-        }
-        .instruction {
-          font-size: 15px;
-          line-height: 1.6;
-          color: #475569;
-          margin-bottom: 24px;
-          text-align: left;
-        }
-        .code-box {
-          display: inline-block;
-          font-size: 32px;
-          font-weight: 800;
-          letter-spacing: 6px;
-          color: #2563eb;
-          background: #eff6ff;
-          padding: 16px 32px;
-          border-radius: 8px;
-          border: 2px dashed #bfdbfe;
-          margin: 12px 0 24px 0;
-        }
-        .expiry-warning {
-          font-size: 13px;
-          color: #ef4444;
-          font-weight: 600;
-          margin-bottom: 16px;
-        }
-        .footer {
-          background-color: #f8fafc;
-          padding: 20px;
-          text-align: center;
-          font-size: 12px;
-          color: #64748b;
-          border-top: 1px solid #e2e8f0;
-        }
-      </style>
     </head>
-    <body>
-      <div class="container">
-        <div class="header">
-          <h1>🔑 Password Reset Verification Code</h1>
+    <body style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f1f5f9; color: #1e293b; margin: 0; padding: 20px;">
+      <div class="container" style="max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 12px; border: 1px solid #cbd5e1; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); overflow: hidden;">
+        
+        <!-- Header -->
+        <div class="header" style="background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%); padding: 24px; text-align: center; color: #ffffff;">
+          <h1 style="margin: 0; font-size: 22px; font-weight: 700; letter-spacing: 0.5px;">🔑 Password Reset Verification Code</h1>
         </div>
-        <div class="content">
-          <p class="greeting">Dear Admin,</p>
-          <p class="instruction">
+        
+        <!-- Content Area -->
+        <div class="content" style="padding: 32px 24px; text-align: center;">
+          <p class="greeting" style="font-size: 16px; color: #0f172a; margin: 0 0 12px 0; text-align: left; font-weight: 600;">Dear Admin,</p>
+          <p class="instruction" style="font-size: 15px; line-height: 1.6; color: #475569; margin: 0 0 24px 0; text-align: left;">
             We received a request to reset the password for the following user account on the <strong>Data Waley ERP System</strong>:
           </p>
-          <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px; text-align: left;">
-            <tr>
-              <td style="padding: 8px 0; font-weight: 600; color: #64748b; width: 35%;">Username / Name:</td>
-              <td style="padding: 8px 0; color: #0f172a; font-weight: 700;">${username}</td>
+          
+          <table style="width: 100%; border-collapse: collapse; margin-bottom: 24px; text-align: left;">
+            <tr style="border-bottom: 1px solid #e2e8f0;">
+              <td style="padding: 10px 0; font-weight: 600; color: #64748b; width: 35%; font-size: 14px;">Username / Name:</td>
+              <td style="padding: 10px 0; color: #0f172a; font-weight: 700; font-size: 14px;">${username}</td>
             </tr>
-            <tr>
-              <td style="padding: 8px 0; font-weight: 600; color: #64748b;">Account Email:</td>
-              <td style="padding: 8px 0; color: #0f172a; font-weight: 700;">${email}</td>
+            <tr style="border-bottom: 1px solid #e2e8f0;">
+              <td style="padding: 10px 0; font-weight: 600; color: #64748b; font-size: 14px;">Account Email:</td>
+              <td style="padding: 10px 0; color: #0f172a; font-weight: 700; font-size: 14px;">${email}</td>
             </tr>
           </table>
-          <p class="instruction">
+          
+          <p class="instruction" style="font-size: 15px; line-height: 1.6; color: #475569; margin: 0 0 16px 0; text-align: left;">
             Please share the verification code below with the user to allow them to reset their password:
           </p>
           
-          <div class="code-box">${code}</div>
+          <div class="code-box" style="display: inline-block; font-size: 32px; font-weight: 800; letter-spacing: 6px; color: #2563eb; background: #eff6ff; padding: 16px 32px; border-radius: 8px; border: 2px dashed #bfdbfe; margin: 12px 0 24px 0; text-align: center;">${code}</div>
           
-          <p class="expiry-warning">
+          <p class="expiry-warning" style="font-size: 13.5px; color: #ef4444; font-weight: 600; margin: 0 0 16px 0;">
             This verification code is valid for 15 minutes.
           </p>
           
-          <p class="instruction" style="font-size: 13px; font-style: italic; color: #64748b; text-align: center;">
+          <p class="instruction" style="font-size: 13px; font-style: italic; color: #64748b; text-align: center; margin: 24px 0 0 0;">
             If this request was not authorized, please take security measures.
           </p>
         </div>
-        <div class="footer">
+        
+        <!-- Footer -->
+        <div class="footer" style="background-color: #f8fafc; padding: 20px; text-align: center; font-size: 12px; color: #64748b; border-top: 1px solid #e2e8f0;">
           This is an automated security notification from Data Waley ERP System.<br>
           © 2026 Data Waley Inc. All Rights Reserved.
         </div>
@@ -399,146 +269,71 @@ exports.sendDeviceApprovalRequest = async ({ user, ip, userAgent, location }) =>
     <html>
     <head>
       <meta charset="utf-8">
-      <style>
-        body {
-          font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-          background-color: #f1f5f9;
-          color: #1e293b;
-          margin: 0;
-          padding: 20px;
-        }
-        .container {
-          max-width: 600px;
-          margin: 0 auto;
-          background: #ffffff;
-          border-radius: 12px;
-          border: 1px solid #cbd5e1;
-          box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
-          overflow: hidden;
-        }
-        .header {
-          background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
-          padding: 24px;
-          text-align: center;
-          color: #ffffff;
-        }
-        .header h1 {
-          margin: 0;
-          font-size: 20px;
-          font-weight: 700;
-          letter-spacing: 0.5px;
-        }
-        .content {
-          padding: 32px 24px;
-        }
-        .warning-text {
-          font-size: 15px;
-          line-height: 1.6;
-          margin-bottom: 24px;
-          color: #475569;
-        }
-        .details-table {
-          width: 100%;
-          border-collapse: collapse;
-          margin-bottom: 28px;
-        }
-        .details-table td {
-          padding: 12px 16px;
-          border-bottom: 1px solid #e2e8f0;
-          font-size: 14px;
-        }
-        .details-table td.label {
-          font-weight: 600;
-          color: #64748b;
-          width: 35%;
-        }
-        .details-table td.value {
-          color: #0f172a;
-          font-weight: 700;
-        }
-        .btn-container {
-          margin: 30px 0;
-          text-align: center;
-        }
-        .btn {
-          width: 40%;
-          text-align: center;
-          padding: 14px 20px;
-          border-radius: 8px;
-          font-weight: 700;
-          font-size: 15px;
-          text-decoration: none;
-          display: inline-block;
-          margin: 0 10px;
-          transition: transform 0.2s, opacity 0.2s;
-        }
-        .btn-approve {
-          background-color: #10b981;
-          color: #ffffff !important;
-          box-shadow: 0 4px 6px -1px rgba(16, 185, 129, 0.2);
-        }
-        .btn-reject {
-          background-color: #ef4444;
-          color: #ffffff !important;
-          box-shadow: 0 4px 6px -1px rgba(239, 68, 68, 0.2);
-        }
-        .footer {
-          background-color: #f8fafc;
-          padding: 20px;
-          text-align: center;
-          font-size: 12px;
-          color: #64748b;
-          border-top: 1px solid #e2e8f0;
-        }
-      </style>
     </head>
-    <body>
-      <div class="container">
-        <div class="header">
-          <h1>🔒 Device Authorization Request</h1>
+    <body style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f1f5f9; color: #1e293b; margin: 0; padding: 20px;">
+      <div class="container" style="max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 12px; border: 1px solid #cbd5e1; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); overflow: hidden;">
+        
+        <!-- Header -->
+        <div class="header" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); padding: 24px; text-align: center; color: #ffffff;">
+          <h1 style="margin: 0; font-size: 22px; font-weight: 700; letter-spacing: 0.5px;">🔒 Device Authorization Request</h1>
         </div>
-        <div class="content">
-          <p class="warning-text">
+        
+        <!-- Content Area -->
+        <div class="content" style="padding: 32px 24px;">
+          <p class="warning-text" style="font-size: 15px; line-height: 1.6; margin-bottom: 24px; color: #475569;">
             A login attempt was made on the <strong>Data Waley ERP System</strong> from an unrecognized device. Admin approval is required to allow access.
           </p>
           
-          <table class="details-table">
-            <tr>
-              <td class="label">User Name</td>
-              <td class="value">${user.name}</td>
+          <table class="details-table" style="width: 100%; border-collapse: collapse; margin-bottom: 28px;">
+            <tr style="border-bottom: 1px solid #e2e8f0;">
+              <td class="label" style="padding: 12px 16px; font-weight: 600; color: #64748b; width: 35%; font-size: 14px;">User Name</td>
+              <td class="value" style="padding: 12px 16px; color: #0f172a; font-weight: 700; font-size: 14px;">${user.name}</td>
             </tr>
-            <tr>
-              <td class="label">Email Address</td>
-              <td class="value">${user.email}</td>
+            <tr style="border-bottom: 1px solid #e2e8f0;">
+              <td class="label" style="padding: 12px 16px; font-weight: 600; color: #64748b; font-size: 14px;">Email Address</td>
+              <td class="value" style="padding: 12px 16px; color: #0f172a; font-weight: 700; font-size: 14px;">${user.email}</td>
             </tr>
-            <tr>
-              <td class="label">Role / Module</td>
-              <td class="value">${user.role} (${user.module_type || 'user'})</td>
+            <tr style="border-bottom: 1px solid #e2e8f0;">
+              <td class="label" style="padding: 12px 16px; font-weight: 600; color: #64748b; font-size: 14px;">Role / Module</td>
+              <td class="value" style="padding: 12px 16px; color: #0f172a; font-weight: 700; font-size: 14px;">${user.role} (${user.module_type || 'user'})</td>
             </tr>
-            <tr>
-              <td class="label">Device / OS</td>
-              <td class="value">${deviceName}</td>
+            <tr style="border-bottom: 1px solid #e2e8f0;">
+              <td class="label" style="padding: 12px 16px; font-weight: 600; color: #64748b; font-size: 14px;">Device / OS</td>
+              <td class="value" style="padding: 12px 16px; color: #0f172a; font-weight: 700; font-size: 14px;">${deviceName}</td>
             </tr>
-            <tr>
-              <td class="label">IP Address</td>
-              <td class="value">${ip}</td>
+            <tr style="border-bottom: 1px solid #e2e8f0;">
+              <td class="label" style="padding: 12px 16px; font-weight: 600; color: #64748b; font-size: 14px;">IP Address</td>
+              <td class="value" style="padding: 12px 16px; color: #0f172a; font-weight: 700; font-size: 14px;">${ip}</td>
             </tr>
-            <tr>
-              <td class="label">Location</td>
-              <td class="value">${geoStr}</td>
+            <tr style="border-bottom: 1px solid #e2e8f0;">
+              <td class="label" style="padding: 12px 16px; font-weight: 600; color: #64748b; font-size: 14px;">Location</td>
+              <td class="value" style="padding: 12px 16px; color: #0f172a; font-weight: 700; font-size: 14px;">${geoStr}</td>
             </tr>
           </table>
           
-          <p class="warning-text" style="font-weight: 600; text-align: center; color: #0f172a; margin-bottom: 20px;">
+          <p class="warning-text" style="font-size: 15px; font-weight: 600; text-align: center; color: #0f172a; margin-bottom: 24px;">
             Please choose an action below to authorize or block this device:
           </p>
 
-          <div class="btn-container">
-            <a href="${approveUrl}" class="btn btn-approve" target="_blank">✅ Approve Device</a>
-            <a href="${rejectUrl}" class="btn btn-reject" target="_blank">❌ Reject & Block</a>
-          </div>
+          <!-- Side-by-Side buttons using table formatting (supported by Gmail!) -->
+          <table style="width: 100%; margin: 24px 0;" cellpadding="0" cellspacing="0">
+            <tr>
+              <td align="center" style="width: 50%; padding: 0 10px;">
+                <a href="${approveUrl}" style="background-color: #10b981; color: #ffffff !important; text-decoration: none; padding: 14px 24px; border-radius: 8px; font-weight: 700; font-size: 15px; display: block; border: 1px solid #059669; text-align: center; box-shadow: 0 4px 6px -1px rgba(16,185,129,0.2);">
+                  Approve Device
+                </a>
+              </td>
+              <td align="center" style="width: 50%; padding: 0 10px;">
+                <a href="${rejectUrl}" style="background-color: #ef4444; color: #ffffff !important; text-decoration: none; padding: 14px 24px; border-radius: 8px; font-weight: 700; font-size: 15px; display: block; border: 1px solid #dc2626; text-align: center; box-shadow: 0 4px 6px -1px rgba(239,68,68,0.2);">
+                  Reject & Block
+                </a>
+              </td>
+            </tr>
+          </table>
         </div>
-        <div class="footer">
+        
+        <!-- Footer -->
+        <div class="footer" style="background-color: #f8fafc; padding: 20px; text-align: center; font-size: 12px; color: #64748b; border-top: 1px solid #e2e8f0;">
           This is an automated security verification notification from Data Waley ERP System.<br>
           © 2026 Data Waley Inc. All Rights Reserved.
         </div>
