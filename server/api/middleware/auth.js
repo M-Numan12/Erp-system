@@ -73,18 +73,35 @@ module.exports = async function (req, res, next) {
           return res.status(401).json({ msg: 'Session expired or device unauthorized. Please log in again.' });
         }
       } else {
-        // If IP has changed, dynamically update the device IP in the database
-        const activeDevice = deviceResult.rows[0];
-        if (activeDevice.ip_address !== ip) {
+        // Find if we have a row that matches the current IP exactly
+        const exactMatch = deviceResult.rows.find(d => d.ip_address === ip);
+        if (exactMatch) {
+          // Update last activity for the exact matching IP
           pool.query(
-            'UPDATE user_devices SET ip_address = $1, last_login_at = CURRENT_TIMESTAMP WHERE id = $2',
-            [ip, activeDevice.id]
-          ).catch(err => console.error('Failed to update device IP in middleware:', err.message));
-        } else {
-          pool.query(
-            'UPDATE user_devices SET last_login_at = CURRENT_TIMESTAMP WHERE id = $2',
-            [activeDevice.id]
+            'UPDATE user_devices SET last_login_at = CURRENT_TIMESTAMP WHERE id = $1',
+            [exactMatch.id]
           ).catch(err => {});
+        } else {
+          // Check if this IP is already registered in ANY row for this user & UA
+          pool.query(
+            'SELECT id FROM user_devices WHERE user_id = $1 AND ip_address = $2 AND user_agent = $3',
+            [parseInt(req.user.id, 10), ip, userAgent]
+          ).then(checkRes => {
+            if (checkRes.rows.length > 0) {
+              // Already exists. Just update its last activity.
+              pool.query(
+                'UPDATE user_devices SET last_login_at = CURRENT_TIMESTAMP WHERE id = $1',
+                [checkRes.rows[0].id]
+              ).catch(err => {});
+            } else {
+              // Safe to update the approved device's IP!
+              const activeDevice = deviceResult.rows[0];
+              pool.query(
+                'UPDATE user_devices SET ip_address = $1, last_login_at = CURRENT_TIMESTAMP WHERE id = $2',
+                [ip, activeDevice.id]
+              ).catch(err => {});
+            }
+          }).catch(err => {});
         }
       }
     }
