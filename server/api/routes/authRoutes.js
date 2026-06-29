@@ -28,6 +28,11 @@ router.post('/verify-code', authController.verifyCode);
 // @access  Public
 router.post('/reset-password', authController.resetPassword);
 
+// @route   GET api/auth/device-action
+// @desc    Approve or reject a login device
+// @access  Public
+router.get('/device-action', authController.deviceAction);
+
 // @route   GET api/auth/me
 // @desc    Get logged in user
 // @access  Private

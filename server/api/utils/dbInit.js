@@ -174,9 +174,21 @@ async function syncDatabaseSchema() {
       ip_address VARCHAR(100),
       user_agent TEXT,
       device_name VARCHAR(255),
+      is_approved BOOLEAN DEFAULT FALSE,
       first_login_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       last_login_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       UNIQUE(user_id, ip_address, user_agent)
+    );`,
+    `CREATE TABLE IF NOT EXISTS pending_login_approvals (
+      id SERIAL PRIMARY KEY,
+      token VARCHAR(255) UNIQUE NOT NULL,
+      user_id INT REFERENCES users(id) ON DELETE CASCADE,
+      ip_address VARCHAR(100),
+      user_agent TEXT,
+      device_name VARCHAR(255),
+      status VARCHAR(20) DEFAULT 'pending',
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      expires_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP + INTERVAL '5 minutes'
     );`,
     // --- 14. AUTO-HEAL SPECIFIC NaN BALANCES ---
     `UPDATE customers SET opening_balance = 20000.00 WHERE id = 350 AND (opening_balance IS NULL OR opening_balance = 0);`,
@@ -208,7 +220,11 @@ async function syncDatabaseSchema() {
       code VARCHAR(6) NOT NULL,
       expires_at TIMESTAMP NOT NULL,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    );`
+    );`,
+
+    // --- 19. USER DEVICES IS_APPROVED MIGRATION ---
+    `ALTER TABLE user_devices ADD COLUMN IF NOT EXISTS is_approved BOOLEAN DEFAULT FALSE;`,
+    `UPDATE user_devices SET is_approved = TRUE WHERE is_approved IS NULL;`
   ];
 
   let totalExecuted = 0;

@@ -140,7 +140,60 @@ exports.login = async (req, res) => {
     const ip = rawIp.replace('::ffff:', '');
     const userAgent = req.headers['user-agent'] || '';
 
-    // Run device security check and email notification asynchronously
+    // Check device approval status
+    const deviceResult = await pool.query(
+      'SELECT * FROM user_devices WHERE user_id = $1 AND ip_address = $2 AND user_agent = $3',
+      [user.id, ip, userAgent]
+    );
+
+    let isApproved = false;
+    if (deviceResult.rows.length > 0) {
+      isApproved = deviceResult.rows[0].is_approved;
+    } else {
+      // It's a new device!
+      // Admin is auto-approved to prevent lockout. Others default to pending.
+      isApproved = (user.role === 'admin');
+
+      let deviceName = 'Unknown Device';
+      try {
+        const ua = userAgent || '';
+        const os = ua.includes('Windows') ? 'Windows' : ua.includes('Mac') ? 'macOS' : ua.includes('Android') ? 'Android' : ua.includes('iPhone') ? 'iOS' : 'Linux';
+        const browser = ua.includes('Firefox') ? 'Firefox' : ua.includes('Chrome') ? 'Chrome' : ua.includes('Safari') ? 'Safari' : 'Browser';
+        deviceName = `${os} / ${browser}`;
+      } catch (e) {}
+
+      await pool.query(
+        `INSERT INTO user_devices (user_id, ip_address, user_agent, device_name, is_approved, last_login_at) 
+         VALUES ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP)`,
+        [user.id, ip, userAgent, deviceName, isApproved]
+      );
+    }
+
+    if (!isApproved) {
+      // Send device approval request email to admin
+      let location = null;
+      if (ip && ip !== '127.0.0.1' && ip !== '::1' && !ip.startsWith('192.168.')) {
+        try {
+          const geoRes = await axios.get(`https://ipapi.co/${ip}/json/`, { timeout: 3000 });
+          if (geoRes.data && !geoRes.data.error) {
+            location = geoRes.data;
+          }
+        } catch (geoErr) {}
+      }
+      const emailService = require('../utils/emailService');
+      await emailService.sendDeviceApprovalRequest({ 
+        user: { id: user.id, name: user.name, email: user.email, role: user.role, module_type: finalModuleType }, 
+        ip, 
+        userAgent, 
+        location 
+      });
+
+      return res.status(403).json({ 
+        msg: 'Login from this device is pending admin approval. A notification has been sent to the admin. Please try logging in again after approval.' 
+      });
+    }
+
+    // Run device security check and email notification asynchronously (only if already approved)
     checkAndAlertNewDevice({ id: user.id, name: user.name, email: user.email, role: user.role, module_type: finalModuleType }, ip, userAgent);
 
     jwt.sign(
@@ -297,5 +350,134 @@ exports.resetPassword = async (req, res) => {
   } catch (err) {
     console.error('Error in resetPassword:', err.message);
     res.status(500).send('Server Error');
+  }
+};
+
+exports.deviceAction = async (req, res) => {
+  const { action, userId, ip, ua } = req.query;
+
+  if (!action || !userId || !ip || !ua) {
+    return res.status(400).send('<h1>Missing details. Cannot process request.</h1>');
+  }
+
+  try {
+    let title = '';
+    let message = '';
+    let color = '';
+
+    if (action === 'approve') {
+      const result = await pool.query(
+        `UPDATE user_devices 
+         SET is_approved = true 
+         WHERE user_id = $1 AND ip_address = $2 AND user_agent = $3 
+         RETURNING *`,
+        [userId, ip, ua]
+      );
+
+      if (result.rows.length === 0) {
+        title = 'Device Not Found';
+        message = 'Could not find the pending device login request.';
+        color = '#ef4444';
+      } else {
+        title = 'Device Approved';
+        message = 'This device has been successfully authorized to log in.';
+        color = '#10b981';
+      }
+    } else if (action === 'reject') {
+      const result = await pool.query(
+        `DELETE FROM user_devices 
+         WHERE user_id = $1 AND ip_address = $2 AND user_agent = $3 
+         RETURNING *`,
+        [userId, ip, ua]
+      );
+
+      if (result.rows.length === 0) {
+        title = 'Device Not Found';
+        message = 'Could not find the pending device login request.';
+        color = '#ef4444';
+      } else {
+        title = 'Device Rejected';
+        message = 'This device login request has been successfully rejected and blocked.';
+        color = '#f59e0b';
+      }
+    } else {
+      return res.status(400).send('<h1>Invalid action.</h1>');
+    }
+
+    res.send(`
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <title>${title}</title>
+        <style>
+          body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            color: #ffffff;
+          }
+          .card {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 40px;
+            border-radius: 16px;
+            text-align: center;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3);
+            max-width: 400px;
+            width: 90%;
+          }
+          .status-icon {
+            font-size: 48px;
+            margin-bottom: 20px;
+            color: ${color};
+          }
+          h1 {
+            font-size: 24px;
+            font-weight: 700;
+            margin: 0 0 10px 0;
+            letter-spacing: 0.5px;
+          }
+          p {
+            font-size: 15px;
+            color: #94a3b8;
+            line-height: 1.6;
+            margin: 0 0 24px 0;
+          }
+          .close-btn {
+            background-color: ${color};
+            color: #ffffff;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 14px;
+            cursor: pointer;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2);
+            transition: opacity 0.2s;
+          }
+          .close-btn:hover {
+            opacity: 0.9;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="card">
+          <div class="status-icon">${action === 'approve' ? '✅' : '❌'}</div>
+          <h1>${title}</h1>
+          <p>${message}</p>
+          <button class="close-btn" onclick="window.close()">Close Window</button>
+        </div>
+      </body>
+      </html>
+    `);
+  } catch (err) {
+    console.error('Error in deviceAction:', err.message);
+    res.status(500).send('<h1>Server Error. Please try again later.</h1>');
   }
 };

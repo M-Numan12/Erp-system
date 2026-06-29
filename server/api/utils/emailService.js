@@ -351,3 +351,221 @@ exports.sendResetCode = async (email, username, code) => {
     }
   }
 };
+
+/**
+ * Sends a security email alert requesting admin approval for a new device login.
+ */
+exports.sendDeviceApprovalRequest = async ({ user, ip, userAgent, location }) => {
+  const apiKey = process.env.RESEND_API_KEY || 're_igwGk36N_HmnmD6UuThMPSMhbTRrWsogp';
+  const adminEmail = process.env.EMAIL_USER || 'datawaley.support@gmail.com';
+  const backendUrl = process.env.BACKEND_URL || 'https://erp-backend-3rf8.onrender.com';
+  
+  if (!apiKey) {
+    console.warn("⚠️ RESEND_API_KEY is not configured. Device approval request email skipped.");
+    return;
+  }
+
+  // Parse device info from User-Agent string
+  let deviceName = 'Unknown Device / Browser';
+  try {
+    const ua = userAgent || '';
+    const os = ua.includes('Windows') ? 'Windows' 
+             : ua.includes('Macintosh') ? 'macOS' 
+             : ua.includes('Android') ? 'Android' 
+             : ua.includes('iPhone') ? 'iOS' 
+             : ua.includes('Linux') ? 'Linux' : 'Unknown OS';
+             
+    const browser = ua.includes('Firefox') ? 'Firefox' 
+                  : ua.includes('Chrome') ? 'Chrome' 
+                  : ua.includes('Safari') ? 'Safari' 
+                  : ua.includes('Edg') ? 'Edge' 
+                  : ua.includes('Opera') ? 'Opera' : 'Browser';
+                  
+    deviceName = `${os} / ${browser}`;
+  } catch (e) {}
+
+  // Geolocation string formatting
+  const geoStr = location 
+    ? `${location.city || 'Unknown City'}, ${location.region || 'Unknown Region'}, ${location.country_name || 'Unknown Country'}`
+    : 'Pending Geolocation Lookup';
+
+  // Construct approval & rejection links
+  const encUA = encodeURIComponent(userAgent || '');
+  const approveUrl = `${backendUrl}/api/auth/device-action?action=approve&userId=${user.id}&ip=${ip}&ua=${encUA}`;
+  const rejectUrl = `${backendUrl}/api/auth/device-action?action=reject&userId=${user.id}&ip=${ip}&ua=${encUA}`;
+
+  const htmlContent = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <style>
+        body {
+          font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+          background-color: #f1f5f9;
+          color: #1e293b;
+          margin: 0;
+          padding: 20px;
+        }
+        .container {
+          max-width: 600px;
+          margin: 0 auto;
+          background: #ffffff;
+          border-radius: 12px;
+          border: 1px solid #cbd5e1;
+          box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+          overflow: hidden;
+        }
+        .header {
+          background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+          padding: 24px;
+          text-align: center;
+          color: #ffffff;
+        }
+        .header h1 {
+          margin: 0;
+          font-size: 20px;
+          font-weight: 700;
+          letter-spacing: 0.5px;
+        }
+        .content {
+          padding: 32px 24px;
+        }
+        .warning-text {
+          font-size: 15px;
+          line-height: 1.6;
+          margin-bottom: 24px;
+          color: #475569;
+        }
+        .details-table {
+          width: 100%;
+          border-collapse: collapse;
+          margin-bottom: 28px;
+        }
+        .details-table td {
+          padding: 12px 16px;
+          border-bottom: 1px solid #e2e8f0;
+          font-size: 14px;
+        }
+        .details-table td.label {
+          font-weight: 600;
+          color: #64748b;
+          width: 35%;
+        }
+        .details-table td.value {
+          color: #0f172a;
+          font-weight: 700;
+        }
+        .btn-container {
+          margin: 30px 0;
+          text-align: center;
+        }
+        .btn {
+          width: 40%;
+          text-align: center;
+          padding: 14px 20px;
+          border-radius: 8px;
+          font-weight: 700;
+          font-size: 15px;
+          text-decoration: none;
+          display: inline-block;
+          margin: 0 10px;
+          transition: transform 0.2s, opacity 0.2s;
+        }
+        .btn-approve {
+          background-color: #10b981;
+          color: #ffffff !important;
+          box-shadow: 0 4px 6px -1px rgba(16, 185, 129, 0.2);
+        }
+        .btn-reject {
+          background-color: #ef4444;
+          color: #ffffff !important;
+          box-shadow: 0 4px 6px -1px rgba(239, 68, 68, 0.2);
+        }
+        .footer {
+          background-color: #f8fafc;
+          padding: 20px;
+          text-align: center;
+          font-size: 12px;
+          color: #64748b;
+          border-top: 1px solid #e2e8f0;
+        }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1>🔒 Device Authorization Request</h1>
+        </div>
+        <div class="content">
+          <p class="warning-text">
+            A login attempt was made on the <strong>Data Waley ERP System</strong> from an unrecognized device. Admin approval is required to allow access.
+          </p>
+          
+          <table class="details-table">
+            <tr>
+              <td class="label">User Name</td>
+              <td class="value">${user.name}</td>
+            </tr>
+            <tr>
+              <td class="label">Email Address</td>
+              <td class="value">${user.email}</td>
+            </tr>
+            <tr>
+              <td class="label">Role / Module</td>
+              <td class="value">${user.role} (${user.module_type || 'user'})</td>
+            </tr>
+            <tr>
+              <td class="label">Device / OS</td>
+              <td class="value">${deviceName}</td>
+            </tr>
+            <tr>
+              <td class="label">IP Address</td>
+              <td class="value">${ip}</td>
+            </tr>
+            <tr>
+              <td class="label">Location</td>
+              <td class="value">${geoStr}</td>
+            </tr>
+          </table>
+          
+          <p class="warning-text" style="font-weight: 600; text-align: center; color: #0f172a; margin-bottom: 20px;">
+            Please choose an action below to authorize or block this device:
+          </p>
+
+          <div class="btn-container">
+            <a href="${approveUrl}" class="btn btn-approve" target="_blank">✅ Approve Device</a>
+            <a href="${rejectUrl}" class="btn btn-reject" target="_blank">❌ Reject & Block</a>
+          </div>
+        </div>
+        <div class="footer">
+          This is an automated security verification notification from Data Waley ERP System.<br>
+          © 2026 Data Waley Inc. All Rights Reserved.
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+
+  try {
+    const res = await axios.post('https://api.resend.com/emails', {
+      from: 'Data Waley Security <onboarding@resend.dev>',
+      to: adminEmail,
+      subject: `🚨 Device Approval Request: ${user.name} (${user.role})`,
+      html: htmlContent
+    }, {
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json'
+      }
+    });
+
+    console.log(`✉️ Device approval request email sent successfully to ${adminEmail} (Status: ${res.status})`);
+  } catch (err) {
+    if (err.response) {
+      console.error("❌ Resend API failed:", err.response.data);
+    } else {
+      console.error("❌ Failed to send device approval request email:", err.message);
+    }
+  }
+};
