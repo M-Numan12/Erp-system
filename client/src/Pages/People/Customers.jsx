@@ -755,13 +755,13 @@ export default function Customers({ type }) {
           const tempContainer = document.createElement('div');
           tempContainer.className = 'ledger-report';
           tempContainer.style.position = 'fixed';
-          tempContainer.style.left = '0';
+          tempContainer.style.left = '-9999px';
           tempContainer.style.top = '0';
           tempContainer.style.width = '1000px';
           tempContainer.style.background = 'white';
           tempContainer.style.color = 'black';
           tempContainer.style.padding = '20px';
-          tempContainer.style.zIndex = '-1000'; // Positioned behind the screen to avoid flash
+          tempContainer.style.zIndex = '99999'; // Positioned off-screen but on top to guarantee browser painting
           tempContainer.innerHTML = element.innerHTML;
           document.body.appendChild(tempContainer);
 
