@@ -1046,25 +1046,21 @@ export default function Customers({ type }) {
                         style={{ width: '50px', textAlign: 'center' }}
                       />
                       <Column
-                        header="Date"
+                        header="Date / Ref"
                         body={row => {
                           if (row.isOpening) return <span style={{ fontStyle: 'italic', color: '#64748b' }}>Opening</span>;
                           return (
                             <div>
                               <div style={{ fontWeight: 500 }}>{new Date(row.created_at).toLocaleDateString()}</div>
-                              <small style={{ color: '#94a3b8' }}>{new Date(row.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</small>
+                              <small style={{ color: '#94a3b8', display: 'block' }}>{new Date(row.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</small>
+                              <span style={{ fontWeight: 600, color: '#0284c7', fontSize: '0.75rem', marginTop: '2px', display: 'block' }}>#SAL-{row.id}</span>
                             </div>
                           );
                         }}
-                        style={{ width: '100px' }}
+                        style={{ width: '110px' }}
                       />
                       <Column
-                        header="Bill No."
-                        body={row => row.isOpening ? '—' : <span style={{ fontWeight: 600, color: '#64748b' }}>#SAL-{row.id}</span>}
-                        style={{ width: '85px' }}
-                      />
-                      <Column
-                        header="Product Name"
+                        header="Product Name / Description"
                         body={row => {
                           if (row.isOpening) return <span style={{ fontStyle: 'italic', color: '#64748b', fontWeight: 500 }}>Opening balance brought forward</span>;
                           let items = [];
@@ -1107,12 +1103,23 @@ export default function Customers({ type }) {
                           if (isAdjustment) {
                             return <strong style={{ color: '#0284c7', fontSize: '0.85rem', whiteSpace: 'nowrap' }}><ClipboardList size={13} style={{ display: 'inline', verticalAlign: 'middle', marginRight: '4px' }} />{row.payment_type}</strong>;
                           }
-                          return <strong style={{ color: '#10b981', fontSize: '0.85rem', whiteSpace: 'nowrap' }}><CreditCard size={13} style={{ display: 'inline', verticalAlign: 'middle', marginRight: '4px' }} />Payment Received ({row.payment_type || 'Cash'})</strong>;
+                          return (
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                              <strong style={{ color: '#10b981', fontSize: '0.85rem', whiteSpace: 'nowrap' }}>
+                                <CreditCard size={13} style={{ display: 'inline', verticalAlign: 'middle', marginRight: '4px' }} />
+                                Payment Received ({row.payment_type || 'Cash'})
+                              </strong>
+                              {user?.role === 'admin' && parseFloat(row.net_amount) === 0 && parseFloat(row.paid_amount) > 0 && (
+                                <button className="btn-secondary" style={{ padding: '2px 6px', fontSize: '0.7rem', height: '20px', lineHeight: '1' }} onClick={() => handleUndoPayment(row.id)} disabled={undoLoading}>
+                                  Undo
+                                </button>
+                              )}
+                            </div>
+                          );
                         }}
-                        style={{ minWidth: '180px' }}
                       />
                       <Column
-                        header="Vehicle Number"
+                        header="Vehicle"
                         body={row => {
                           if (row.isOpening) return null;
                           const vNum1 = row.vehicle_number;
@@ -1125,23 +1132,8 @@ export default function Customers({ type }) {
                           }
                           return <span style={{ color: '#cbd5e1' }}>—</span>;
                         }}
-                        style={{ width: '110px' }}
+                        style={{ width: '100px' }}
                       />
-                      {user?.role === 'admin' && (
-                        <Column
-                          header="Actions"
-                          body={row => {
-                            if (row.isOpening) return null;
-                            const isPayment = parseFloat(row.net_amount) === 0 && parseFloat(row.paid_amount) > 0;
-                            return isPayment ? (
-                              <button className="btn-secondary" style={{ padding: '4px 8px', fontSize: '0.75rem' }} onClick={() => handleUndoPayment(row.id)} disabled={undoLoading}>
-                                Undo
-                              </button>
-                            ) : null;
-                          }}
-                          style={{ width: '70px', textAlign: 'center' }}
-                        />
-                      )}
                       <Column
                         header="Qty"
                         body={row => {
@@ -1231,7 +1223,7 @@ export default function Customers({ type }) {
                         }}
                         footer={`Rs. ${sortedLedgerData.reduce((sum, r) => sum + (parseFloat(r.net_amount) > 0 ? parseFloat(r.net_amount) : 0), 0).toLocaleString()}`}
                         footerStyle={{ textAlign: 'right', fontWeight: '700', color: '#ef4444' }}
-                        style={{ textAlign: 'right', width: '95px' }}
+                        style={{ textAlign: 'right', width: '100px' }}
                       />
                       <Column
                         header="Credit (-)"
@@ -1251,7 +1243,7 @@ export default function Customers({ type }) {
                           return sum + (net < 0 ? Math.abs(net) : (paid > 0 ? paid : 0));
                         }, 0).toLocaleString()}`}
                         footerStyle={{ textAlign: 'right', fontWeight: '700', color: '#16a34a' }}
-                        style={{ textAlign: 'right', width: '95px' }}
+                        style={{ textAlign: 'right', width: '100px' }}
                       />
                       <Column
                         header="Balance"
@@ -1273,7 +1265,7 @@ export default function Customers({ type }) {
                           </div>
                         }
                         footerStyle={{ textAlign: 'right' }}
-                        style={{ textAlign: 'right', width: '120px' }}
+                        style={{ textAlign: 'right', width: '130px' }}
                       />
                     </DataTable>
                   </div>
