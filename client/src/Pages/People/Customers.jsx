@@ -751,15 +751,19 @@ export default function Customers({ type }) {
           }
 
           setLoading(true);
-          // Temporarily show the original element for PDF generation
-          element.classList.remove('print-only');
-          element.style.position = 'fixed';
-          element.style.left = '0';
-          element.style.top = '0';
-          element.style.zIndex = '99999';
-          element.style.background = 'white';
-          element.style.color = 'black';
-          element.style.width = '1000px';
+          // Create a temporary container on document.body to ensure it is visible and has correct styles
+          const tempContainer = document.createElement('div');
+          tempContainer.className = 'ledger-report';
+          tempContainer.style.position = 'fixed';
+          tempContainer.style.left = '0';
+          tempContainer.style.top = '0';
+          tempContainer.style.width = '1000px';
+          tempContainer.style.background = 'white';
+          tempContainer.style.color = 'black';
+          tempContainer.style.padding = '20px';
+          tempContainer.style.zIndex = '-1000'; // Positioned behind the screen to avoid flash
+          tempContainer.innerHTML = element.innerHTML;
+          document.body.appendChild(tempContainer);
 
           const opt = {
             margin: [10, 10, 10, 10],
@@ -770,20 +774,13 @@ export default function Customers({ type }) {
           };
 
           try {
-            // Wait for DOM layout/reflow to ensure it's fully rendered
+            // Wait 400ms for DOM layout/reflow to ensure it's fully rendered
             await new Promise(resolve => setTimeout(resolve, 400));
             // Generate PDF as base64 string
-            const pdfBase64 = await window.html2pdf().from(element).set(opt).outputPdf('datauristring');
+            const pdfBase64 = await window.html2pdf().from(tempContainer).set(opt).outputPdf('datauristring');
 
-            // Revert the styling of the original element
-            element.classList.add('print-only');
-            element.style.position = '';
-            element.style.left = '';
-            element.style.top = '';
-            element.style.zIndex = '';
-            element.style.background = '';
-            element.style.color = '';
-            element.style.width = '';
+            // Clean up the temporary container from the DOM
+            document.body.removeChild(tempContainer);
 
             // Store PDF base64 and create blob URL for iframe preview
             setWhatsAppPdfBase64(pdfBase64);
