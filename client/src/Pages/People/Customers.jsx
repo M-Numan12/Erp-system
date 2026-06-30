@@ -215,10 +215,12 @@ export default function Customers({ type }) {
 
       const data = await res.json();
       if (res.ok && data.success) {
-        alert("Ledger PDF sent successfully via WhatsApp!");
+        const text = encodeURIComponent(`🌟 *DATA WALEY CEMENT ERP* 🌟\n\n🧾 *LEDGER STATEMENT REPORT*\n\nDear Customer, please view/download your ledger PDF statement using this link:\n🔗 ${data.fileUrl}\n\nThank you! 🙏`);
+        const url = `https://api.whatsapp.com/send?phone=${phone}&text=${text}`;
+        window.open(url, '_blank');
         closeWhatsAppModal();
       } else {
-        alert(`Failed to send WhatsApp PDF: ${data.error || 'Unknown error'}`);
+        alert(`Failed to generate WhatsApp PDF: ${data.error || 'Unknown error'}`);
       }
     } catch (err) {
       console.error("Send WhatsApp error:", err);
@@ -1057,7 +1059,7 @@ export default function Customers({ type }) {
                             </div>
                           );
                         }}
-                        style={{ width: '110px' }}
+                        style={{ width: '100px' }}
                       />
                       <Column
                         header="Product Name / Description"
@@ -1132,7 +1134,7 @@ export default function Customers({ type }) {
                           }
                           return <span style={{ color: '#cbd5e1' }}>—</span>;
                         }}
-                        style={{ width: '100px' }}
+                        style={{ width: '90px' }}
                       />
                       <Column
                         header="Qty"
@@ -1171,7 +1173,7 @@ export default function Customers({ type }) {
                           }
                           return <span style={{ color: '#cbd5e1' }}>—</span>;
                         }}
-                        style={{ width: '70px' }}
+                        style={{ width: '65px' }}
                       />
                       <Column
                         header="Rate"
@@ -1212,7 +1214,7 @@ export default function Customers({ type }) {
                         }}
                         footer="Period Totals:"
                         footerStyle={{ textAlign: 'right', fontWeight: 'bold', color: '#475569' }}
-                        style={{ width: '75px' }}
+                        style={{ width: '65px' }}
                       />
                       <Column
                         header="Debit (+)"
@@ -1223,7 +1225,7 @@ export default function Customers({ type }) {
                         }}
                         footer={`Rs. ${sortedLedgerData.reduce((sum, r) => sum + (parseFloat(r.net_amount) > 0 ? parseFloat(r.net_amount) : 0), 0).toLocaleString()}`}
                         footerStyle={{ textAlign: 'right', fontWeight: '700', color: '#ef4444' }}
-                        style={{ textAlign: 'right', width: '100px' }}
+                        style={{ textAlign: 'right', width: '90px' }}
                       />
                       <Column
                         header="Credit (-)"
@@ -1243,7 +1245,7 @@ export default function Customers({ type }) {
                           return sum + (net < 0 ? Math.abs(net) : (paid > 0 ? paid : 0));
                         }, 0).toLocaleString()}`}
                         footerStyle={{ textAlign: 'right', fontWeight: '700', color: '#16a34a' }}
-                        style={{ textAlign: 'right', width: '100px' }}
+                        style={{ textAlign: 'right', width: '90px' }}
                       />
                       <Column
                         header="Balance"
@@ -1265,7 +1267,7 @@ export default function Customers({ type }) {
                           </div>
                         }
                         footerStyle={{ textAlign: 'right' }}
-                        style={{ textAlign: 'right', width: '130px' }}
+                        style={{ textAlign: 'right', width: '110px' }}
                       />
                     </DataTable>
                   </div>

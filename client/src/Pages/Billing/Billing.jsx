@@ -125,10 +125,12 @@ export default function Billing({ type }) {
 
       const data = await res.json();
       if (res.ok && data.success) {
-        alert("Ledger PDF sent successfully via WhatsApp!");
+        const text = encodeURIComponent(`🌟 *DATA WALEY CEMENT ERP* 🌟\n\n🧾 *LEDGER STATEMENT REPORT*\n\nDear Customer, please view/download your ledger PDF statement using this link:\n🔗 ${data.fileUrl}\n\nThank you! 🙏`);
+        const url = `https://api.whatsapp.com/send?phone=${phone}&text=${text}`;
+        window.open(url, '_blank');
         closeWhatsAppModal();
       } else {
-        alert(`Failed to send WhatsApp PDF: ${data.error || 'Unknown error'}`);
+        alert(`Failed to generate WhatsApp PDF: ${data.error || 'Unknown error'}`);
       }
     } catch (err) {
       console.error("Send WhatsApp error:", err);
