@@ -86,6 +86,9 @@ export default function Customers({ type }) {
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState(null);
   const [ledgerData, setLedgerData] = useState([]);
+  const [ledgerFrom, setLedgerFrom] = useState("");
+  const [ledgerTo, setLedgerTo] = useState("");
+  const [ledgerFilter, setLedgerFilter] = useState("all");
   const liveBalance = useMemo(() => {
     const bal = parseFloat(selectedCustomer?.balance);
     return isNaN(bal) ? 0 : bal;
@@ -229,10 +232,6 @@ export default function Customers({ type }) {
   // Receipt Generator 
   const [showReceipt, setShowReceipt] = useState(false);
   const [receiptData, setReceiptData] = useState(null);
-
-  const [ledgerFrom, setLedgerFrom] = useState("");
-  const [ledgerTo, setLedgerTo] = useState("");
-  const [ledgerFilter, setLedgerFilter] = useState("all");
 
   const fetchRecords = async () => {
     if (!activeTab) return;
