@@ -754,8 +754,9 @@ export default function Customers({ type }) {
           // Clone the element and prepare it for PDF rendering
           const clone = element.cloneNode(true);
           clone.classList.remove('print-only');
+          clone.style.display = 'block';
           clone.style.position = 'fixed';
-          clone.style.left = '0';
+          clone.style.left = '-9999px';
           clone.style.top = '0';
           clone.style.zIndex = '1';
           clone.style.background = 'white';
@@ -772,6 +773,8 @@ export default function Customers({ type }) {
           };
 
           try {
+            // Wait for DOM layout/reflow to ensure it's not rendered blank
+            await new Promise(resolve => setTimeout(resolve, 300));
             // Generate PDF as base64 string from the clone
             const pdfBase64 = await window.html2pdf().from(clone).set(opt).outputPdf('datauristring');
 
