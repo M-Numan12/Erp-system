@@ -7,6 +7,8 @@ import {
 import { AuthContext } from "../../context/AuthContext";
 import ActionMenu from '../../components/ActionMenu';
 import api from "../../services/api"; // Use system-wide dynamic api service instead of hardcoded string
+import { DataTable } from 'primereact/datatable';
+import { Column } from 'primereact/column';
 import "../../Styles/ModulePages.scss";
 
 const emptyForm = {
@@ -58,6 +60,7 @@ export default function Transport({ type }) {
   const [ledgerFilter, setLedgerFilter] = useState("all");
   const [ledgerFrom, setLedgerFrom] = useState("");
   const [ledgerTo, setLedgerTo] = useState("");
+  const [ledgerOpeningBalance, setLedgerOpeningBalance] = useState(0);
   const [selectedVehicle, setSelectedVehicle] = useState(null);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(false);
@@ -221,15 +224,33 @@ export default function Transport({ type }) {
   const openLedger = async (vehicle) => {
     setSelectedVehicle(vehicle);
     setLedgerData([]); // Reset to clean array immediately
+    setLedgerFilter("all");
+    setLedgerFrom("");
+    setLedgerTo("");
     setShowLedgerModal(true);
     setLoading(true);
     try {
       const res = await api.get(`/transport/ledger/${vehicle.id}`);
-      const data = res.data;
-      setLedgerData(Array.isArray(data) ? data : []);
+      const data = Array.isArray(res.data) ? res.data : [];
+      
+      // Sort oldest to newest for chronological math
+      const sorted = [...data].sort((a, b) => new Date(a.date) - new Date(b.date));
+      
+      // Calculate historical impact
+      const historicalImpact = sorted.reduce((sum, r) => {
+        const amt = parseFloat(r.amount || 0);
+        const isEarning = r.trip_type === 'Outward (Sale)' || r.trip_type === 'Inward (Stock)';
+        return sum + (isEarning ? amt : -amt);
+      }, 0);
+      
+      const liveBalance = parseFloat(vehicle.total_earnings || 0);
+      const initialBal = liveBalance - historicalImpact;
+      setLedgerOpeningBalance(initialBal);
+      setLedgerData(data);
     } catch (err) { 
       console.error(err); 
       setLedgerData([]); // Ensure it stays an array on failure
+      setLedgerOpeningBalance(0);
     }
     setLoading(false);
   };
@@ -259,11 +280,11 @@ export default function Transport({ type }) {
   const processedLedgerData = useMemo(() => {
     let arr = Array.isArray(ledgerData) ? [...ledgerData] : [];
     
-    // Reverse to get oldest first for running balance calculation
-    const reversed = [...arr].reverse();
+    // Sort oldest first for chronological math
+    const sorted = [...arr].sort((a, b) => new Date(a.date) - new Date(b.date));
     
-    let balance = 0;
-    const mapped = reversed.map(row => {
+    let cur = ledgerOpeningBalance;
+    return sorted.map(row => {
       const amt = parseFloat(row.amount || 0);
       const isEarning = row.trip_type === 'Outward (Sale)' || row.trip_type === 'Inward (Stock)';
       
@@ -272,32 +293,50 @@ export default function Transport({ type }) {
       
       if (isEarning) {
         earning = amt;
-        balance += amt;
+        cur += amt;
       } else {
         expense = amt;
-        balance -= amt;
+        cur -= amt;
       }
       
       return {
         ...row,
         earning,
         expense,
-        runningBalance: balance
+        runningBalance: cur
       };
     });
-    
-    // Reverse back to newest first
-    return mapped.reverse();
-  }, [ledgerData]);
+  }, [ledgerData, ledgerOpeningBalance]);
 
   const filteredLedgerData = useMemo(() => {
     let arr = processedLedgerData;
     if (ledgerFilter === 'all') return arr;
-    if (ledgerFilter === 'custom' && (!ledgerFrom || !ledgerTo)) return arr;
+    
     return arr.filter(row => {
       if(!row.date) return false;
       const rowDateStr = new Date(row.date).toLocaleDateString('en-CA');
-      return rowDateStr >= ledgerFrom && rowDateStr <= ledgerTo;
+      const today = new Date();
+      const todayStr = today.toLocaleDateString('en-CA');
+      
+      if (ledgerFilter === 'custom' && ledgerFrom && ledgerTo) {
+        return rowDateStr >= ledgerFrom && rowDateStr <= ledgerTo;
+      }
+      if (ledgerFilter === 'today') {
+        return rowDateStr === todayStr;
+      }
+      if (ledgerFilter === 'yesterday') {
+        const y = new Date(); y.setDate(today.getDate() - 1);
+        return rowDateStr === y.toLocaleDateString('en-CA');
+      }
+      if (ledgerFilter === 'week') {
+        const weekAgo = new Date(); weekAgo.setDate(today.getDate() - 7);
+        return rowDateStr >= weekAgo.toLocaleDateString('en-CA') && rowDateStr <= todayStr;
+      }
+      if (ledgerFilter === 'month') {
+        const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+        return rowDateStr >= monthStart.toLocaleDateString('en-CA') && rowDateStr <= todayStr;
+      }
+      return true;
     });
   }, [processedLedgerData, ledgerFilter, ledgerFrom, ledgerTo]);
 
@@ -504,199 +543,279 @@ export default function Transport({ type }) {
         </div>
       )}
       {/* Vehicle Ledger Modal */}
-      {showLedgerModal && selectedVehicle && (
-        <div className="modal-overlay" onClick={() => setShowLedgerModal(false)}>
-          <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '800px', width: '95%' }}>
-            <div className="modal-header no-print">
-              <div className="header-info" style={{display:'flex', alignItems:'center', gap:'12px'}}>
-                <Truck size={24} color="#0369a1" />
-                <h3>Vehicle Ledger: {selectedVehicle.vehicle_number}</h3>
-              </div>
-              <div style={{display:'flex', gap:'10px'}}>
-                <button className="btn-secondary" onClick={() => window.print()} style={{padding: '6px 12px', display:'flex', alignItems:'center', gap:'6px'}}>
-                  <Plus size={16} /> Print Report
-                </button>
-                <button className="modal-close" onClick={() => setShowLedgerModal(false)}><X size={20} /></button>
-              </div>
-            </div>
+      {showLedgerModal && selectedVehicle && (() => {
+        const firstVisibleRow = filteredLedgerData[0];
+        const periodOpeningBal = firstVisibleRow 
+          ? (parseFloat(firstVisibleRow.runningBalance || 0) - (parseFloat(firstVisibleRow.earning || 0) - parseFloat(firstVisibleRow.expense || 0))) 
+          : ledgerOpeningBalance;
 
-            {/* Date Filter Bar */}
-            <div className="profit-filter-bar no-print" style={{margin: '20px', padding: '10px', background: '#f8fafc', borderRadius: '8px', display:'flex', alignItems:'center', gap:'10px', flexWrap:'wrap'}}>
-              <span className="filter-label" style={{fontWeight: 600, color: '#64748b'}}>📅 Period:</span>
-              {[
-                { key:'all',   label:'All Time' },
-                { key:'today', label:'Today' },
-                { key:'yesterday', label:'Yesterday' },
-                { key:'week',  label:'7 Days' },
-                { key:'month', label:'Month' },
-                { key:'custom',label:'Custom' },
-              ].map(f => (
-                <button key={f.key} onClick={() => applyLedgerFilter(f.key)}
-                  className={`filter-btn ${ledgerFilter === f.key ? 'active' : ''}`}
-                  style={{
-                    padding: '4px 12px', borderRadius: '6px', border: '1px solid #e2e8f0', fontSize: '0.85rem',
-                    background: ledgerFilter === f.key ? '#3b82f6' : 'white',
-                    color: ledgerFilter === f.key ? 'white' : '#64748b', cursor: 'pointer'
-                  }}>
-                  {f.label}
-                </button>
-              ))}
-              {ledgerFilter === 'custom' && (
-                <div className="custom-date-row" style={{display: 'inline-flex', alignItems: 'center', gap: '8px'}}>
-                  <input type="date" value={ledgerFrom} onChange={e => setLedgerFrom(e.target.value)} style={{padding: '4px 8px', borderRadius: '4px', border: '1px solid #cbd5e1'}} />
-                  <span className="sep">→</span>
-                  <input type="date" value={ledgerTo} onChange={e => setLedgerTo(e.target.value)} style={{padding: '4px 8px', borderRadius: '4px', border: '1px solid #cbd5e1'}} />
+        const datatableRows = [
+          {
+            id: 'opening',
+            isOpening: true,
+            date: null,
+            party_name: null,
+            trip_type: null,
+            earning: 0,
+            expense: 0,
+            runningBalance: periodOpeningBal
+          },
+          ...filteredLedgerData
+        ];
+
+        return (
+          <div className="modal-overlay" onClick={() => setShowLedgerModal(false)}>
+            <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '1150px', width: '98%' }}>
+              <div className="modal-header no-print">
+                <div className="header-info" style={{display:'flex', alignItems:'center', gap:'12px'}}>
+                  <Truck size={24} color="#0369a1" />
+                  <h3>Vehicle Ledger: {selectedVehicle.vehicle_number}</h3>
                 </div>
-              )}
-            </div>
+                <div style={{display:'flex', gap:'10px'}}>
+                  <button className="btn-secondary" onClick={() => window.print()} style={{padding: '6px 12px', display:'flex', alignItems:'center', gap:'6px'}}>
+                    <FileText size={16} /> Print Report
+                  </button>
+                  <button className="modal-close" onClick={() => setShowLedgerModal(false)}><X size={20} /></button>
+                </div>
+              </div>
 
-            <div className="ledger-report print-only" style={{padding: '20px', color: 'black'}}>
-              <div style={{textAlign: 'center', marginBottom: '20px', borderBottom: '2px solid #000', paddingBottom: '10px'}}>
-                {activeCounter === 'Retail 2' ? (
-                  <>
-                    <h2 style={{margin: 0}}>DATA WALEY</h2>
-                    <h3 style={{fontSize: '15px', fontWeight: 'normal', margin: '2px 0 8px 0'}}>RETAIL 2</h3>
-                    <div style={{fontSize: '12px', margin: '5px 0'}}>
-                      <p style={{margin: '2px 0'}}>Waqar Butt: 0311-4105840</p>
-                      <p style={{margin: '2px 0'}}>Mhd Aiss: 0335-1430216</p>
-                      <p style={{margin: '2px 0'}}>Saifullah: 0333-4714628</p>
-                    </div>
-                    <p style={{fontSize: '11px', margin: '5px 0'}}>
-                      Ada Treadywali Stop Main Jaranwala Road,<br/>
-                      District Sheikupura.
-                    </p>
-                  </>
-                ) : (
-                  <>
-                    <h2 style={{margin: 0}}>DATA WALEY</h2>
-                    <h3 style={{fontSize: '15px', fontWeight: 'normal', margin: '2px 0 8px 0'}}>CEMENT DEALER</h3>
-                    <div style={{fontSize: '12px', margin: '5px 0'}}>
-                      <p style={{margin: '2px 0'}}>Tariq Mehmood: 0300-4269347</p>
-                      <p style={{margin: '2px 0'}}>Mian Shehroz: 0335-4294300</p>
-                      <p style={{margin: '2px 0'}}>Ziaullah: 0322-4295106</p>
-                    </div>
-                    <p style={{fontSize: '11px', margin: '5px 0'}}>
-                      12-KM Main Lahore Sheikhupura Road,<br/>
-                      Ada Kot Abdul Malik.
-                    </p>
-                  </>
+              {/* Date Filter Bar */}
+              <div className="profit-filter-bar no-print" style={{margin: '20px', padding: '10px', background: '#f8fafc', borderRadius: '8px', display:'flex', alignItems:'center', gap:'10px', flexWrap:'wrap'}}>
+                <span className="filter-label" style={{fontWeight: 600, color: '#64748b'}}>📅 Period:</span>
+                {[
+                  { key:'all',   label:'All Time' },
+                  { key:'today', label:'Today' },
+                  { key:'yesterday', label:'Yesterday' },
+                  { key:'week',  label:'7 Days' },
+                  { key:'month', label:'Month' },
+                  { key:'custom',label:'Custom' },
+                ].map(f => (
+                  <button key={f.key} onClick={() => applyLedgerFilter(f.key)}
+                    className={`filter-btn ${ledgerFilter === f.key ? 'active' : ''}`}
+                    style={{
+                      padding: '4px 12px', borderRadius: '6px', border: '1px solid #e2e8f0', fontSize: '0.85rem',
+                      background: ledgerFilter === f.key ? '#3b82f6' : 'white',
+                      color: ledgerFilter === f.key ? 'white' : '#64748b', cursor: 'pointer'
+                    }}>
+                    {f.label}
+                  </button>
+                ))}
+                {ledgerFilter === 'custom' && (
+                  <div className="custom-date-row" style={{display: 'inline-flex', alignItems: 'center', gap: '8px'}}>
+                    <input type="date" value={ledgerFrom} onChange={e => setLedgerFrom(e.target.value)} style={{padding: '4px 8px', borderRadius: '4px', border: '1px solid #cbd5e1'}} />
+                    <span className="sep">→</span>
+                    <input type="date" value={ledgerTo} onChange={e => setLedgerTo(e.target.value)} style={{padding: '4px 8px', borderRadius: '4px', border: '1px solid #cbd5e1'}} />
+                  </div>
                 )}
-                <p style={{margin: '10px 0 5px 0', borderTop: '1px dashed #cbd5e1', paddingTop: '5px'}}>Vehicle Earnings Ledger Report</p>
-                <div style={{display: 'flex', justifyContent: 'space-between', marginTop: '15px', fontSize: '14px'}}>
-                  <span><strong>Vehicle:</strong> {selectedVehicle.vehicle_number}</span>
-                  <span><strong>Driver:</strong> {selectedVehicle.driver_name}</span>
-                  <span><strong>Date:</strong> {new Date().toLocaleDateString()}</span>
-                </div>
               </div>
 
-              <table style={{width: '100%', borderCollapse: 'collapse', marginTop: '10px'}}>
-                <thead>
-                  <tr style={{background: '#f1f5f9'}}>
-                    <th style={{border: '1px solid #cbd5e1', padding: '8px', textAlign: 'left'}}>Date</th>
-                    <th style={{border: '1px solid #cbd5e1', padding: '8px', textAlign: 'left'}}>Customer / Bill</th>
-                    <th style={{border: '1px solid #cbd5e1', padding: '8px', textAlign: 'left'}}>Trip Type</th>
-                    <th style={{border: '1px solid #cbd5e1', padding: '8px', textAlign: 'right'}}>Earnings (+)</th>
-                    <th style={{border: '1px solid #cbd5e1', padding: '8px', textAlign: 'right'}}>Expenses (-)</th>
-                    <th style={{border: '1px solid #cbd5e1', padding: '8px', textAlign: 'right'}}>Current Balance</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredLedgerData.map((row, idx) => (
-                    <tr key={idx}>
-                      <td style={{border: '1px solid #cbd5e1', padding: '8px'}}>{row.date ? new Date(row.date).toLocaleDateString() : 'N/A'}</td>
-                      <td style={{border: '1px solid #cbd5e1', padding: '8px'}}>
-                        {row.party_name || 'N/A'}
-                        {row.payment_type && <span style={{fontSize: '11px', color: '#64748b', display: 'block'}}>Method: {row.payment_type}</span>}
-                      </td>
-                      <td style={{border: '1px solid #cbd5e1', padding: '8px'}}>{row.trip_type || 'N/A'}</td>
-                      <td style={{border: '1px solid #cbd5e1', padding: '8px', textAlign: 'right', color: row.earning > 0 ? '#15803d' : '#64748b'}}>
-                        {row.earning > 0 ? `Rs. ${row.earning.toLocaleString()}` : '-'}
-                      </td>
-                      <td style={{border: '1px solid #cbd5e1', padding: '8px', textAlign: 'right', color: row.expense > 0 ? '#b91c1c' : '#64748b'}}>
-                        {row.expense > 0 ? `Rs. ${row.expense.toLocaleString()}` : '-'}
-                      </td>
-                      <td style={{border: '1px solid #cbd5e1', padding: '8px', textAlign: 'right', fontWeight: 600}}>
-                        Rs. {row.runningBalance.toLocaleString()}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-                <tfoot>
-                   <tr style={{fontWeight: 700}}>
-                     <td colSpan="3" style={{border: '1px solid #cbd5e1', padding: '8px', textAlign: 'right'}}>Net Balance (Filtered):</td>
-                     <td colSpan="3" style={{border: '1px solid #cbd5e1', padding: '8px', color: filteredEarnings >= 0 ? '#15803d' : '#b91c1c'}}>
-                        Rs. {filteredEarnings.toLocaleString()}
-                     </td>
-                   </tr>
-                </tfoot>
-              </table>
-            </div>
-
-            <div className="detail-body no-print" style={{padding: '24px'}}>
-              <div className="ledger-mini-stats" style={{ display: 'flex', gap: '20px', padding: '0 20px', marginBottom: '20px' }}>
-                <div style={{ flex: 1, padding: '15px', background: '#f8fafc', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
-                  <div style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>Records</div>
-                  <div style={{ fontSize: '1.25rem', color: '#0f172a', fontWeight: 700 }}>{displayedTrips.length} Trips</div>
-                </div>
-                <div style={{ flex: 1, padding: '15px', background: '#f0fdf4', borderRadius: '12px', border: '1px solid #bbf7d0' }}>
-                  <div style={{ fontSize: '0.8rem', color: '#166534', fontWeight: 600, textTransform: 'uppercase' }}>Filtered Earnings</div>
-                  <div style={{ fontSize: '1.25rem', color: '#15803d', fontWeight: 700 }}>
-                    Rs. {filteredEarnings.toLocaleString()}
+              <div className="ledger-report print-only" style={{padding: '20px', color: 'black'}}>
+                <div style={{textAlign: 'center', marginBottom: '20px', borderBottom: '2px solid #000', paddingBottom: '10px'}}>
+                  {activeCounter === 'Retail 2' ? (
+                    <>
+                      <h2 style={{margin: 0}}>DATA WALEY</h2>
+                      <h3 style={{fontSize: '15px', fontWeight: 'normal', margin: '2px 0 8px 0'}}>RETAIL 2</h3>
+                      <div style={{fontSize: '12px', margin: '5px 0'}}>
+                        <p style={{margin: '2px 0'}}>Waqar Butt: 0311-4105840</p>
+                        <p style={{margin: '2px 0'}}>Mhd Aiss: 0335-1430216</p>
+                        <p style={{margin: '2px 0'}}>Saifullah: 0333-4714628</p>
+                      </div>
+                      <p style={{fontSize: '11px', margin: '5px 0'}}>
+                        Ada Treadywali Stop Main Jaranwala Road,<br/>
+                        District Sheikupura.
+                      </p>
+                    </>
+                  ) : (
+                    <>
+                      <h2 style={{margin: 0}}>DATA WALEY</h2>
+                      <h3 style={{fontSize: '15px', fontWeight: 'normal', margin: '2px 0 8px 0'}}>CEMENT DEALER</h3>
+                      <div style={{fontSize: '12px', margin: '5px 0'}}>
+                        <p style={{margin: '2px 0'}}>Tariq Mehmood: 0300-4269347</p>
+                        <p style={{margin: '2px 0'}}>Mian Shehroz: 0335-4294300</p>
+                        <p style={{margin: '2px 0'}}>Ziaullah: 0322-4295106</p>
+                      </div>
+                      <p style={{fontSize: '11px', margin: '5px 0'}}>
+                        12-KM Main Lahore Sheikhupura Road,<br/>
+                        Ada Kot Abdul Malik.
+                      </p>
+                    </>
+                  )}
+                  <p style={{margin: '10px 0 5px 0', borderTop: '1px dashed #cbd5e1', paddingTop: '5px'}}>Vehicle Earnings Ledger Report</p>
+                  <div style={{display: 'flex', justifyContent: 'space-between', marginTop: '15px', fontSize: '14px'}}>
+                    <span><strong>Vehicle:</strong> {selectedVehicle.vehicle_number}</span>
+                    <span><strong>Driver:</strong> {selectedVehicle.driver_name}</span>
+                    <span><strong>Date:</strong> {new Date().toLocaleDateString()}</span>
                   </div>
                 </div>
-              </div>
 
-              <div className="module-table-container" style={{maxHeight: '400px', overflowY: 'auto'}}>
-                <table className="module-table">
+                <table style={{width: '100%', borderCollapse: 'collapse', marginTop: '10px'}}>
                   <thead>
-                    <tr>
-                      <th>Date</th>
-                      <th>Trip Type</th>
-                      <th>Party / Details</th>
-                      <th style={{textAlign: 'right'}}>Earnings (+)</th>
-                      <th style={{textAlign: 'right'}}>Expenses (-)</th>
-                      <th style={{textAlign: 'right'}}>Current Balance</th>
+                    <tr style={{background: '#f1f5f9'}}>
+                      <th style={{border: '1px solid #cbd5e1', padding: '8px', textAlign: 'left', width: '50px'}}>S.No</th>
+                      <th style={{border: '1px solid #cbd5e1', padding: '8px', textAlign: 'left'}}>Date</th>
+                      <th style={{border: '1px solid #cbd5e1', padding: '8px', textAlign: 'left'}}>Customer / Bill</th>
+                      <th style={{border: '1px solid #cbd5e1', padding: '8px', textAlign: 'left'}}>Trip Type</th>
+                      <th style={{border: '1px solid #cbd5e1', padding: '8px', textAlign: 'right'}}>Earnings (+)</th>
+                      <th style={{border: '1px solid #cbd5e1', padding: '8px', textAlign: 'right'}}>Expenses (-)</th>
+                      <th style={{border: '1px solid #cbd5e1', padding: '8px', textAlign: 'right'}}>Current Balance</th>
                     </tr>
                   </thead>
-                  <tbody className="list-body">
-                    {(!Array.isArray(filteredLedgerData) || filteredLedgerData.length === 0) ? (
-                      <tr><td colSpan="6" style={{padding: '20px', textAlign: 'center', color: '#64748b'}}>No records found for this vehicle.</td></tr>
-                    ) : (
-                      filteredLedgerData.map((row, idx) => (
-                        <tr key={idx}>
-                          <td>{row.date ? new Date(row.date).toLocaleDateString() : 'N/A'}</td>
-                          <td>
-                             <span className={`status-badge ${(row.trip_type || '').includes('Inward') ? 'pending' : 'paid'}`} style={{fontSize: '0.7rem'}}>
-                               {row.trip_type || 'Trip'}
-                             </span>
-                          </td>
-                          <td>
-                            <strong>{row.party_name || 'N/A'}</strong>
-                            {row.payment_type && <div style={{fontSize: '0.75rem', color: '#64748b', marginTop: '2px'}}>Method: {row.payment_type}</div>}
-                          </td>
-                          <td style={{textAlign: 'right', color: row.earning > 0 ? '#16a34a' : '#64748b'}} className="bold">
-                            {row.earning > 0 ? `Rs. ${row.earning.toLocaleString()}` : '-'}
-                          </td>
-                          <td style={{textAlign: 'right', color: row.expense > 0 ? '#dc2626' : '#64748b'}} className="bold">
-                            {row.expense > 0 ? `Rs. ${row.expense.toLocaleString()}` : '-'}
-                          </td>
-                          <td style={{textAlign: 'right'}} className="bold">
-                            Rs. {row.runningBalance.toLocaleString()}
-                          </td>
-                        </tr>
-                      ))
-                    )}
+                  <tbody>
+                    <tr style={{background: '#f8fafc', fontStyle: 'italic'}}>
+                      <td style={{border: '1px solid #cbd5e1', padding: '8px'}}>—</td>
+                      <td style={{border: '1px solid #cbd5e1', padding: '8px'}}>Opening</td>
+                      <td colSpan="4" style={{border: '1px solid #cbd5e1', padding: '8px'}}>Opening Balance Brought Forward</td>
+                      <td style={{border: '1px solid #cbd5e1', padding: '8px', textAlign: 'right', fontWeight: 'bold'}}>
+                        Rs. {periodOpeningBal.toLocaleString()}
+                      </td>
+                    </tr>
+                    
+                    {filteredLedgerData.map((row, index) => (
+                      <tr key={index}>
+                        <td style={{border: '1px solid #cbd5e1', padding: '8px'}}>{index + 1}</td>
+                        <td style={{border: '1px solid #cbd5e1', padding: '8px'}}>{row.date ? new Date(row.date).toLocaleDateString() : 'N/A'}</td>
+                        <td style={{border: '1px solid #cbd5e1', padding: '8px'}}>
+                          {row.party_name || 'N/A'}
+                          {row.payment_type && <span style={{fontSize: '11px', color: '#64748b', display: 'block'}}>Method: {row.payment_type}</span>}
+                        </td>
+                        <td style={{border: '1px solid #cbd5e1', padding: '8px'}}>{row.trip_type || 'N/A'}</td>
+                        <td style={{border: '1px solid #cbd5e1', padding: '8px', textAlign: 'right', color: row.earning > 0 ? '#15803d' : '#64748b'}}>
+                          {row.earning > 0 ? `Rs. ${row.earning.toLocaleString()}` : '-'}
+                        </td>
+                        <td style={{border: '1px solid #cbd5e1', padding: '8px', textAlign: 'right', color: row.expense > 0 ? '#b91c1c' : '#64748b'}}>
+                          {row.expense > 0 ? `Rs. ${row.expense.toLocaleString()}` : '-'}
+                        </td>
+                        <td style={{border: '1px solid #cbd5e1', padding: '8px', textAlign: 'right', fontWeight: 600}}>
+                          Rs. {row.runningBalance.toLocaleString()}
+                        </td>
+                      </tr>
+                    ))}
                   </tbody>
+                  <tfoot>
+                     <tr style={{fontWeight: 700}}>
+                       <td colSpan="4" style={{border: '1px solid #cbd5e1', padding: '8px', textAlign: 'right'}}>Net Balance (Filtered):</td>
+                       <td colSpan="3" style={{border: '1px solid #cbd5e1', padding: '8px', color: filteredEarnings >= 0 ? '#15803d' : '#b91c1c'}}>
+                          Rs. {filteredEarnings.toLocaleString()}
+                       </td>
+                     </tr>
+                  </tfoot>
                 </table>
               </div>
-            </div>
-            
-            <div className="modal-footer no-print" style={{padding: '16px 24px', borderTop: '1px solid #e2e8f0', display: 'flex', justifyContent: 'flex-end'}}>
-              <button className="btn-secondary" onClick={() => setShowLedgerModal(false)}>Close Ledger</button>
+
+              <div className="detail-body no-print" style={{padding: '24px'}}>
+                <div className="ledger-mini-stats" style={{ display: 'flex', gap: '20px', padding: '0 20px', marginBottom: '20px' }}>
+                  <div style={{ flex: 1, padding: '15px', background: '#f8fafc', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+                    <div style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>Records</div>
+                    <div style={{ fontSize: '1.25rem', color: '#0f172a', fontWeight: 700 }}>{displayedTrips.length} Trips</div>
+                  </div>
+                  <div style={{ flex: 1, padding: '15px', background: '#f0fdf4', borderRadius: '12px', border: '1px solid #bbf7d0' }}>
+                    <div style={{ fontSize: '0.8rem', color: '#166534', fontWeight: 600, textTransform: 'uppercase' }}>Filtered Earnings</div>
+                    <div style={{ fontSize: '1.25rem', color: '#15803d', fontWeight: 700 }}>
+                      Rs. {filteredEarnings.toLocaleString()}
+                    </div>
+                  </div>
+                </div>
+
+                <div style={{background: 'white', borderRadius: '10px', border: '1px solid #e2e8f0', overflow: 'hidden'}}>
+                  <DataTable 
+                    value={datatableRows} 
+                    scrollable 
+                    scrollHeight="380px" 
+                    className="p-datatable-sm card-table"
+                    stripedRows 
+                    responsiveLayout="scroll"
+                    rowHover
+                    style={{fontSize: '0.9rem'}}
+                    emptyMessage="No records found for this vehicle."
+                  >
+                    <Column 
+                      header="S.No" 
+                      body={(row, options) => row.isOpening ? '—' : options.rowIndex} 
+                      style={{ width: '60px', textAlign: 'center' }} 
+                    />
+                    <Column 
+                      header="Date" 
+                      body={row => {
+                        if (row.isOpening) return <span style={{fontStyle:'italic', color:'#64748b'}}>Opening</span>;
+                        return (
+                          <div>
+                            <div style={{fontWeight:500}}>{new Date(row.date).toLocaleDateString()}</div>
+                            <small style={{color:'#94a3b8'}}>{new Date(row.date).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</small>
+                          </div>
+                        );
+                      }} 
+                      style={{ width: '110px' }} 
+                    />
+                    <Column 
+                      header="Trip Type" 
+                      body={row => {
+                        if (row.isOpening) return null;
+                        return (
+                          <span className={`status-badge ${(row.trip_type || '').includes('Inward') ? 'pending' : 'paid'}`} style={{fontSize: '0.7rem'}}>
+                            {row.trip_type || 'Trip'}
+                          </span>
+                        );
+                      }}
+                      style={{ width: '130px' }}
+                    />
+                    <Column 
+                      header="Party / Details" 
+                      body={row => {
+                        if (row.isOpening) return <span style={{fontStyle:'italic', color:'#64748b', fontWeight:500}}>Opening balance brought forward</span>;
+                        return (
+                          <div>
+                            <strong>{row.party_name || 'N/A'}</strong>
+                            {row.payment_type && <div style={{fontSize: '0.75rem', color: '#64748b', marginTop: '2px'}}>Method: {row.payment_type}</div>}
+                          </div>
+                        );
+                      }} 
+                    />
+                    <Column 
+                      header="Earnings (+)" 
+                      body={row => (!row.isOpening && parseFloat(row.earning) > 0) ? <span style={{fontWeight: '600', color: '#16a34a'}}>Rs. {parseFloat(row.earning).toLocaleString()}</span> : <span style={{color:'#cbd5e1'}}>—</span>}
+                      footer={`Rs. ${filteredLedgerData.reduce((sum, r) => sum + parseFloat(r.earning || 0), 0).toLocaleString()}`}
+                      footerStyle={{ textAlign: 'right', fontWeight: '700', color: '#16a34a' }}
+                      style={{ textAlign: 'right', width: '120px' }}
+                    />
+                    <Column 
+                      header="Expenses (-)" 
+                      body={row => (!row.isOpening && parseFloat(row.expense) > 0) ? <span style={{fontWeight: '600', color: '#ef4444'}}>Rs. {parseFloat(row.expense).toLocaleString()}</span> : <span style={{color:'#cbd5e1'}}>—</span>}
+                      footer={`Rs. ${filteredLedgerData.reduce((sum, r) => sum + parseFloat(r.expense || 0), 0).toLocaleString()}`}
+                      footerStyle={{ textAlign: 'right', fontWeight: '700', color: '#ef4444' }}
+                      style={{ textAlign: 'right', width: '120px' }}
+                    />
+                    <Column 
+                      header="Current Balance" 
+                      body={row => {
+                        const b = parseFloat(row.runningBalance || 0);
+                        return (
+                          <span style={{fontWeight: '800', color: b >= 0 ? '#16a34a' : '#e11d48'}}>
+                            Rs. {b.toLocaleString()}
+                          </span>
+                        );
+                      }}
+                      footer={
+                        <div>
+                          <div style={{fontWeight:'800', fontSize:'0.95rem', color: parseFloat(selectedVehicle?.total_earnings || 0) >= 0 ? '#16a34a' : '#e11d48'}}>
+                            Rs. {parseFloat(selectedVehicle?.total_earnings || 0).toLocaleString()}
+                          </div>
+                          <small style={{fontSize:'0.6rem', fontWeight:'normal', color:'#64748b'}}>Live Balance</small>
+                        </div>
+                      }
+                      footerStyle={{ textAlign: 'right' }}
+                      style={{ textAlign: 'right', width: '150px' }}
+                    />
+                  </DataTable>
+                </div>
+              </div>
+              
+              <div className="modal-footer no-print" style={{padding: '16px 24px', borderTop: '1px solid #e2e8f0', display: 'flex', justifyContent: 'flex-end'}}>
+                <button className="btn-secondary" onClick={() => setShowLedgerModal(false)}>Close Ledger</button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
       {showPaymentModal && selectedVehicle && (
         <div className="modal-overlay" onClick={() => setShowPaymentModal(false)}>
           <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '400px' }}>

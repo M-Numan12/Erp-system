@@ -103,13 +103,43 @@ export default function Customers({ type }) {
 
     // 3. Generate running balance per row
     let running = absoluteBaseOpeningBal;
-    return sortedAsc.map(row => {
+    const enriched = sortedAsc.map(row => {
       const debit = parseFloat(row.net_amount) || 0;
       const credit = parseFloat(row.paid_amount) || 0;
       running += (debit - credit);
       return { ...row, running_balance: running };
     });
-  }, [ledgerData, liveBalance]);
+
+    if (ledgerFilter === 'all') return enriched;
+
+    return enriched.filter(row => {
+      if (!row.created_at) return false;
+      const rowDate = new Date(row.created_at);
+      const rowDateStr = rowDate.toLocaleDateString('en-CA');
+      const today = new Date();
+      const todayStr = today.toLocaleDateString('en-CA');
+
+      if (ledgerFilter === 'custom' && ledgerFrom && ledgerTo) {
+        return rowDateStr >= ledgerFrom && rowDateStr <= ledgerTo;
+      }
+      if (ledgerFilter === 'today') {
+        return rowDateStr === todayStr;
+      }
+      if (ledgerFilter === 'yesterday') {
+        const yest = new Date(); yest.setDate(today.getDate() - 1);
+        return rowDateStr === yest.toLocaleDateString('en-CA');
+      }
+      if (ledgerFilter === 'week') {
+        const weekAgo = new Date(); weekAgo.setDate(today.getDate() - 7);
+        return rowDateStr >= weekAgo.toLocaleDateString('en-CA') && rowDateStr <= todayStr;
+      }
+      if (ledgerFilter === 'month') {
+        const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+        return rowDateStr >= monthStart.toLocaleDateString('en-CA') && rowDateStr <= todayStr;
+      }
+      return true;
+    });
+  }, [ledgerData, liveBalance, ledgerFilter, ledgerFrom, ledgerTo]);
   const [paymentAmount, setPaymentAmount] = useState("");
   const [paymentRef, setPaymentRef] = useState("");
   const [paymentType, setPaymentType] = useState("Cash");
@@ -274,54 +304,48 @@ export default function Customers({ type }) {
     setShowModal(true);
   };
 
-  const openLedger = async (customer, from = "", to = "", filter = "all") => {
+  const openLedger = async (customer, filter = "all") => {
     setSelectedCustomer(customer);
-    setLedgerFrom(from);
-    setLedgerTo(to);
     setLedgerFilter(filter);
+    setLedgerFrom("");
+    setLedgerTo("");
     setShowLedgerModal(true);
     setLoading(true);
     try {
-      let url = `${API_BASE_URL}/sales/ledger/${customer.id}`;
-      if (from && to) url += `?from=${from}&to=${to}`;
+      const url = `${API_BASE_URL}/sales/ledger/${customer.id}`;
       const res = await fetch(url, {
         headers: { "Authorization": `Bearer ${localStorage.getItem('token')}` }
       });
       const data = await res.json();
-      setLedgerData(data);
+      setLedgerData(Array.isArray(data) ? data : []);
     } catch (err) {
       console.error("Failed to fetch ledger", err);
+      setLedgerData([]);
     }
     setLoading(false);
   };
 
   const applyLedgerFilter = (filterKey) => {
-    let from = "", to = "";
+    setLedgerFilter(filterKey);
     const today = new Date();
 
-    if (filterKey === 'today') {
-      from = today.toLocaleDateString('en-CA');
-      to = from;
+    if (filterKey === 'all') {
+      setLedgerFrom(""); setLedgerTo("");
+    } else if (filterKey === 'today') {
+      const t = today.toLocaleDateString('en-CA');
+      setLedgerFrom(t); setLedgerTo(t);
     } else if (filterKey === 'yesterday') {
       const yest = new Date(); yest.setDate(today.getDate() - 1);
-      from = yest.toLocaleDateString('en-CA');
-      to = from;
+      const yt = yest.toLocaleDateString('en-CA');
+      setLedgerFrom(yt); setLedgerTo(yt);
     } else if (filterKey === 'week') {
-      const weekAgo = new Date();
-      weekAgo.setDate(today.getDate() - 7);
-      from = weekAgo.toLocaleDateString('en-CA');
-      to = today.toLocaleDateString('en-CA');
+      const weekAgo = new Date(); weekAgo.setDate(today.getDate() - 7);
+      setLedgerFrom(weekAgo.toLocaleDateString('en-CA'));
+      setLedgerTo(today.toLocaleDateString('en-CA'));
     } else if (filterKey === 'month') {
-      from = new Date(today.getFullYear(), today.getMonth(), 1).toLocaleDateString('en-CA');
-      to = today.toLocaleDateString('en-CA');
+      setLedgerFrom(new Date(today.getFullYear(), today.getMonth(), 1).toLocaleDateString('en-CA'));
+      setLedgerTo(today.toLocaleDateString('en-CA'));
     }
-
-    if (filterKey === 'custom') {
-      setLedgerFilter('custom');
-      return;
-    }
-
-    openLedger(selectedCustomer, from, to, filterKey);
   };
 
   const openPayment = (customer) => {
@@ -389,7 +413,7 @@ export default function Customers({ type }) {
         const updatedCust = (updatedRecords || []).find(c => c.id === selectedCustomer.id);
         if (updatedCust) setSelectedCustomer(updatedCust);
         // Refetch ledger using existing state values
-        openLedger(updatedCust || selectedCustomer, ledgerFrom, ledgerTo, ledgerFilter);
+        openLedger(updatedCust || selectedCustomer, ledgerFilter);
       }
     } catch (err) { console.error("Adjustment post failed", err); }
     setLoading(false);
@@ -481,7 +505,7 @@ export default function Customers({ type }) {
         const updatedCust = (updatedRecords || []).find(c => c.id === selectedCustomer.id);
         if (updatedCust) setSelectedCustomer(updatedCust);
 
-        openLedger(updatedCust || selectedCustomer, ledgerFrom, ledgerTo, ledgerFilter); // Refresh ledger
+        openLedger(updatedCust || selectedCustomer, ledgerFilter); // Refresh ledger
       }
     } catch (err) {
       console.error("Failed to update item", err);
@@ -979,7 +1003,7 @@ export default function Customers({ type }) {
                       <input type="date" value={ledgerFrom} onChange={e => setLedgerFrom(e.target.value)} style={{ padding: '2px 8px', borderRadius: '4px', border: '1px solid #cbd5e1' }} />
                       <span className="sep">→</span>
                       <input type="date" value={ledgerTo} onChange={e => setLedgerTo(e.target.value)} style={{ padding: '2px 8px', borderRadius: '4px', border: '1px solid #cbd5e1' }} />
-                      <button className="btn-primary" onClick={() => openLedger(selectedCustomer, ledgerFrom, ledgerTo, 'custom')} style={{ padding: '2px 10px', fontSize: '0.8rem' }}>Apply</button>
+                      <button className="btn-primary" onClick={() => setLedgerFilter('custom')} style={{ padding: '2px 10px', fontSize: '0.8rem' }}>Apply</button>
                     </div>
                   )}
                 </div>
