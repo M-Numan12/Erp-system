@@ -751,18 +751,15 @@ export default function Customers({ type }) {
           }
 
           setLoading(true);
-          // Clone the element and prepare it for PDF rendering
-          const clone = element.cloneNode(true);
-          clone.classList.remove('print-only');
-          clone.style.display = 'block';
-          clone.style.position = 'fixed';
-          clone.style.left = '-9999px';
-          clone.style.top = '0';
-          clone.style.zIndex = '1';
-          clone.style.background = 'white';
-          clone.style.color = 'black';
-          clone.style.width = '1000px'; // Fit table nicely on A4 page
-          document.body.appendChild(clone);
+          // Temporarily show the original element for PDF generation
+          element.classList.remove('print-only');
+          element.style.position = 'fixed';
+          element.style.left = '0';
+          element.style.top = '0';
+          element.style.zIndex = '99999';
+          element.style.background = 'white';
+          element.style.color = 'black';
+          element.style.width = '1000px';
 
           const opt = {
             margin: [10, 10, 10, 10],
@@ -773,13 +770,20 @@ export default function Customers({ type }) {
           };
 
           try {
-            // Wait for DOM layout/reflow to ensure it's not rendered blank
-            await new Promise(resolve => setTimeout(resolve, 300));
-            // Generate PDF as base64 string from the clone
-            const pdfBase64 = await window.html2pdf().from(clone).set(opt).outputPdf('datauristring');
+            // Wait for DOM layout/reflow to ensure it's fully rendered
+            await new Promise(resolve => setTimeout(resolve, 400));
+            // Generate PDF as base64 string
+            const pdfBase64 = await window.html2pdf().from(element).set(opt).outputPdf('datauristring');
 
-            // Clean up the clone from the DOM
-            document.body.removeChild(clone);
+            // Revert the styling of the original element
+            element.classList.add('print-only');
+            element.style.position = '';
+            element.style.left = '';
+            element.style.top = '';
+            element.style.zIndex = '';
+            element.style.background = '';
+            element.style.color = '';
+            element.style.width = '';
 
             // Store PDF base64 and create blob URL for iframe preview
             setWhatsAppPdfBase64(pdfBase64);
