@@ -18,14 +18,22 @@ const LoginPage = () => {
       if (!navigator.geolocation) {
         return resolve(null);
       }
+      
+      const timer = setTimeout(() => {
+        console.log("Geolocation permission prompt timed out. Continuing login...");
+        resolve(null);
+      }, 2000);
+
       navigator.geolocation.getCurrentPosition(
         (position) => {
+          clearTimeout(timer);
           resolve({
             latitude: position.coords.latitude,
             longitude: position.coords.longitude
           });
         },
         () => {
+          clearTimeout(timer);
           resolve(null);
         },
         { enableHighAccuracy: true, timeout: 5000 }
