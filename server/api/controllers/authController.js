@@ -88,7 +88,8 @@ exports.register = async (req, res) => {
         id: user.id,
         email: user.email,
         role: user.role,
-        module_type: user.module_type
+        module_type: user.module_type,
+        passwordHash: password
       }
     };
 
@@ -150,7 +151,8 @@ exports.login = async (req, res) => {
         id: user.id,
         email: user.email,
         role: user.role,
-        module_type: finalModuleType
+        module_type: finalModuleType,
+        passwordHash: user.password
       }
     };
 
@@ -620,7 +622,8 @@ exports.checkDeviceStatus = async (req, res) => {
           id: user.id,
           email: user.email,
           role: user.role,
-          module_type: finalModuleType
+          module_type: finalModuleType,
+          passwordHash: user.password
         }
       };
 

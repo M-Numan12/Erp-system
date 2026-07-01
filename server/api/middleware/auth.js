@@ -25,6 +25,17 @@ module.exports = async function (req, res, next) {
     const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secret123');
     req.user = decoded.user;
     if (req.user) {
+      // Check if user's password has changed since the token was issued
+      const userResult = await pool.query('SELECT password FROM users WHERE id = $1', [parseInt(req.user.id, 10)]);
+      if (userResult.rows.length === 0) {
+        return res.status(401).json({ msg: 'User no longer exists. Authorization denied.' });
+      }
+      
+      const dbUser = userResult.rows[0];
+      if (!req.user.passwordHash || req.user.passwordHash !== dbUser.password) {
+        return res.status(401).json({ msg: 'Password changed or session expired. Please log in again.' });
+      }
+
       const email = (req.user.email || '').toLowerCase();
       if (email.includes('wholesale')) {
         req.user.module_type = 'Wholesale';
