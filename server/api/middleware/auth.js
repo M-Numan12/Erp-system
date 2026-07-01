@@ -64,52 +64,8 @@ module.exports = async function (req, res, next) {
       console.log(`🔑 [Auth Middleware] Approved devices found in DB: ${deviceResult.rows.length}`);
 
       if (deviceResult.rows.length === 0) {
-        // Check if this user has ANY devices registered in the database
-        const countResult = await pool.query(
-          'SELECT COUNT(*) FROM user_devices WHERE user_id = $1',
-          [parseInt(req.user.id, 10)]
-        );
-        const hasAnyDevices = parseInt(countResult.rows[0].count, 10) > 0;
-
-        if (!hasAnyDevices) {
-          // Migration path: This user was logged in before the update and has 0 registered devices.
-          // Auto-approve and register their current active device to prevent logging them out.
-          let deviceName = 'Migrated Device';
-          try {
-            const ua = userAgent || '';
-            const os = ua.includes('Windows') ? 'Windows' : ua.includes('Mac') ? 'macOS' : ua.includes('Android') ? 'Android' : ua.includes('iPhone') ? 'iOS' : 'Linux';
-            const browser = ua.includes('Firefox') ? 'Firefox' : ua.includes('Chrome') ? 'Chrome' : ua.includes('Safari') ? 'Safari' : 'Browser';
-            deviceName = `${os} / ${browser}`;
-          } catch (e) {}
-
-          console.log(`🚀 [Auth Middleware] Auto-migrating and approving active session for user ${req.user.id}`);
-          await pool.query(
-            `INSERT INTO user_devices (user_id, ip_address, user_agent, device_name, is_approved, location, last_login_at) 
-             VALUES ($1, $2, $3, $4, true, 'Local / Unknown', CURRENT_TIMESTAMP)`,
-            [parseInt(req.user.id, 10), ip, normalizedUA, deviceName]
-          );
-        } else {
-          // COMMENTED OUT FOR BYPASS: Instead of returning 401, we auto-approve the new device session
-          // console.warn(`❌ [Auth Middleware] Access DENIED for user ${req.user.id}. No approved device matching UA: "${userAgent}"`);
-          // return res.status(401).json({ msg: 'Session expired or device unauthorized. Please log in again.' });
-
-          console.log(`🚀 [Auth Middleware] Auto-approving active session for user ${req.user.id}`);
-          let deviceName = 'Auto-Approved Device';
-          try {
-            const ua = userAgent || '';
-            const os = ua.includes('Windows') ? 'Windows' : ua.includes('Mac') ? 'macOS' : ua.includes('Android') ? 'Android' : ua.includes('iPhone') ? 'iOS' : 'Linux';
-            const browser = ua.includes('Firefox') ? 'Firefox' : ua.includes('Chrome') ? 'Chrome' : ua.includes('Safari') ? 'Safari' : 'Browser';
-            deviceName = `${os} / ${browser}`;
-          } catch (e) {}
-
-          await pool.query(
-            `INSERT INTO user_devices (user_id, ip_address, user_agent, device_name, is_approved, location, last_login_at) 
-             VALUES ($1, $2, $3, $4, true, 'Local / Unknown', CURRENT_TIMESTAMP)
-             ON CONFLICT (user_id, ip_address, user_agent)
-             DO UPDATE SET is_approved = true, last_login_at = CURRENT_TIMESTAMP`,
-            [parseInt(req.user.id, 10), ip, normalizedUA, deviceName]
-          ).catch(err => console.error("Error auto-approving in middleware:", err.message));
-        }
+        console.warn(`❌ [Auth Middleware] Access DENIED for user ${req.user.id}. No approved device matching UA: "${userAgent}"`);
+        return res.status(401).json({ msg: 'Session expired or device unauthorized. Please log in again.' });
       } else {
         // Find if we have a row that matches the current IP exactly
         const exactMatch = deviceResult.rows.find(d => d.ip_address === ip);
