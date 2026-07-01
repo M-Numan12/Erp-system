@@ -406,6 +406,54 @@ export default function Salary({ type }) {
     fetchRecords();
   };
 
+  const handleDeletePayment = async (paymentId) => {
+    if (!window.confirm("Are you sure you want to delete this payment record? This will reverse its cash/advance impact!")) return;
+    setLoading(true);
+    try {
+      const res = await fetch(`${API}/payments/${paymentId}`, {
+        method: "DELETE",
+        headers: { 
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        alert("Payment record deleted successfully!");
+        
+        // Fetch the updated employee list to refresh the outstanding balance
+        const staffRes = await fetch(`${API}?type=${activeTab}`, {
+          headers: { "Authorization": `Bearer ${localStorage.getItem('token')}` }
+        });
+        if (staffRes.ok) {
+          const staffData = await staffRes.json();
+          setRecords(staffData);
+          
+          // Update selectedStaff state with the fresh record
+          if (selectedStaff) {
+            const updatedStaff = staffData.find(s => s.id === selectedStaff.id);
+            if (updatedStaff) {
+              setSelectedStaff(updatedStaff);
+              // Refresh ledger data
+              const ledgerRes = await fetch(`${API}/ledger/${updatedStaff.employee_name}`, {
+                headers: { "Authorization": `Bearer ${localStorage.getItem('token')}` }
+              });
+              const ledgerData = await ledgerRes.json();
+              setLedgerData(Array.isArray(ledgerData) ? ledgerData : []);
+            }
+          }
+        }
+        fetchInitialData();
+      } else {
+        alert(data.error || "Failed to delete payment.");
+      }
+    } catch (err) {
+      console.error("Delete payment failed", err);
+      alert("Error deleting payment.");
+    }
+    setLoading(false);
+  };
+
   const filtered = records.filter(r => 
     (r.employee_name || "").toLowerCase().includes(search.toLowerCase()) || 
     (r.cnic || "").includes(search)
@@ -962,10 +1010,11 @@ export default function Salary({ type }) {
                         <th>Method</th>
                         <th>Month</th>
                         <th style={{textAlign:'right'}}>Amount</th>
+                        {user?.role === 'admin' && <th style={{textAlign:'center', width:'70px'}}>Action</th>}
                         </tr>
                     </thead>
                     <tbody>
-                        {filteredLedgerData.length === 0 ? (<tr><td colSpan="6" className="empty-msg">No payment logs found for this period.</td></tr>) : (
+                        {filteredLedgerData.length === 0 ? (<tr><td colSpan={user?.role === 'admin' ? 7 : 6} className="empty-msg">No payment logs found for this period.</td></tr>) : (
                         filteredLedgerData.map((row, index) => (
                             <tr key={row.id}>
                             <td style={{textAlign: 'center', fontWeight: 'bold', color: '#64748b'}}>{index + 1}</td>
@@ -974,6 +1023,18 @@ export default function Salary({ type }) {
                             <td>{row.payment_type}</td>
                             <td>{row.month || '-'}</td>
                             <td style={{textAlign:'right', fontWeight: 700, color: row.transaction_type==='Advance Returned'?'#10b981':'#ef4444'}}>Rs. {parseFloat(row.amount).toLocaleString()}</td>
+                            {user?.role === 'admin' && (
+                              <td style={{textAlign: 'center'}}>
+                                <button 
+                                  type="button"
+                                  onClick={() => handleDeletePayment(row.id)}
+                                  style={{background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', padding: '4px'}}
+                                  title="Delete Payment"
+                                >
+                                  <Trash2 size={16} />
+                                </button>
+                              </td>
+                            )}
                             </tr>
                         ))
                         )}

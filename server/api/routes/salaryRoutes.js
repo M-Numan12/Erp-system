@@ -245,6 +245,40 @@ router.get('/payments', auth, async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+// DELETE a salary payment transaction (Admin only)
+router.delete('/payments/:id', auth, async (req, res) => {
+  try {
+    if (!isAdmin(req)) {
+      return res.status(403).json({ error: 'Unauthorized: Admins only can delete payments' });
+    }
+
+    // 1. Get the payment details to check if it has staff_id and is an Advance transaction
+    const payRes = await pool.query('SELECT * FROM salary_payments WHERE id = $1', [req.params.id]);
+    if (payRes.rows.length === 0) {
+      return res.status(404).json({ error: 'Payment record not found' });
+    }
+    const payment = payRes.rows[0];
+
+    // 2. Delete the payment record
+    await pool.query('DELETE FROM salary_payments WHERE id = $1', [req.params.id]);
+
+    // 3. If there is a staff_id, we need to reverse its advance_salary impact if the transaction was an advance!
+    if (payment.staff_id) {
+      if (payment.transaction_type === 'Advance Given') {
+        // Reverse giving advance: subtract from advance_salary
+        await pool.query('UPDATE salary SET advance_salary = COALESCE(advance_salary, 0) - $1 WHERE id = $2', [payment.amount, payment.staff_id]);
+      } else if (payment.transaction_type === 'Advance Returned' || payment.transaction_type === 'Deduct from Advance') {
+        // Reverse returning advance: add back to advance_salary
+        await pool.query('UPDATE salary SET advance_salary = COALESCE(advance_salary, 0) + $1 WHERE id = $2', [payment.amount, payment.staff_id]);
+      }
+    }
+
+    res.json({ success: true, message: 'Payment record deleted successfully and balances reversed.' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 router.delete('/:id', auth, async (req, res) => {
   try {
     await pool.query('DELETE FROM salary WHERE id=$1 AND (module_type=$2 OR $3)', [req.params.id, req.user.module_type || 'Retail 1', isAdmin(req)]);
