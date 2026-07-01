@@ -302,7 +302,7 @@ export default function Salary({ type }) {
         fetchRecords();
         fetchInitialData();
       } else {
-        alert("Payment failed. Try again later.");
+        alert(responseData.error || responseData.msg || "Payment failed. Try again later.");
       }
     } catch (err) { console.error(err); }
     setLoading(false);
@@ -514,12 +514,13 @@ export default function Salary({ type }) {
               <th>CNIC</th>
               <th>Monthly Salary</th>
               <th>Unpaid Advance</th>
+              <th>Current Month Status</th>
               <th style={{textAlign: 'center'}}>Actions</th>
             </tr>
           </thead>
           <tbody>
             {sortedFiltered.length === 0 ? (
-              <tr><td colSpan="7" className="empty-msg">No registered employees found.</td></tr>
+              <tr><td colSpan="8" className="empty-msg">No registered employees found.</td></tr>
             ) : (
               sortedFiltered.map((r, index) => (
                 <tr key={r.id}>
@@ -535,6 +536,13 @@ export default function Salary({ type }) {
                   <td className="bold">Rs. {parseFloat(r.amount || 0).toLocaleString()}</td>
                   <td style={{color: parseFloat(r.advance_salary) > 0 ? '#ef4444' : '#64748b', fontWeight: 600}}>
                       Rs. {parseFloat(r.advance_salary || 0).toLocaleString()}
+                  </td>
+                  <td>
+                    {r.is_paid_current_month ? (
+                      <span className="status-badge paid" style={{ background: '#d1fae5', color: '#065f46', padding: '4px 8px', borderRadius: '12px', fontSize: '0.75rem', fontWeight: 'bold' }}>Paid</span>
+                    ) : (
+                      <span className="status-badge pending" style={{ background: '#fee2e2', color: '#991b1b', padding: '4px 8px', borderRadius: '12px', fontSize: '0.75rem', fontWeight: 'bold' }}>Unpaid</span>
+                    )}
                   </td>
                   <td style={{ textAlign: 'center' }}>
                     <ActionMenu

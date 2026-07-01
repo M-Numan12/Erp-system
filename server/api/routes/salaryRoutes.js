@@ -8,20 +8,33 @@ const isAdmin = (req) => req.user.role === 'admin';
 router.get('/', auth, async (req, res) => {
   try {
     const { type } = req.query;
-    let query = 'SELECT * FROM salary';
-    let params = [];
+    const currentMonth = new Date().toLocaleString('en-US', { timeZone: 'Asia/Karachi', month: 'long', year: 'numeric' });
+    
+    let query = `
+      SELECT s.*, 
+        COALESCE(
+          (SELECT TRUE FROM salary_payments sp 
+           WHERE sp.staff_id = s.id 
+             AND sp.month = $1 
+             AND sp.transaction_type = 'Salary' 
+           LIMIT 1), 
+          FALSE
+        ) AS is_paid_current_month
+      FROM salary s
+    `;
+    let params = [currentMonth];
 
     if (isAdmin(req)) {
       if (type) {
-        query += ' WHERE module_type = $1';
+        query += ' WHERE s.module_type = $2';
         params.push(type);
       }
     } else {
-      query += ' WHERE module_type = $1';
+      query += ' WHERE s.module_type = $2';
       params.push(req.user.module_type || 'Retail 1');
     }
 
-    query += ' ORDER BY created_at DESC';
+    query += ' ORDER BY s.created_at DESC';
     const result = await pool.query(query, params);
     res.json(result.rows);
   } catch (err) { res.status(500).json({ error: err.message }); }
@@ -150,6 +163,17 @@ router.post('/pay', auth, async (req, res) => {
     }
     const finalModule = isAdmin(req) ? (module_type || 'Wholesale') : (req.user.module_type || 'Retail 1');
     const targetMonth = month || new Date(payment_date || new Date()).toLocaleString('default', { month: 'long', year: 'numeric' });
+
+    // Prevent duplicate salary payments for the same month
+    if (transaction_type === 'Salary' && staff_id) {
+      const checkRes = await pool.query(
+        "SELECT id FROM salary_payments WHERE staff_id = $1 AND month = $2 AND transaction_type = 'Salary'",
+        [staff_id, targetMonth]
+      );
+      if (checkRes.rows.length > 0) {
+        return res.status(400).json({ error: `Salary for ${employee_name} for the month of ${targetMonth} has already been paid!` });
+      }
+    }
 
     // Insert payment into log
     const payRes = await pool.query(
