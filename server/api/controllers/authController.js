@@ -267,6 +267,8 @@ exports.login = async (req, res) => {
       });
 
       return res.status(403).json({ 
+        isPendingApproval: true,
+        email: user.email,
         msg: 'Login from this device is pending admin approval. A notification has been sent to the admin. Please try logging in again after approval.' 
       });
     }
@@ -567,5 +569,86 @@ exports.debugDevices = async (req, res) => {
     res.json(result.rows);
   } catch (err) {
     res.status(500).send(err.message);
+  }
+};
+
+// @desc    Check if a device has been approved and automatically log in
+// @route   GET api/auth/check-device-status
+// @access  Public
+exports.checkDeviceStatus = async (req, res) => {
+  try {
+    const { email } = req.query;
+    if (!email) {
+      return res.status(400).json({ msg: 'Email is required' });
+    }
+
+    // Find user
+    const userResult = await pool.query('SELECT * FROM users WHERE email = $1', [email.toLowerCase().trim()]);
+    if (userResult.rows.length === 0) {
+      return res.status(404).json({ msg: 'User not found' });
+    }
+    const user = userResult.rows[0];
+
+    // Extract IP and UA
+    const rawIp = req.headers['x-forwarded-for'] 
+      ? req.headers['x-forwarded-for'].split(',')[0].trim() 
+      : req.ip || req.connection.remoteAddress;
+    const ip = rawIp.replace('::ffff:', '');
+    const userAgent = req.headers['user-agent'] || '';
+    const normalizedUA = normalizeUserAgent(userAgent);
+
+    // Check if there is an approved device with the same user agent (normalized or raw) and IP
+    const approvedDeviceResult = await pool.query(
+      'SELECT * FROM user_devices WHERE user_id = $1 AND is_approved = true AND ip_address = $2 AND (user_agent = $3 OR user_agent = $4)',
+      [user.id, ip, normalizedUA, userAgent]
+    );
+
+    if (approvedDeviceResult.rows.length > 0) {
+      const getModuleType = (email, currentType) => {
+        if (currentType) return currentType;
+        const em = (email || '').toLowerCase();
+        if (em.includes('wholesale')) return 'Wholesale';
+        if (em.includes('retail1') || em.includes('retailsaller1')) return 'Retail 1';
+        if (em.includes('retail2') || em.includes('retailseller2') || em.includes('wali2022')) return 'Retail 2';
+        return null;
+      };
+
+      const finalModuleType = getModuleType(user.email, user.module_type);
+
+      const payload = {
+        user: {
+          id: user.id,
+          email: user.email,
+          role: user.role,
+          module_type: finalModuleType
+        }
+      };
+
+      jwt.sign(
+        payload,
+        process.env.JWT_SECRET || 'secret123',
+        { expiresIn: '5 days' },
+        (err, token) => {
+          if (err) throw err;
+          return res.json({ 
+            approved: true,
+            token, 
+            user: { 
+              id: user.id, 
+              name: user.name, 
+              email: user.email, 
+              role: user.role,
+              module_type: finalModuleType,
+              permissions: user.permissions || [] 
+            } 
+          });
+        }
+      );
+    } else {
+      return res.json({ approved: false });
+    }
+  } catch (err) {
+    console.error('Check device status error:', err.message);
+    res.status(500).send('Server error');
   }
 };

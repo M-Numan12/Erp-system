@@ -1,6 +1,7 @@
-import React, { useState, useContext } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { AuthContext } from '../../context/AuthContext';
+import api from '../../services/api';
 import "../../Styles/LoginPage.scss";
 import { ShieldCheck } from 'lucide-react';
 
@@ -9,9 +10,32 @@ const AdminLoginPage = () => {
   const [password, setPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState('');
+  const [isPendingApproval, setIsPendingApproval] = useState(false);
+  const [pollEmail, setPollEmail] = useState('');
 
-  const { login } = useContext(AuthContext);
+  const { login, autoLogin } = useContext(AuthContext);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    let intervalId;
+    if (isPendingApproval && pollEmail) {
+      intervalId = setInterval(async () => {
+        try {
+          const res = await api.get(`/auth/check-device-status?email=${encodeURIComponent(pollEmail)}`);
+          if (res.data && res.data.approved) {
+            clearInterval(intervalId);
+            autoLogin(res.data.token, res.data.user, rememberMe);
+            navigate('/dashboard');
+          }
+        } catch (err) {
+          console.error("Polling device status failed", err);
+        }
+      }, 3000);
+    }
+    return () => {
+      if (intervalId) clearInterval(intervalId);
+    };
+  }, [isPendingApproval, pollEmail, rememberMe, autoLogin, navigate]);
 
   const getCoordinates = () => {
     return new Promise((resolve) => {
@@ -42,7 +66,13 @@ const AdminLoginPage = () => {
       await login(email, password, rememberMe, true, coords);
       navigate('/dashboard');
     } catch (err) {
-      setError(err.response?.data?.msg || 'Login failed. Please check admin credentials.');
+      if (err.response?.status === 403 && err.response?.data?.isPendingApproval) {
+        setIsPendingApproval(true);
+        setPollEmail(err.response.data.email);
+        setError('');
+      } else {
+        setError(err.response?.data?.msg || 'Login failed. Please check admin credentials.');
+      }
     }
   };
 
@@ -59,39 +89,62 @@ const AdminLoginPage = () => {
 
         {error && <div className="error-message">{error}</div>}
 
-        <form onSubmit={handleSubmit} className="login-form">
-          <div className="form-group">
-            <label>Admin Email</label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="admin@erp.com"
-              required
-            />
+        {isPendingApproval ? (
+          <div className="pending-approval-box" style={{ textAlign: 'center', padding: '10px 0' }}>
+            <div className="spinner-container">
+              <div className="premium-spinner" />
+            </div>
+            <h3 style={{ marginBottom: '10px', color: '#f8fafc' }}>Waiting for Admin Approval</h3>
+            <p style={{ fontSize: '0.88rem', color: '#94a3b8', marginBottom: '25px', lineHeight: '1.6' }}>
+              Your device details have been submitted. Once the administrator approves this device, you will be signed in automatically.
+            </p>
+            <button 
+              onClick={() => {
+                setIsPendingApproval(false);
+                setPollEmail('');
+                setError('');
+              }} 
+              className="login-btn admin-btn" 
+              style={{ background: '#f1f5f9', color: '#475569', border: '1px solid #cbd5e1' }}
+            >
+              Go Back
+            </button>
           </div>
-          <div className="form-group">
-            <label>Password</label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="••••••••"
-              required
-            />
-          </div>
-          <div className="form-options">
-            <label className="remember-me">
-              <input 
-                type="checkbox" 
-                checked={rememberMe} 
-                onChange={(e) => setRememberMe(e.target.checked)} 
-              /> Remember me
-            </label>
-            <Link to="/forgot" className="forgot-link">Forgot Password?</Link>
-          </div>
-          <button type="submit" className="login-btn admin-btn">Access Dashboard</button>
-        </form>
+        ) : (
+          <form onSubmit={handleSubmit} className="login-form">
+            <div className="form-group">
+              <label>Admin Email</label>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="admin@erp.com"
+                required
+              />
+            </div>
+            <div className="form-group">
+              <label>Password</label>
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••"
+                required
+              />
+            </div>
+            <div className="form-options">
+              <label className="remember-me">
+                <input 
+                  type="checkbox" 
+                  checked={rememberMe} 
+                  onChange={(e) => setRememberMe(e.target.checked)} 
+                /> Remember me
+              </label>
+              <Link to="/forgot" className="forgot-link">Forgot Password?</Link>
+            </div>
+            <button type="submit" className="login-btn admin-btn">Access Dashboard</button>
+          </form>
+        )}
       </div>
     </div>
   );

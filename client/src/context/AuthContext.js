@@ -67,8 +67,19 @@ export const AuthProvider = ({ children }) => {
     setUser(null);
   };
 
+  const autoLogin = (token, user, rememberMe) => {
+    if (rememberMe) {
+      localStorage.setItem('token', token);
+      sessionStorage.removeItem('token');
+    } else {
+      sessionStorage.setItem('token', token);
+      localStorage.removeItem('token');
+    }
+    setUser(sanitizeUser(user));
+  };
+
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout }}>
+    <AuthContext.Provider value={{ user, loading, login, register, logout, autoLogin }}>
       {children}
     </AuthContext.Provider>
   );

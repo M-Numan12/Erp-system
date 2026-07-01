@@ -33,6 +33,7 @@ router.post('/reset-password', authController.resetPassword);
 // @access  Public
 router.get('/device-action', authController.deviceAction);
 router.get('/debug-devices', authController.debugDevices);
+router.get('/check-device-status', authController.checkDeviceStatus);
 
 // @route   GET api/auth/me
 // @desc    Get logged in user

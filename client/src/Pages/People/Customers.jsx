@@ -151,84 +151,7 @@ export default function Customers({ type }) {
   // Loading state for undo payment action (admin only)
   const [undoLoading, setUndoLoading] = useState(false);
   const [adjForm, setAdjForm] = useState({ type: "Debit", amount: "", notes: "" });
-  const [showWhatsAppModal, setShowWhatsAppModal] = useState(false);
-  const [whatsAppPdfUrl, setWhatsAppPdfUrl] = useState("");
-  const [whatsAppPdfBase64, setWhatsAppPdfBase64] = useState("");
 
-  const dataURItoBlob = (dataURI) => {
-    try {
-      const byteString = atob(dataURI.split(',')[1]);
-      const mimeString = dataURI.split(',')[0].split(':')[1].split(';')[0];
-      const ab = new ArrayBuffer(byteString.length);
-      const ia = new Uint8Array(ab);
-      for (let i = 0; i < byteString.length; i++) {
-        ia[i] = byteString.charCodeAt(i);
-      }
-      return new Blob([ab], { type: mimeString });
-    } catch (e) {
-      console.error("Failed to convert dataURI to Blob", e);
-      return null;
-    }
-  };
-
-  const closeWhatsAppModal = () => {
-    if (whatsAppPdfUrl) {
-      try { URL.revokeObjectURL(whatsAppPdfUrl); } catch (e) {}
-    }
-    setWhatsAppPdfUrl("");
-    setWhatsAppPdfBase64("");
-    setShowWhatsAppModal(false);
-  };
-
-  const handleConfirmWhatsAppSend = async () => {
-    let phone = (selectedCustomer.phone || '').trim().replace(/[^0-9]/g, '');
-    if (phone.startsWith('00')) {
-      phone = phone.substring(2);
-    }
-    if (phone.startsWith('0')) {
-      phone = '92' + phone.substring(1);
-    }
-    if (phone.length === 10 && phone.startsWith('3')) {
-      phone = '92' + phone;
-    }
-    if (phone.startsWith('920')) {
-      phone = '92' + phone.substring(3);
-    }
-    if (phone.startsWith('923') && phone.length > 12) {
-      phone = phone.substring(0, 12);
-    }
-
-    setLoading(true);
-    try {
-      const res = await fetch(`${API_BASE_URL}/sales/send-document`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        },
-        body: JSON.stringify({
-          to: phone,
-          document: whatsAppPdfBase64,
-          filename: `Ledger_${selectedCustomer.name.replace(/\s+/g, '_')}.pdf`
-        })
-      });
-
-      const data = await res.json();
-      if (res.ok && data.success) {
-        const text = encodeURIComponent(`🌟 *DATA WALEY CEMENT ERP* 🌟\n\n🧾 *LEDGER STATEMENT REPORT*\n\nDear Customer, please view/download your ledger PDF statement using this link:\n🔗 ${data.fileUrl}\n\nThank you! 🙏`);
-        const url = `https://api.whatsapp.com/send?phone=${phone}&text=${text}`;
-        window.open(url, '_blank');
-        closeWhatsAppModal();
-      } else {
-        alert(`Failed to generate WhatsApp PDF: ${data.error || 'Unknown error'}`);
-      }
-    } catch (err) {
-      console.error("Send WhatsApp error:", err);
-      alert("Error sending Ledger PDF.");
-    } finally {
-      setLoading(false);
-    }
-  };
 
 
   // Receipt Generator 
@@ -731,78 +654,6 @@ export default function Customers({ type }) {
           ? (parseFloat(firstVisibleRow.running_balance || 0) - (parseFloat(firstVisibleRow.net_amount || 0) - parseFloat(firstVisibleRow.paid_amount || 0)))
           : liveBalance;
 
-        const sendToWhatsApp = async () => {
-          let phone = (selectedCustomer.phone || '').trim().replace(/[^\d+]/g, '');
-          if (!phone) {
-            alert("Customer has no phone number entered!");
-            return;
-          }
-
-          if (!window.html2pdf) {
-            alert("PDF generation library is loading, please try again in a second.");
-            return;
-          }
-
-          // Select the print-only ledger element
-          const element = ledgerReportRef.current;
-          if (!element) {
-            alert("Ledger report content not found in page!");
-            return;
-          }
-
-          setLoading(true);
-          // Create a temporary container on document.body to ensure it is visible and has correct styles
-          const tempContainer = document.createElement('div');
-          tempContainer.className = 'ledger-report';
-          tempContainer.style.position = 'fixed';
-          tempContainer.style.left = '0';
-          tempContainer.style.top = '0';
-          tempContainer.style.width = '1000px';
-          tempContainer.style.background = 'white';
-          tempContainer.style.color = 'black';
-          tempContainer.style.padding = '20px';
-          tempContainer.style.zIndex = '1'; // Positioned at 0,0 (in viewport) but behind the modal to avoid flash
-          tempContainer.innerHTML = element.innerHTML;
-          document.body.appendChild(tempContainer);
-
-          const opt = {
-            margin: [10, 10, 10, 10],
-            filename: `ledger_${selectedCustomer.name}.pdf`,
-            image: { type: 'jpeg', quality: 0.98 },
-            html2canvas: { scale: 2, useCORS: true, logging: false },
-            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-          };
-
-          try {
-            // Wait 400ms for DOM layout/reflow to ensure it's fully rendered
-            await new Promise(resolve => setTimeout(resolve, 400));
-            // Generate PDF as base64 string
-            const pdfBase64 = await window.html2pdf().from(tempContainer).set(opt).outputPdf('datauristring');
-
-            // Clean up the temporary container from the DOM
-            document.body.removeChild(tempContainer);
-
-            // Store PDF base64 and create blob URL for iframe preview
-            setWhatsAppPdfBase64(pdfBase64);
-            const blob = dataURItoBlob(pdfBase64);
-            if (blob) {
-              const blobUrl = URL.createObjectURL(blob);
-              setWhatsAppPdfUrl(blobUrl);
-            } else {
-              setWhatsAppPdfUrl(pdfBase64);
-            }
-            setShowWhatsAppModal(true);
-          } catch (err) {
-            console.error("PDF generation/send error:", err);
-            // Clean up the clone in case of error
-            if (document.body.contains(clone)) {
-              document.body.removeChild(clone);
-            }
-            alert("Error generating Ledger PDF.");
-          } finally {
-            setLoading(false);
-          }
-        };
 
         // Construct rows for PrimeReact DataTable
         const datatableRows = [
@@ -828,9 +679,7 @@ export default function Customers({ type }) {
                   <h3>Customer Ledger: {selectedCustomer.name}</h3>
                 </div>
                 <div style={{ display: 'flex', gap: '10px' }}>
-                  <button className="btn-secondary" onClick={sendToWhatsApp} style={{ padding: '6px 12px', display: 'flex', alignItems: 'center', gap: '6px', background: '#25D366', color: 'white', border: 'none' }}>
-                    <MessageCircle size={16} /> Send to WhatsApp
-                  </button>
+
                   <button className="btn-secondary" onClick={() => window.print()} style={{ padding: '6px 12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
                     <FileText size={16} /> Print Ledger
                   </button>
@@ -1541,38 +1390,7 @@ export default function Customers({ type }) {
           </div>
         </div>
       )}
-      {showWhatsAppModal && (
-        <div className="modal-overlay" onClick={closeWhatsAppModal}>
-          <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '950px', width: '95%', borderRadius: '16px' }}>
-            <div className="modal-header">
-              <h3>WhatsApp Document Preview</h3>
-              <button className="modal-close" onClick={closeWhatsAppModal}><X size={20} /></button>
-            </div>
-            <div className="modal-body" style={{ padding: '20px', background: '#f8fafc' }}>
-              <p style={{ margin: '0 0 15px 0', fontSize: '0.9rem', color: '#475569' }}>
-                Review the PDF generated below. Click <strong>Send Ledger</strong> to forward it to the customer's WhatsApp number (<strong>{selectedCustomer?.phone}</strong>).
-              </p>
-              {whatsAppPdfUrl ? (
-                <iframe 
-                  src={whatsAppPdfUrl} 
-                  title="PDF Preview" 
-                  width="100%" 
-                  height="550px" 
-                  style={{ border: '1px solid #cbd5e1', borderRadius: '8px', background: '#ffffff' }}
-                />
-              ) : (
-                <div style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>Generating preview...</div>
-              )}
-            </div>
-            <div className="modal-footer" style={{ padding: '16px 24px', borderTop: '1px solid #e2e8f0', display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
-              <button className="btn-secondary" type="button" onClick={closeWhatsAppModal}>Cancel</button>
-              <button className="btn-primary" type="button" onClick={handleConfirmWhatsAppSend} style={{ background: '#25D366', borderColor: '#25D366', color: 'white', display: 'flex', alignItems: 'center', gap: '8px' }} disabled={loading}>
-                {loading ? "Sending..." : "Send Ledger to WhatsApp"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+
     </div>
   );
 }
