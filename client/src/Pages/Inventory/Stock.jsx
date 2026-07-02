@@ -28,7 +28,7 @@ export default function Stock({ type }) {
   const [receiveForm, setReceiveForm] = useState({
     supplier_id: "", quantity: "", vehicle_number: "", vehicle_id: "",
     rate: "", paid_amount: "0", delivery_charges: "0", fare_status: "Pending",
-    vehicle_type: "External"
+    vehicle_type: "External", gatepass: ""
   });
   const [purchaseReturnForm, setPurchaseReturnForm] = useState({
     supplier_id: "", quantity: "", vehicle_number: "", vehicle_id: "",
@@ -214,7 +214,8 @@ export default function Stock({ type }) {
           paid_amount: receiveForm.paid_amount,
           delivery_charges: receiveForm.delivery_charges,
           fare_status: receiveForm.fare_status,
-          module_type: activeTab
+          module_type: activeTab,
+          gatepass: receiveForm.gatepass
         })
       });
       if (res.ok) {
@@ -222,7 +223,7 @@ export default function Stock({ type }) {
         setReceiveForm({
           supplier_id: "", quantity: "", vehicle_number: "", vehicle_id: "",
           rate: "", paid_amount: "0", delivery_charges: "0", fare_status: "Pending",
-          vehicle_type: "External"
+          vehicle_type: "External", gatepass: ""
         });
         fetchData();
       }
@@ -660,6 +661,15 @@ export default function Stock({ type }) {
                     <Database size={18} />
                     <input type="number" required value={receiveForm.quantity} placeholder={`e.g. 100 ${selectedProduct.unit}`}
                       onChange={(e) => setReceiveForm({ ...receiveForm, quantity: e.target.value })} />
+                  </div>
+                </div>
+
+                <div className="form-group">
+                  <label>Gatepass (Optional)</label>
+                  <div className="input-wrapper">
+                    <Hash size={18} />
+                    <input type="text" value={receiveForm.gatepass || ""} placeholder="e.g. GP-102"
+                      onChange={(e) => setReceiveForm({ ...receiveForm, gatepass: e.target.value })} />
                   </div>
                 </div>
 

@@ -70,7 +70,7 @@ router.post('/', auth, async (req, res) => {
     await client.query('BEGIN');
     const {
       supplier_id, product_id, vehicle_number, quantity, rate,
-      paid_amount, module_type, vehicle_id, delivery_charges, fare_status
+      paid_amount, module_type, vehicle_id, delivery_charges, fare_status, gatepass
     } = req.body;
 
     const qty = parseFloat(quantity) || 0;
@@ -92,9 +92,9 @@ router.post('/', auth, async (req, res) => {
     // 1. Insert Purchase Record
     const purchaseRes = await client.query(
       `INSERT INTO purchases 
-      (supplier_id, product_id, vehicle_number, vehicle_id, quantity, rate, total_amount, paid_amount, balance_amount, delivery_charges, fare_payment_type, module_type, user_id) 
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) RETURNING *`,
-      [supplier_id, product_id, vehicle_number, vId || null, qty, rt, totalAmount, paid, balanceAmount, fare, fare_status || 'Pending', finalModule, req.user.id]
+      (supplier_id, product_id, vehicle_number, vehicle_id, quantity, rate, total_amount, paid_amount, balance_amount, delivery_charges, fare_payment_type, module_type, user_id, gatepass) 
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14) RETURNING *`,
+      [supplier_id, product_id, vehicle_number, vId || null, qty, rt, totalAmount, paid, balanceAmount, fare, fare_status || 'Pending', finalModule, req.user.id, gatepass || null]
     );
 
     // 2. Update Product Stock

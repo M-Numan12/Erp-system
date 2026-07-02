@@ -863,6 +863,14 @@ export default function Suppliers({ type }) {
                       style={{ width: '110px' }}
                     />
                     <Column 
+                      header="Gatepass" 
+                      body={row => {
+                        if (row.isOpening) return null;
+                        return <span style={{fontWeight: 500, color: '#334155'}}>{row.gatepass || '—'}</span>;
+                      }} 
+                      style={{ width: '100px' }}
+                    />
+                    <Column 
                       header="Qty" 
                       body={row => {
                         if (row.isOpening) return null;

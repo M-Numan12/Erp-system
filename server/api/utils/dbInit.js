@@ -56,6 +56,7 @@ async function syncDatabaseSchema() {
     `ALTER TABLE purchases ADD COLUMN IF NOT EXISTS delivery_charges DECIMAL(15, 2) DEFAULT 0;`,
     `ALTER TABLE purchases ADD COLUMN IF NOT EXISTS fare_payment_type VARCHAR(50) DEFAULT 'Pending';`,
     `ALTER TABLE purchases ADD COLUMN IF NOT EXISTS payment_type VARCHAR(50) DEFAULT 'Cash';`,
+    `ALTER TABLE purchases ADD COLUMN IF NOT EXISTS gatepass VARCHAR(255);`,
 
     // --- 4. VEHICLES (The Missing Piece) ---
     `ALTER TABLE vehicles ADD COLUMN IF NOT EXISTS ownership_type VARCHAR(50);`,
