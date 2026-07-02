@@ -20,17 +20,17 @@ const formatItemName = (brand, name) => {
   const n = (name || '').trim();
   if (!b || b === 'undefined') return n;
   if (!n) return b;
-  
+
   const bLower = b.toLowerCase();
   const nLower = n.toLowerCase();
-  
+
   if (nLower.includes(bLower)) {
     return n;
   }
   if (bLower.includes(nLower)) {
     return b;
   }
-  
+
   return `${b} ${n}`;
 };
 
@@ -63,7 +63,7 @@ export default function Customers({ type }) {
         }
         return m || "Wholesale";
       }
-    } catch (e) {}
+    } catch (e) { }
     return "Wholesale";
   });
 
@@ -314,12 +314,12 @@ export default function Customers({ type }) {
   const handlePostAdjustment = async (e) => {
     e.preventDefault();
     if (!adjForm.amount || parseFloat(adjForm.amount) <= 0) return;
-    
+
     setLoading(true);
     try {
       const res = await fetch(`${API_BASE_URL}/sales/adjustment`, {
         method: "POST",
-        headers: { 
+        headers: {
           "Content-Type": "application/json",
           "Authorization": `Bearer ${localStorage.getItem('token')}`
         },
@@ -764,18 +764,18 @@ export default function Customers({ type }) {
                           <td style={{ border: '1px solid #cbd5e1', padding: '8px' }}>
                             {isReturn
                               ? (() => {
-                                  let details = '↩ Stock Return';
-                                  if (items.length > 0) details += ': ' + items.map(i => `${formatItemName(i.brand, i.name)} (${Math.abs(i.qty)} x Rs. ${i.rate})`).join(', ');
-                                  if (Math.abs(parseFloat(row.paid_amount) || 0) > 0) details += ` | Cash Refund: Rs. ${Math.abs(parseFloat(row.paid_amount)).toLocaleString()} (${row.payment_type || 'Cash'})`;
-                                  return details;
-                                })()
+                                let details = '↩ Stock Return';
+                                if (items.length > 0) details += ': ' + items.map(i => `${formatItemName(i.brand, i.name)} (${Math.abs(i.qty)} x Rs. ${i.rate})`).join(', ');
+                                if (Math.abs(parseFloat(row.paid_amount) || 0) > 0) details += ` | Cash Refund: Rs. ${Math.abs(parseFloat(row.paid_amount)).toLocaleString()} (${row.payment_type || 'Cash'})`;
+                                return details;
+                              })()
                               : items.length > 0
                                 ? (() => {
-                                    let details = items.map(i => `${formatItemName(i.brand, i.name)} (${i.qty} x Rs. ${i.rate})`).join(', ');
-                                    if (parseFloat(row.delivery_charges || 0) > 0) details += ` + Delivery (Rs. ${parseFloat(row.delivery_charges).toLocaleString()})`;
-                                    if (parseFloat(row.discount || 0) > 0) details += ` - Discount (Rs. ${parseFloat(row.discount).toLocaleString()})`;
-                                    return details;
-                                  })()
+                                  let details = items.map(i => `${formatItemName(i.brand, i.name)} (${i.qty} x Rs. ${i.rate})`).join(', ');
+                                  if (parseFloat(row.delivery_charges || 0) > 0) details += ` + Delivery (Rs. ${parseFloat(row.delivery_charges).toLocaleString()})`;
+                                  if (parseFloat(row.discount || 0) > 0) details += ` - Discount (Rs. ${parseFloat(row.discount).toLocaleString()})`;
+                                  return details;
+                                })()
                                 : row.payment_type && (row.payment_type.includes('Adjustment') || row.payment_type.includes('Manual Adjustment'))
                                   ? row.payment_type
                                   : `Payment Received (${row.payment_type || 'Cash'})`
@@ -800,24 +800,24 @@ export default function Customers({ type }) {
                       );
                     })}
                   </tbody>
-                   <tfoot>
-                     <tr style={{ background: '#f8fafc', fontWeight: 'bold' }}>
-                       <td colSpan="5" style={{ border: '1px solid #cbd5e1', padding: '8px', textAlign: 'right' }}>Period Totals:</td>
-                       <td style={{ border: '1px solid #cbd5e1', padding: '8px', textAlign: 'right', color: 'red' }}>
-                         Rs. {sortedLedgerData.reduce((sum, r) => sum + (parseFloat(r.net_amount) > 0 ? parseFloat(r.net_amount) : 0), 0).toLocaleString()}
-                       </td>
-                       <td style={{ border: '1px solid #cbd5e1', padding: '8px', textAlign: 'right', color: 'green' }}>
-                         Rs. {sortedLedgerData.reduce((sum, r) => {
-                           const net = parseFloat(r.net_amount) || 0;
-                           const paid = parseFloat(r.paid_amount) || 0;
-                           return sum + (net < 0 ? Math.abs(net) : (paid > 0 ? paid : 0));
-                         }, 0).toLocaleString()}
-                       </td>
-                       <td style={{ border: '1px solid #cbd5e1', padding: '8px', textAlign: 'right', color: liveBalance > 0 ? 'red' : 'green' }}>
-                         Rs. {Math.abs(liveBalance).toLocaleString()} ({liveBalance > 0 ? 'Receivable' : 'Advance'})
-                       </td>
-                     </tr>
-                   </tfoot>
+                  <tfoot>
+                    <tr style={{ background: '#f8fafc', fontWeight: 'bold' }}>
+                      <td colSpan="5" style={{ border: '1px solid #cbd5e1', padding: '8px', textAlign: 'right' }}>Period Totals:</td>
+                      <td style={{ border: '1px solid #cbd5e1', padding: '8px', textAlign: 'right', color: 'red' }}>
+                        Rs. {sortedLedgerData.reduce((sum, r) => sum + (parseFloat(r.net_amount) > 0 ? parseFloat(r.net_amount) : 0), 0).toLocaleString()}
+                      </td>
+                      <td style={{ border: '1px solid #cbd5e1', padding: '8px', textAlign: 'right', color: 'green' }}>
+                        Rs. {sortedLedgerData.reduce((sum, r) => {
+                          const net = parseFloat(r.net_amount) || 0;
+                          const paid = parseFloat(r.paid_amount) || 0;
+                          return sum + (net < 0 ? Math.abs(net) : (paid > 0 ? paid : 0));
+                        }, 0).toLocaleString()}
+                      </td>
+                      <td style={{ border: '1px solid #cbd5e1', padding: '8px', textAlign: 'right', color: liveBalance > 0 ? 'red' : 'green' }}>
+                        Rs. {Math.abs(liveBalance).toLocaleString()} ({liveBalance > 0 ? 'Receivable' : 'Advance'})
+                      </td>
+                    </tr>
+                  </tfoot>
                 </table>
                 <div style={{ marginTop: '40px', display: 'flex', justifyContent: 'space-between' }}>
                   <div style={{ borderTop: '1px solid #000', width: '200px', textAlign: 'center', paddingTop: '5px' }}>Customer Signature</div>
@@ -898,7 +898,7 @@ export default function Customers({ type }) {
                       <Column
                         header="S.No"
                         body={(row, options) => row.isOpening ? '—' : options.rowIndex}
-                        style={{ width: '50px', textAlign: 'center' }}
+                        style={{ width: '45px', textAlign: 'center' }}
                       />
                       <Column
                         header="Date / Ref"
@@ -912,7 +912,7 @@ export default function Customers({ type }) {
                             </div>
                           );
                         }}
-                        style={{ width: '100px' }}
+                        style={{ width: '90px' }}
                       />
                       <Column
                         header="Product Name / Description"
@@ -987,7 +987,7 @@ export default function Customers({ type }) {
                           }
                           return <span style={{ color: '#cbd5e1' }}>—</span>;
                         }}
-                        style={{ width: '90px' }}
+                        style={{ width: '80px' }}
                       />
                       <Column
                         header="Qty"
@@ -1026,7 +1026,7 @@ export default function Customers({ type }) {
                           }
                           return <span style={{ color: '#cbd5e1' }}>—</span>;
                         }}
-                        style={{ width: '65px' }}
+                        style={{ width: '50px' }}
                       />
                       <Column
                         header="Rate"
@@ -1067,7 +1067,7 @@ export default function Customers({ type }) {
                         }}
                         footer="Period Totals:"
                         footerStyle={{ textAlign: 'right', fontWeight: 'bold', color: '#475569' }}
-                        style={{ width: '65px' }}
+                        style={{ width: '55px' }}
                       />
                       <Column
                         header="Debit (+)"
@@ -1078,7 +1078,7 @@ export default function Customers({ type }) {
                         }}
                         footer={`Rs. ${sortedLedgerData.reduce((sum, r) => sum + (parseFloat(r.net_amount) > 0 ? parseFloat(r.net_amount) : 0), 0).toLocaleString()}`}
                         footerStyle={{ textAlign: 'right', fontWeight: '700', color: '#ef4444' }}
-                        style={{ textAlign: 'right', width: '90px' }}
+                        style={{ textAlign: 'right', width: '85px' }}
                       />
                       <Column
                         header="Credit (-)"
@@ -1098,7 +1098,7 @@ export default function Customers({ type }) {
                           return sum + (net < 0 ? Math.abs(net) : (paid > 0 ? paid : 0));
                         }, 0).toLocaleString()}`}
                         footerStyle={{ textAlign: 'right', fontWeight: '700', color: '#16a34a' }}
-                        style={{ textAlign: 'right', width: '90px' }}
+                        style={{ textAlign: 'right', width: '85px' }}
                       />
                       <Column
                         header="Balance"
@@ -1120,7 +1120,7 @@ export default function Customers({ type }) {
                           </div>
                         }
                         footerStyle={{ textAlign: 'right' }}
-                        style={{ textAlign: 'right', width: '110px' }}
+                        style={{ textAlign: 'right', width: '100px' }}
                       />
                     </DataTable>
                   </div>
@@ -1128,46 +1128,46 @@ export default function Customers({ type }) {
 
                 {/* Bottom Manual Ledger Adjustment Panel (Admin only) */}
                 {user?.role === 'admin' && (
-                  <div className="ledger-adjustment-panel" style={{marginTop: '18px', background: '#f8fafc', padding: '16px', borderRadius: '12px', border: '1px dashed #cbd5e1'}}>
-                    <h4 style={{margin: '0 0 12px 0', color: '#1e293b', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.95rem'}}>
+                  <div className="ledger-adjustment-panel" style={{ marginTop: '18px', background: '#f8fafc', padding: '16px', borderRadius: '12px', border: '1px dashed #cbd5e1' }}>
+                    <h4 style={{ margin: '0 0 12px 0', color: '#1e293b', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.95rem' }}>
                       <Plus size={16} color="#3b82f6" /> Add Manual Ledger Entry (Adjustment)
                     </h4>
-                    <form onSubmit={handlePostAdjustment} style={{display: 'flex', gap: '12px', alignItems: 'flex-end', flexWrap: 'wrap'}}>
-                      <div className="form-group" style={{flex: '1', minWidth: '140px', margin: 0}}>
-                        <label style={{fontSize: '0.75rem', fontWeight: 600, marginBottom: '4px', display: 'block', color: '#64748b'}}>Adjustment Type</label>
-                        <select 
-                          value={adjForm.type} 
-                          onChange={e => setAdjForm({...adjForm, type: e.target.value})}
-                          style={{width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', outline: 'none', fontSize: '0.85rem'}}
+                    <form onSubmit={handlePostAdjustment} style={{ display: 'flex', gap: '12px', alignItems: 'flex-end', flexWrap: 'wrap' }}>
+                      <div className="form-group" style={{ flex: '1', minWidth: '140px', margin: 0 }}>
+                        <label style={{ fontSize: '0.75rem', fontWeight: 600, marginBottom: '4px', display: 'block', color: '#64748b' }}>Adjustment Type</label>
+                        <select
+                          value={adjForm.type}
+                          onChange={e => setAdjForm({ ...adjForm, type: e.target.value })}
+                          style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', outline: 'none', fontSize: '0.85rem' }}
                         >
                           <option value="Debit">Debit (+ Increases Balance)</option>
                           <option value="Credit">Credit (- Decreases Balance)</option>
                         </select>
                       </div>
-                      <div className="form-group" style={{flex: '2', minWidth: '200px', margin: 0}}>
-                        <label style={{fontSize: '0.75rem', fontWeight: 600, marginBottom: '4px', display: 'block', color: '#64748b'}}>Memo / Description</label>
-                        <input 
-                          type="text" 
-                          value={adjForm.notes} 
-                          onChange={e => setAdjForm({...adjForm, notes: e.target.value})} 
-                          placeholder="e.g. Claim adjustment, discount, manual discount" 
+                      <div className="form-group" style={{ flex: '2', minWidth: '200px', margin: 0 }}>
+                        <label style={{ fontSize: '0.75rem', fontWeight: 600, marginBottom: '4px', display: 'block', color: '#64748b' }}>Memo / Description</label>
+                        <input
+                          type="text"
+                          value={adjForm.notes}
+                          onChange={e => setAdjForm({ ...adjForm, notes: e.target.value })}
+                          placeholder="e.g. Claim adjustment, discount, manual discount"
                           required
-                          style={{width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.85rem'}}
+                          style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.85rem' }}
                         />
                       </div>
-                      <div className="form-group" style={{flex: '1', minWidth: '150px', margin: 0}}>
-                        <label style={{fontSize: '0.75rem', fontWeight: 600, marginBottom: '4px', display: 'block', color: '#64748b'}}>Adjustment Amount (Rs.)</label>
-                        <input 
-                          type="number" 
+                      <div className="form-group" style={{ flex: '1', minWidth: '150px', margin: 0 }}>
+                        <label style={{ fontSize: '0.75rem', fontWeight: 600, marginBottom: '4px', display: 'block', color: '#64748b' }}>Adjustment Amount (Rs.)</label>
+                        <input
+                          type="number"
                           step="0.01"
-                          required 
-                          value={adjForm.amount} 
-                          onChange={e => setAdjForm({...adjForm, amount: e.target.value})} 
-                          placeholder="0.00" 
-                          style={{width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.85rem'}}
+                          required
+                          value={adjForm.amount}
+                          onChange={e => setAdjForm({ ...adjForm, amount: e.target.value })}
+                          placeholder="0.00"
+                          style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.85rem' }}
                         />
                       </div>
-                      <button type="submit" className="btn-primary" style={{height: '36px', background: '#2563eb', padding: '0 20px', fontSize: '0.85rem', border: 'none'}} disabled={loading}>
+                      <button type="submit" className="btn-primary" style={{ height: '36px', background: '#2563eb', padding: '0 20px', fontSize: '0.85rem', border: 'none' }} disabled={loading}>
                         {loading ? "Posting..." : "Save Entry"}
                       </button>
                     </form>

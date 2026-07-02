@@ -830,7 +830,7 @@ export default function Suppliers({ type }) {
                     <Column 
                       header="S.No" 
                       body={(row, options) => row.isOpening ? '—' : options.rowIndex} 
-                      style={{ width: '60px', textAlign: 'center' }} 
+                      style={{ width: '45px', textAlign: 'center' }} 
                     />
                     <Column 
                       header="Date" 
@@ -843,7 +843,7 @@ export default function Suppliers({ type }) {
                           </div>
                         );
                       }} 
-                      style={{ width: '110px' }} 
+                      style={{ width: '95px' }} 
                     />
                     <Column 
                       header="Product / Memo" 
@@ -860,7 +860,7 @@ export default function Suppliers({ type }) {
                         if (row.product_name) return <span style={{display:'inline-flex', alignItems:'center', gap:'4px', fontSize:'0.85rem', color:'#475569'}}><Truck size={12}/>{row.vehicle_number || '—'}</span>;
                         return <span style={{color:'#cbd5e1'}}>N/A</span>;
                       }} 
-                      style={{ width: '110px' }}
+                      style={{ width: '80px' }}
                     />
                     <Column 
                       header="Gatepass" 
@@ -868,7 +868,7 @@ export default function Suppliers({ type }) {
                         if (row.isOpening) return null;
                         return <span style={{fontWeight: 500, color: '#334155'}}>{row.gatepass || '—'}</span>;
                       }} 
-                      style={{ width: '100px' }}
+                      style={{ width: '80px' }}
                     />
                     <Column 
                       header="Qty" 
@@ -893,7 +893,7 @@ export default function Suppliers({ type }) {
                         }
                         return <span style={{color: '#cbd5e1'}}>—</span>;
                       }} 
-                      style={{ width: '100px' }}
+                      style={{ width: '60px' }}
                     />
                     <Column 
                       header="Rate" 
@@ -915,21 +915,21 @@ export default function Suppliers({ type }) {
                       }}
                       footer="Period Totals:"
                       footerStyle={{ textAlign: 'right', fontWeight: 'bold', color: '#475569' }}
-                      style={{ width: '90px' }}
+                      style={{ width: '75px' }}
                     />
                     <Column 
                       header="Debit (-)" 
                       body={row => (!row.isOpening && parseFloat(row.paid_amount) > 0) ? <span style={{fontWeight: '600', color: '#16a34a'}}>Rs. {parseFloat(row.paid_amount).toLocaleString()}</span> : <span style={{color:'#cbd5e1'}}>—</span>}
                       footer={`Rs. ${sortedLedgerData.reduce((sum, r) => sum + parseFloat(r.paid_amount || 0), 0).toLocaleString()}`}
                       footerStyle={{ textAlign: 'right', fontWeight: '700', color: '#16a34a' }}
-                      style={{ textAlign: 'right', width: '120px' }}
+                      style={{ textAlign: 'right', width: '90px' }}
                     />
                     <Column 
                       header="Credit (+)" 
                       body={row => (!row.isOpening && parseFloat(row.total_amount) > 0) ? <span style={{fontWeight: '600', color: '#ef4444'}}>Rs. {parseFloat(row.total_amount).toLocaleString()}</span> : <span style={{color:'#cbd5e1'}}>—</span>}
                       footer={`Rs. ${sortedLedgerData.reduce((sum, r) => sum + parseFloat(r.total_amount || 0), 0).toLocaleString()}`}
                       footerStyle={{ textAlign: 'right', fontWeight: '700', color: '#ef4444' }}
-                      style={{ textAlign: 'right', width: '120px' }}
+                      style={{ textAlign: 'right', width: '90px' }}
                     />
                     <Column 
                       header="Balance" 
@@ -951,7 +951,7 @@ export default function Suppliers({ type }) {
                         </div>
                       }
                       footerStyle={{ textAlign: 'right' }}
-                      style={{ textAlign: 'right', width: '150px' }}
+                      style={{ textAlign: 'right', width: '115px' }}
                     />
                   </DataTable>
                 </div>
