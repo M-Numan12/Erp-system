@@ -672,7 +672,7 @@ export default function Customers({ type }) {
 
         return (
           <div className="modal-overlay" onClick={() => setShowLedgerModal(false)}>
-            <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '1350px', width: '97%' }}>
+            <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '1280px', width: '96%' }}>
               <div className="modal-header no-print">
                 <div className="header-info" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                   <UsersIcon size={24} color="#3b82f6" />
@@ -893,6 +893,7 @@ export default function Customers({ type }) {
                       responsiveLayout="scroll"
                       rowHover
                       style={{ fontSize: '0.9rem' }}
+                      tableStyle={{ width: '100%' }}
                       emptyMessage="No records found in this period."
                     >
                       <Column
@@ -961,7 +962,7 @@ export default function Customers({ type }) {
                           return (
                             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                               <strong style={{ color: '#10b981', fontSize: '0.85rem', whiteSpace: 'nowrap' }}>
-                                <CreditCard size={13} style={{ display: 'inline', verticalAlign: 'middle', marginRight: '4px' }} />
+                                <CreditCard size={13} style={{ display: 'inline', verticalAlign: 'middle', marginRight: '2px' }} />
                                 Payment Received ({row.payment_type || 'Cash'})
                               </strong>
                               {user?.role === 'admin' && parseFloat(row.net_amount) === 0 && parseFloat(row.paid_amount) > 0 && (

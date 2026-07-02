@@ -634,7 +634,7 @@ export default function Suppliers({ type }) {
 
         return (
         <div className="modal-overlay" onClick={() => setShowLedgerModal(false)}>
-          <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '1350px', width: '97%' }}>
+          <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '1280px', width: '96%' }}>
             <div className="modal-header no-print">
               <div className="header-info" style={{display:'flex', alignItems:'center', gap:'12px'}}>
                 <FileText size={24} color="#3b82f6" />
@@ -825,6 +825,7 @@ export default function Suppliers({ type }) {
                     responsiveLayout="scroll"
                     rowHover
                     style={{fontSize: '0.9rem'}}
+                    tableStyle={{ width: '100%' }}
                     emptyMessage="No records found in this period."
                   >
                     <Column 
