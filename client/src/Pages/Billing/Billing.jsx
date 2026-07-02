@@ -1691,9 +1691,6 @@ export default function Billing({ type }) {
                 <h3>Customer Ledger: {selectedCustForLedger.name}</h3>
               </div>
               <div style={{ display: 'flex', gap: '10px' }}>
-                <button className="btn-secondary" onClick={sendLedgerToWhatsApp} style={{ padding: '6px 12px', display: 'flex', alignItems: 'center', gap: '6px', background: '#25D366', color: 'white', border: 'none' }}>
-                  <MessageCircle size={16} /> Send to WhatsApp
-                </button>
                 <button className="btn-secondary" onClick={() => window.print()} style={{ padding: '6px 12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <Printer size={16} /> Print Report
                 </button>
