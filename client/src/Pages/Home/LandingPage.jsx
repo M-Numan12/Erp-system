@@ -538,7 +538,6 @@ const LandingPage = () => {
       </footer>
       <div className="portal-buttons">
         <Link to="/login" className="btn-portal-user">Staff Portal</Link>
-        {/* <Link to="/portal-admin" className="btn-portal-admin">Admin Portal</Link> */}
       </div>
     </div>
   );

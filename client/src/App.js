@@ -16,6 +16,7 @@ import Customers from "./Pages/People/Customers.jsx";
 import Suppliers from "./Pages/People/Suppliers.jsx";
 import Transport from "./Pages/Inventory/Transport.jsx";
 import Expenses from "./Pages/Finance/Expenses.jsx";
+import OtherExpenses from "./Pages/Finance/OtherExpenses.jsx";
 import Salary from "./Pages/People/Salary.jsx";
 import Profit from "./Pages/Finance/Profit.jsx";
 import UsersManager from "./Pages/People/UsersManager.jsx";
@@ -135,6 +136,7 @@ function App() {
           <Route path="/suppliers" element={<PrivateRoute><MainLayout><Suppliers /></MainLayout></PrivateRoute>} />
           <Route path="/transport" element={<PrivateRoute><MainLayout><Transport /></MainLayout></PrivateRoute>} />
           <Route path="/expenses" element={<PrivateRoute><MainLayout><Expenses /></MainLayout></PrivateRoute>} />
+          <Route path="/other-expenses" element={<PrivateRoute><MainLayout><OtherExpenses /></MainLayout></PrivateRoute>} />
           <Route path="/salary" element={<PrivateRoute><MainLayout><Salary /></MainLayout></PrivateRoute>} />
           <Route path="/profit" element={<PrivateRoute><MainLayout><Profit /></MainLayout></PrivateRoute>} />
           <Route path="/users" element={<PrivateRoute><MainLayout><UsersManager /></MainLayout></PrivateRoute>} />
