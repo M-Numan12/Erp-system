@@ -818,8 +818,6 @@ export default function Suppliers({ type }) {
                   <DataTable 
                     value={datatableRows} 
                     dataKey="id"
-                    scrollable 
-                    scrollHeight="380px" 
                     className="p-datatable-sm card-table"
                     stripedRows 
                     responsiveLayout="scroll"

@@ -886,8 +886,6 @@ export default function Customers({ type }) {
                   <div style={{ background: 'white', borderRadius: '10px', border: '1px solid #e2e8f0', overflow: 'hidden' }}>
                     <DataTable
                       value={datatableRows}
-                      scrollable
-                      scrollHeight="380px"
                       className="p-datatable-sm card-table"
                       stripedRows
                       responsiveLayout="scroll"
