@@ -851,7 +851,7 @@ export default function Suppliers({ type }) {
                       body={row => {
                         if (row.isOpening) return <span style={{fontStyle:'italic', color:'#64748b', fontWeight:500}}>Opening balance brought forward</span>;
                         if (row.product_name) return <strong style={{color:'#1e293b'}}>{row.brand || ''} {row.product_name}</strong>;
-                        return <strong style={{color:'#0284c7', fontSize:'0.85rem'}}><ClipboardList size={13} style={{display:'inline', verticalAlign:'middle', marginRight:'4px'}}/>{row.vehicle_number || row.payment_type || 'Manual Adjustment'}</strong>;
+                        return <strong style={{color:'#0284c7', fontSize:'0.85rem', whiteSpace: 'normal', wordBreak: 'break-word', lineHeight: '1.2'}}><ClipboardList size={13} style={{display:'inline', verticalAlign:'middle', marginRight:'4px'}}/>{row.vehicle_number || row.payment_type || 'Manual Adjustment'}</strong>;
                       }} 
                       style={{ width: '220px' }}
                     />

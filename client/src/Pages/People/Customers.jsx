@@ -954,15 +954,15 @@ export default function Customers({ type }) {
                           }
                           const isReturn = parseFloat(row.net_amount) < 0;
                           if (isReturn) {
-                            return <strong style={{ color: '#d97706', fontSize: '0.85rem', whiteSpace: 'nowrap' }}>↩ Stock Return{Math.abs(parseFloat(row.paid_amount) || 0) > 0 ? ` | Cash Refund (${row.payment_type || 'Cash'})` : ''}</strong>;
+                            return <strong style={{ color: '#d97706', fontSize: '0.85rem', whiteSpace: 'normal', wordBreak: 'break-word', lineHeight: '1.2' }}>↩ Stock Return{Math.abs(parseFloat(row.paid_amount) || 0) > 0 ? ` | Cash Refund (${row.payment_type || 'Cash'})` : ''}</strong>;
                           }
                           const isAdjustment = row.payment_type && (row.payment_type.includes('Adjustment') || row.payment_type.includes('Manual Adjustment'));
                           if (isAdjustment) {
-                            return <strong style={{ color: '#0284c7', fontSize: '0.85rem', whiteSpace: 'nowrap' }}><ClipboardList size={13} style={{ display: 'inline', verticalAlign: 'middle', marginRight: '4px' }} />{row.payment_type}</strong>;
+                            return <strong style={{ color: '#0284c7', fontSize: '0.85rem', whiteSpace: 'normal', wordBreak: 'break-word', lineHeight: '1.2' }}><ClipboardList size={13} style={{ display: 'inline', verticalAlign: 'middle', marginRight: '4px' }} />{row.payment_type}</strong>;
                           }
                           return (
                             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                              <strong style={{ color: '#10b981', fontSize: '0.85rem', whiteSpace: 'nowrap' }}>
+                              <strong style={{ color: '#10b981', fontSize: '0.85rem', whiteSpace: 'normal', wordBreak: 'break-word', lineHeight: '1.2' }}>
                                 <CreditCard size={13} style={{ display: 'inline', verticalAlign: 'middle', marginRight: '2px' }} />
                                 Payment Received ({row.payment_type || 'Cash'})
                               </strong>
