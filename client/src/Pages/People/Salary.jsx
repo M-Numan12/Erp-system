@@ -1028,10 +1028,22 @@ export default function Salary({ type }) {
                                 <button 
                                   type="button"
                                   onClick={() => handleDeletePayment(row.id)}
-                                  style={{background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', padding: '4px'}}
-                                  title="Delete Payment"
+                                  style={{
+                                    background: '#fef2f2', 
+                                    border: '1px solid #fecaca', 
+                                    color: '#dc2626', 
+                                    cursor: 'pointer', 
+                                    padding: '4px 10px',
+                                    borderRadius: '6px',
+                                    fontSize: '0.75rem',
+                                    fontWeight: '700',
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '4px'
+                                  }}
+                                  title="Undo this payment and reverse cash balance"
                                 >
-                                  <Trash2 size={16} />
+                                  ↩ Undo
                                 </button>
                               </td>
                             )}
