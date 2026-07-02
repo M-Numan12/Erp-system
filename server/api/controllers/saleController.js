@@ -518,16 +518,43 @@ exports.updateSale = async (req, res) => {
     // Delete old items
     await client.query('DELETE FROM sale_items WHERE sale_id = $1', [req.params.id]);
 
-    // Update sales table
+    // Resolve new customer_id based on updated customer_name
+    const finalModule = isAdmin(req) ? (req.body.sale_type || req.body.module_type || 'Wholesale') : (req.user.module_type || 'Retail 1');
+    let newCustomerId = oldSale?.customer_id || null;
+
+    if (customer_name && customer_name.trim().toLowerCase() !== 'walk-in customer') {
+      let cQuery = 'SELECT id FROM customers WHERE name=$1 AND module_type=$2';
+      let cParams = [customer_name.trim(), finalModule];
+      if (customer_phone) { cQuery += ' AND phone=$3'; cParams.push(customer_phone); }
+
+      const cRes = await client.query(cQuery, cParams);
+      if (cRes.rows.length > 0) {
+        newCustomerId = cRes.rows[0].id;
+        if (customer_address) {
+          await client.query('UPDATE customers SET address=$1 WHERE id=$2', [customer_address, newCustomerId]);
+        }
+      } else {
+        // Auto-create if new customer name doesn't exist
+        const newCust = await client.query(
+          'INSERT INTO customers (name, phone, address, balance, user_id, module_type) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id',
+          [customer_name.trim(), customer_phone || '', customer_address || '', 0, req.user.id, finalModule]
+        );
+        newCustomerId = newCust.rows[0].id;
+      }
+    } else if (!customer_name || customer_name.trim().toLowerCase() === 'walk-in customer') {
+      newCustomerId = null;
+    }
+
+    // Update sales table — including customer_id so the ledger link is correct
     await client.query(
       `UPDATE sales SET 
-        customer_name=$1, customer_phone=$2, customer_address=$3, total_amount=$4, 
-        discount=$5, delivery_charges=$6, net_amount=$7, paid_amount=$8, 
-        balance_amount=$9, payment_type=$10, vehicle_id=$11, vehicle_id2=$12,
-        vehicle_number=$13, vehicle_number2=$14, vehicle_ids=$15, items=$16,
-        vehicle_type=$17
-      WHERE id=$18`,
-      [customer_name, customer_phone, customer_address, total_amount, discount, delivery_charges, net_amount, paid_amount, balance_amount, payment_type, vId, vId2, vNumber1, vNumber2, vehicleIdsJSON, JSON.stringify(items), vehicle_type || null, req.params.id]
+        customer_id=$1, customer_name=$2, customer_phone=$3, customer_address=$4, total_amount=$5, 
+        discount=$6, delivery_charges=$7, net_amount=$8, paid_amount=$9, 
+        balance_amount=$10, payment_type=$11, vehicle_id=$12, vehicle_id2=$13,
+        vehicle_number=$14, vehicle_number2=$15, vehicle_ids=$16, items=$17,
+        vehicle_type=$18
+      WHERE id=$19`,
+      [newCustomerId, customer_name, customer_phone, customer_address, total_amount, discount, delivery_charges, net_amount, paid_amount, balance_amount, payment_type, vId, vId2, vNumber1, vNumber2, vehicleIdsJSON, JSON.stringify(items), vehicle_type || null, req.params.id]
     );
 
     // Insert new items and update stock
@@ -545,10 +572,10 @@ exports.updateSale = async (req, res) => {
       await client.query('UPDATE products SET stock_quantity = stock_quantity - $1 WHERE id = $2', [parsedQty, prodId]);
     }
 
-    // Update new customer balance
+    // Update balance: Add new balance to the NEW customer (could be different from old)
     const newBalanceAmt = parseFloat(balance_amount);
-    if (oldSale && oldSale.customer_id && !isNaN(newBalanceAmt) && newBalanceAmt !== 0) {
-      await client.query('UPDATE customers SET balance = balance + $1 WHERE id = $2', [newBalanceAmt, oldSale.customer_id]);
+    if (newCustomerId && !isNaN(newBalanceAmt) && newBalanceAmt !== 0) {
+      await client.query('UPDATE customers SET balance = balance + $1 WHERE id = $2', [newBalanceAmt, newCustomerId]);
     }
 
     // Update new vehicle earnings
@@ -564,8 +591,8 @@ exports.updateSale = async (req, res) => {
     }
 
     let customerBalance = 0;
-    if (oldSale && oldSale.customer_id) {
-      const custRes = await client.query('SELECT balance FROM customers WHERE id = $1', [oldSale.customer_id]);
+    if (newCustomerId) {
+      const custRes = await client.query('SELECT balance FROM customers WHERE id = $1', [newCustomerId]);
       if (custRes.rows.length > 0) {
         customerBalance = parseFloat(custRes.rows[0].balance || 0);
       }
