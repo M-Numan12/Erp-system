@@ -930,12 +930,13 @@ export default function Customers({ type }) {
                                     style={{
                                       fontWeight: 600,
                                       color: '#1e293b',
-                                      height: '24px',
+                                      height: '36px',
                                       display: 'flex',
                                       alignItems: 'center',
-                                      whiteSpace: 'nowrap',
-                                      overflow: 'hidden',
-                                      textOverflow: 'ellipsis'
+                                      whiteSpace: 'normal',
+                                      wordBreak: 'break-word',
+                                      fontSize: '0.82rem',
+                                      lineHeight: '1.2'
                                     }}
                                     title={formatItemName(item.brand, item.name)}
                                   >
@@ -943,10 +944,10 @@ export default function Customers({ type }) {
                                   </div>
                                 ))}
                                 {parseFloat(row.delivery_charges || 0) > 0 && (
-                                  <div style={{ fontWeight: 700, color: '#3b82f6', height: '24px', display: 'flex', alignItems: 'center', whiteSpace: 'nowrap' }}>Delivery</div>
+                                  <div style={{ fontWeight: 700, color: '#3b82f6', height: '36px', display: 'flex', alignItems: 'center', whiteSpace: 'nowrap' }}>Delivery</div>
                                 )}
                                 {parseFloat(row.discount || 0) > 0 && (
-                                  <div style={{ fontWeight: 700, color: '#ef4444', height: '24px', display: 'flex', alignItems: 'center', whiteSpace: 'nowrap' }}>Discount</div>
+                                  <div style={{ fontWeight: 700, color: '#ef4444', height: '36px', display: 'flex', alignItems: 'center', whiteSpace: 'nowrap' }}>Discount</div>
                                 )}
                               </div>
                             );
@@ -1001,7 +1002,7 @@ export default function Customers({ type }) {
                             return (
                               <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                                 {items.map((item, idx) => (
-                                  <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '4px', height: '24px' }}>
+                                  <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '4px', height: '36px' }}>
                                     {user?.role === 'admin' ? (
                                       <input
                                         type="number"
@@ -1014,12 +1015,12 @@ export default function Customers({ type }) {
                                   </div>
                                 ))}
                                 {parseFloat(row.delivery_charges || 0) > 0 && (
-                                  <div style={{ height: '24px', display: 'flex', alignItems: 'center' }}>
+                                  <div style={{ height: '36px', display: 'flex', alignItems: 'center' }}>
                                     <span style={{ color: '#64748b' }}>—</span>
                                   </div>
                                 )}
                                 {parseFloat(row.discount || 0) > 0 && (
-                                  <div style={{ height: '24px', display: 'flex', alignItems: 'center' }}>
+                                  <div style={{ height: '36px', display: 'flex', alignItems: 'center' }}>
                                     <span style={{ color: '#64748b' }}>—</span>
                                   </div>
                                 )}
@@ -1040,7 +1041,7 @@ export default function Customers({ type }) {
                             return (
                               <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                                 {items.map((item, idx) => (
-                                  <div key={idx} style={{ height: '24px', display: 'flex', alignItems: 'center' }}>
+                                  <div key={idx} style={{ height: '36px', display: 'flex', alignItems: 'center' }}>
                                     {user?.role === 'admin' ? (
                                       <input
                                         type="number"
@@ -1053,12 +1054,12 @@ export default function Customers({ type }) {
                                   </div>
                                 ))}
                                 {parseFloat(row.delivery_charges || 0) > 0 && (
-                                  <div style={{ height: '24px', display: 'flex', alignItems: 'center' }}>
+                                  <div style={{ height: '36px', display: 'flex', alignItems: 'center' }}>
                                     <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#475569' }}>Rs. {parseFloat(row.delivery_charges).toLocaleString()}</span>
                                   </div>
                                 )}
                                 {parseFloat(row.discount || 0) > 0 && (
-                                  <div style={{ height: '24px', display: 'flex', alignItems: 'center' }}>
+                                  <div style={{ height: '36px', display: 'flex', alignItems: 'center' }}>
                                     <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#ef4444' }}>-Rs. {parseFloat(row.discount).toLocaleString()}</span>
                                   </div>
                                 )}
