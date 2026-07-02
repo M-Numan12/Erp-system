@@ -972,6 +972,7 @@ export default function Customers({ type }) {
                             </div>
                           );
                         }}
+                        style={{ width: '220px' }}
                       />
                       <Column
                         header="Vehicle"
@@ -1078,7 +1079,7 @@ export default function Customers({ type }) {
                         }}
                         footer={`Rs. ${sortedLedgerData.reduce((sum, r) => sum + (parseFloat(r.net_amount) > 0 ? parseFloat(r.net_amount) : 0), 0).toLocaleString()}`}
                         footerStyle={{ textAlign: 'right', fontWeight: '700', color: '#ef4444' }}
-                        style={{ textAlign: 'right', width: '85px' }}
+                        style={{ textAlign: 'right', width: '110px' }}
                       />
                       <Column
                         header="Credit (-)"
@@ -1098,7 +1099,7 @@ export default function Customers({ type }) {
                           return sum + (net < 0 ? Math.abs(net) : (paid > 0 ? paid : 0));
                         }, 0).toLocaleString()}`}
                         footerStyle={{ textAlign: 'right', fontWeight: '700', color: '#16a34a' }}
-                        style={{ textAlign: 'right', width: '85px' }}
+                        style={{ textAlign: 'right', width: '110px' }}
                       />
                       <Column
                         header="Balance"
@@ -1120,7 +1121,7 @@ export default function Customers({ type }) {
                           </div>
                         }
                         footerStyle={{ textAlign: 'right' }}
-                        style={{ textAlign: 'right', width: '100px' }}
+                        style={{ textAlign: 'right', width: '120px' }}
                       />
                     </DataTable>
                   </div>

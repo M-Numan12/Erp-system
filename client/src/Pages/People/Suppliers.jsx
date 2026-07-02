@@ -852,6 +852,7 @@ export default function Suppliers({ type }) {
                         if (row.product_name) return <strong style={{color:'#1e293b'}}>{row.brand || ''} {row.product_name}</strong>;
                         return <strong style={{color:'#0284c7', fontSize:'0.85rem'}}><ClipboardList size={13} style={{display:'inline', verticalAlign:'middle', marginRight:'4px'}}/>{row.vehicle_number || row.payment_type || 'Manual Adjustment'}</strong>;
                       }} 
+                      style={{ width: '220px' }}
                     />
                     <Column 
                       header="Vehicle" 
@@ -922,14 +923,14 @@ export default function Suppliers({ type }) {
                       body={row => (!row.isOpening && parseFloat(row.paid_amount) > 0) ? <span style={{fontWeight: '600', color: '#16a34a'}}>Rs. {parseFloat(row.paid_amount).toLocaleString()}</span> : <span style={{color:'#cbd5e1'}}>—</span>}
                       footer={`Rs. ${sortedLedgerData.reduce((sum, r) => sum + parseFloat(r.paid_amount || 0), 0).toLocaleString()}`}
                       footerStyle={{ textAlign: 'right', fontWeight: '700', color: '#16a34a' }}
-                      style={{ textAlign: 'right', width: '90px' }}
+                      style={{ textAlign: 'right', width: '110px' }}
                     />
                     <Column 
                       header="Credit (+)" 
                       body={row => (!row.isOpening && parseFloat(row.total_amount) > 0) ? <span style={{fontWeight: '600', color: '#ef4444'}}>Rs. {parseFloat(row.total_amount).toLocaleString()}</span> : <span style={{color:'#cbd5e1'}}>—</span>}
                       footer={`Rs. ${sortedLedgerData.reduce((sum, r) => sum + parseFloat(r.total_amount || 0), 0).toLocaleString()}`}
                       footerStyle={{ textAlign: 'right', fontWeight: '700', color: '#ef4444' }}
-                      style={{ textAlign: 'right', width: '90px' }}
+                      style={{ textAlign: 'right', width: '110px' }}
                     />
                     <Column 
                       header="Balance" 
@@ -951,7 +952,7 @@ export default function Suppliers({ type }) {
                         </div>
                       }
                       footerStyle={{ textAlign: 'right' }}
-                      style={{ textAlign: 'right', width: '115px' }}
+                      style={{ textAlign: 'right', width: '120px' }}
                     />
                   </DataTable>
                 </div>
