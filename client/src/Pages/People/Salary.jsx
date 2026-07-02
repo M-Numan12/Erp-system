@@ -864,7 +864,7 @@ export default function Salary({ type }) {
       {/* Ledger Modal */}
       {showLedgerModal && selectedStaff && (
         <div className="modal-overlay" onClick={() => setShowLedgerModal(false)}>
-          <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '700px', width: '95%' }}>
+          <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '900px', width: '97%' }}>
             <div className="modal-header no-print">
               <div style={{display:'flex', alignItems:'center', gap:'12px'}}><Users size={24} color="#3b82f6" /><h3>{selectedStaff.employee_name} Payment Log</h3></div>
               <div style={{display:'flex', gap:'10px'}}>
