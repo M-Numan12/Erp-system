@@ -65,6 +65,14 @@ export default function Rent({ type }) {
   const [filterStatus, setFilterStatus] = useState("All");
   const [filterType, setFilterType] = useState("All");
   const [loading, setLoading] = useState(false);
+  const [banks, setBanks] = useState([]);
+  const [liveBalances, setLiveBalances] = useState({});
+  const [showPayModal, setShowPayModal] = useState(false);
+  const [selectedRentForPay, setSelectedRentForPay] = useState(null);
+  const [payForm, setPayForm] = useState({ source: 'Cash', bank: '' });
+  
+  const [showLedgerModal, setShowLedgerModal] = useState(false);
+  const [selectedPropertyForLedger, setSelectedPropertyForLedger] = useState(null);
 
   const fetchRecords = async () => {
     if (!activeTab) return;
@@ -80,12 +88,45 @@ export default function Rent({ type }) {
     }
   };
 
+  const fetchBanks = async () => {
+    try {
+      const res = await fetch((API_BASE_URL + '/banks'), {
+        headers: { "Authorization": `Bearer ${localStorage.getItem('token')}` }
+      });
+      const data = await res.json();
+      setBanks(Array.isArray(data) ? data : []);
+    } catch (err) { console.error(err); }
+  };
+
+  const fetchLiveBalances = async () => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/banks/balances?type=${activeTab}`, {
+        headers: { "Authorization": `Bearer ${localStorage.getItem('token')}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setLiveBalances(data);
+      }
+    } catch (e) { console.error(e); }
+  };
+
   useEffect(() => { 
     if (!activeTab) return;
     fetchRecords(); 
-    const interval = setInterval(fetchRecords, 15000);
+    fetchBanks();
+    fetchLiveBalances();
+    const interval = setInterval(() => {
+      fetchRecords();
+      fetchLiveBalances();
+    }, 15000);
     return () => clearInterval(interval);
   }, [activeTab]);
+
+  useEffect(() => {
+    if (showPayModal && activeTab) {
+      fetchLiveBalances();
+    }
+  }, [showPayModal, activeTab]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -309,12 +350,36 @@ export default function Rent({ type }) {
             </span>
           )} sortable field="status" />
           
-          <Column header="" body={(r) => (
-            <ActionMenu
-              onEdit={user?.role === 'admin' ? () => { setForm(r); setEditId(r.id); setShowModal(true); } : null}
-              onDelete={user?.role === 'admin' ? () => handleDelete(r.id) : null}
-            />
-          )} style={{ textAlign: 'center', width: '60px' }} />
+          <Column header="" body={(r) => {
+            const isPending = r.status === 'Pending';
+            const isReceived = r.rent_type === 'Received';
+            const settleLabel = isReceived ? 'Receive Payment' : 'Pay Rent';
+            const settleIcon = isReceived ? 'pi pi-wallet' : 'pi pi-credit-card';
+
+            const extraItems = [
+              { label: 'View Ledger', icon: 'pi pi-book', command: () => { setSelectedPropertyForLedger(r.property_name); setShowLedgerModal(true); } }
+            ];
+
+            if (isPending) {
+              extraItems.unshift({
+                label: settleLabel,
+                icon: settleIcon,
+                command: () => {
+                  setSelectedRentForPay(r);
+                  setPayForm({ source: 'Cash', bank: '' });
+                  setShowPayModal(true);
+                }
+              });
+            }
+
+            return (
+              <ActionMenu
+                onEdit={user?.role === 'admin' ? () => { setForm(r); setEditId(r.id); setShowModal(true); } : null}
+                onDelete={user?.role === 'admin' ? () => handleDelete(r.id) : null}
+                extraItems={extraItems}
+              />
+            );
+          }} style={{ textAlign: 'center', width: '60px' }} />
         </DataTable>
       </div>
 
@@ -402,6 +467,215 @@ export default function Rent({ type }) {
           </div>
         </div>
       )}
+      {showPayModal && selectedRentForPay && (
+        <div className="modal-overlay" onClick={() => setShowPayModal(false)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '400px' }}>
+            <div className="modal-header">
+              <h3>{selectedRentForPay.rent_type === 'Received' ? 'Receive Rent Payment' : 'Pay Pending Rent'}</h3>
+              <button className="modal-close" onClick={() => setShowPayModal(false)}><X size={20} /></button>
+            </div>
+            
+            <div style={{padding: '20px'}}>
+              <div style={{background: selectedRentForPay.rent_type === 'Received' ? '#f0fdf4' : '#fff1f2', padding: '12px', borderRadius: '8px', marginBottom: '20px', display: 'flex', justifyContent: 'space-between', border: selectedRentForPay.rent_type === 'Received' ? '1px solid #bbf7d0' : '1px solid #fecdd3'}}>
+                <span style={{fontWeight: 600, color: selectedRentForPay.rent_type === 'Received' ? '#15803d' : '#e11d48'}}>Amount:</span>
+                <span style={{fontWeight: 700, color: selectedRentForPay.rent_type === 'Received' ? '#15803d' : '#e11d48'}}>Rs. {parseFloat(selectedRentForPay.amount).toLocaleString()}</span>
+              </div>
+
+              <div className="form-group" style={{marginBottom: '15px'}}>
+                <label style={{display: 'block', marginBottom: '8px', fontWeight: 600}}>Payment Source *</label>
+                <select 
+                  value={payForm.source}
+                  style={{width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #cbd5e1', outline: 'none'}}
+                  onChange={(e) => setPayForm({...payForm, source: e.target.value, bank: e.target.value === 'Bank' ? (banks[0]?.bank_name || '') : ''})}
+                >
+                  <option value="Cash">Cash (Counter)</option>
+                  {banks.some(b => {
+                    const name = b.bank_name.toLowerCase().trim();
+                    if (name === 'cash' || name === 'cash account') return false;
+                    return (b.module_type || 'Wholesale') === activeTab;
+                  }) && (
+                    <option value="Bank">Bank Account</option>
+                  )}
+                </select>
+              </div>
+
+              {payForm.source === "Bank" && (
+                <div className="form-group" style={{marginBottom: '15px'}}>
+                  <label style={{display: 'block', marginBottom: '8px', fontWeight: 600}}>Select Bank Account *</label>
+                  <select 
+                    value={payForm.bank} 
+                    onChange={(e) => setPayForm({...payForm, bank: e.target.value})} 
+                    style={{width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #cbd5e1', outline: 'none', background: '#f0f9ff', borderColor: '#3b82f6'}}
+                    required
+                  >
+                    <option value="">-- Choose Account --</option>
+                    {banks.filter(b => {
+                      const name = b.bank_name.toLowerCase().trim();
+                      if (name === 'cash' || name === 'cash account') return false;
+                      return (b.module_type || 'Wholesale') === activeTab;
+                    }).map(b => {
+                      const digits = b.account_number ? b.account_number.slice(-4) : '';
+                      return <option key={b.id} value={`${b.bank_name} ${digits ? `(****${digits})` : ''}`}>{b.bank_name} - {b.account_number}</option>;
+                    })}
+                  </select>
+                </div>
+              )}
+              
+              <div style={{background: '#f8fafc', padding: '12px', borderRadius: '8px', marginBottom: '20px', fontSize: '0.85rem', color: '#64748b', border: '1px solid #e2e8f0'}}>
+                <strong>Property:</strong> {selectedRentForPay.property_name}<br/>
+                <strong>{selectedRentForPay.rent_type === 'Received' ? 'Tenant:' : 'Landlord:'}</strong> {selectedRentForPay.landlord_name || '—'}
+              </div>
+
+              <div className="form-actions" style={{display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '20px'}}>
+                <button type="button" className="btn-secondary" onClick={() => setShowPayModal(false)}>Cancel</button>
+                <button className="btn-primary" style={{background: selectedRentForPay.rent_type === 'Received' ? '#10b981' : '#ef4444', borderColor: selectedRentForPay.rent_type === 'Received' ? '#10b981' : '#ef4444'}} disabled={loading} onClick={async () => {
+                   setLoading(true);
+                   try {
+                     const method = payForm.source === 'Bank' ? payForm.bank : 'Cash';
+                     
+                     // If paying rent, verify balance
+                     if (selectedRentForPay.rent_type !== 'Received') {
+                       const balRes = await fetch(`${API_BASE_URL}/banks/balance/${method}?module_type=${activeTab}`, {
+                         headers: { "Authorization": `Bearer ${localStorage.getItem('token')}` }
+                       });
+                       const { balance } = await balRes.json();
+
+                       if (balance < parseFloat(selectedRentForPay.amount)) {
+                         alert(`Insufficient Balance in ${method}! Available: Rs. ${balance.toLocaleString()}`);
+                         setLoading(false);
+                         return;
+                       }
+                     }
+
+                     const finalPaymentType = payForm.source === 'Bank' ? `Bank - ${payForm.bank}` : 'Cash';
+                     const res = await fetch(`${API}/${selectedRentForPay.id}`, {
+                       method: 'PUT',
+                       headers: { 
+                         "Content-Type": "application/json",
+                         "Authorization": `Bearer ${localStorage.getItem('token')}`
+                       },
+                       body: JSON.stringify({ ...selectedRentForPay, status: 'Paid', payment_type: finalPaymentType }),
+                     });
+
+                     if (res.ok) {
+                       setShowPayModal(false);
+                       fetchRecords();
+                       fetchLiveBalances();
+                       alert("Rent entry settled successfully!");
+                     }
+                   } catch (err) { alert("Action failed"); }
+                   setLoading(false);
+                }}>
+                  {loading ? "Processing..." : "Confirm Settlement"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showLedgerModal && selectedPropertyForLedger && (() => {
+        const ledgerRecords = records.filter(r => r.property_name === selectedPropertyForLedger).sort((a, b) => new Date(a.rent_date) - new Date(b.rent_date));
+        const totalPaidLedger = ledgerRecords.filter(r => (r.rent_type || 'Paid') === 'Paid' && r.status === 'Paid').reduce((sum, r) => sum + parseFloat(r.amount || 0), 0);
+        const totalReceivedLedger = ledgerRecords.filter(r => r.rent_type === 'Received' && r.status === 'Paid').reduce((sum, r) => sum + parseFloat(r.amount || 0), 0);
+        const pendingPaidLedger = ledgerRecords.filter(r => (r.rent_type || 'Paid') === 'Paid' && r.status === 'Pending').reduce((sum, r) => sum + parseFloat(r.amount || 0), 0);
+        const pendingReceivedLedger = ledgerRecords.filter(r => r.rent_type === 'Received' && r.status === 'Pending').reduce((sum, r) => sum + parseFloat(r.amount || 0), 0);
+
+        return (
+          <div className="modal-overlay" onClick={() => setShowLedgerModal(false)}>
+            <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '850px', width: '90%' }}>
+              <div className="modal-header">
+                <h3>Rent Ledger: {selectedPropertyForLedger}</h3>
+                <div style={{ display: 'flex', gap: '10px' }}>
+                  <button className="btn-primary" onClick={() => window.print()} style={{ background: '#475569', borderColor: '#475569', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    Print Ledger
+                  </button>
+                  <button className="modal-close" onClick={() => setShowLedgerModal(false)}><X size={20} /></button>
+                </div>
+              </div>
+              
+              <div style={{ padding: '20px' }}>
+                {/* Visual Summary Counters inside Ledger */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '12px', marginBottom: '20px' }}>
+                  <div style={{ background: '#fef2f2', border: '1px solid #fee2e2', padding: '12px', borderRadius: '8px' }}>
+                    <div style={{ fontSize: '0.8rem', color: '#991b1b', fontWeight: 600 }}>Total Rent Paid</div>
+                    <div style={{ fontSize: '1.2rem', color: '#991b1b', fontWeight: 700 }}>Rs. {totalPaidLedger.toLocaleString()}</div>
+                  </div>
+                  <div style={{ background: '#f0fdf4', border: '1px solid #dcfce7', padding: '12px', borderRadius: '8px' }}>
+                    <div style={{ fontSize: '0.8rem', color: '#166534', fontWeight: 600 }}>Total Rent Received</div>
+                    <div style={{ fontSize: '1.2rem', color: '#166534', fontWeight: 700 }}>Rs. {totalReceivedLedger.toLocaleString()}</div>
+                  </div>
+                  <div style={{ background: '#fffbeb', border: '1px solid #fef3c7', padding: '12px', borderRadius: '8px' }}>
+                    <div style={{ fontSize: '0.8rem', color: '#92400e', fontWeight: 600 }}>Pending Payable</div>
+                    <div style={{ fontSize: '1.2rem', color: '#92400e', fontWeight: 700 }}>Rs. {pendingPaidLedger.toLocaleString()}</div>
+                  </div>
+                  <div style={{ background: '#eff6ff', border: '1px solid #dbeafe', padding: '12px', borderRadius: '8px' }}>
+                    <div style={{ fontSize: '0.8rem', color: '#1e40af', fontWeight: 600 }}>Pending Receivable</div>
+                    <div style={{ fontSize: '1.2rem', color: '#1e40af', fontWeight: 700 }}>Rs. {pendingReceivedLedger.toLocaleString()}</div>
+                  </div>
+                </div>
+
+                {/* Ledger Timeline Table */}
+                <div style={{ maxHeight: '350px', overflowY: 'auto', border: '1px solid #e2e8f0', borderRadius: '8px' }}>
+                  <table className="module-table" style={{ margin: 0 }}>
+                    <thead>
+                      <tr>
+                        <th style={{ width: '50px', textAlign: 'center' }}>S.No</th>
+                        <th>Date</th>
+                        <th>Type</th>
+                        <th>Landlord / Tenant</th>
+                        <th>Amount</th>
+                        <th>Status</th>
+                        <th>Notes</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {ledgerRecords.length === 0 ? (
+                        <tr><td colSpan="7" className="empty-msg">No transactions recorded for this property.</td></tr>
+                      ) : (
+                        ledgerRecords.map((r, i) => (
+                          <tr key={r.id}>
+                            <td style={{ textAlign: 'center', fontWeight: 'bold', color: '#64748b' }}>{i + 1}</td>
+                            <td>{new Date(r.rent_date).toLocaleDateString()}</td>
+                            <td>
+                              <span style={{
+                                fontSize: '0.7rem',
+                                padding: '2px 8px',
+                                borderRadius: '4px',
+                                fontWeight: '700',
+                                background: r.rent_type === 'Received' ? '#dcfce7' : '#eff6ff',
+                                color: r.rent_type === 'Received' ? '#15803d' : '#1d4ed8'
+                              }}>
+                                {r.rent_type === 'Received' ? 'Received' : 'Paid'}
+                              </span>
+                            </td>
+                            <td className="bold">{r.landlord_name || '—'}</td>
+                            <td style={{ fontWeight: 700, color: r.rent_type === 'Received' ? '#16a34a' : '#e11d48' }}>
+                              Rs. {parseFloat(r.amount).toLocaleString()}
+                            </td>
+                            <td>
+                              <span className={`status-badge ${r.status.toLowerCase()}`} style={{ padding: '2px 8px', fontSize: '0.7rem' }}>
+                                {r.status}
+                              </span>
+                            </td>
+                            <td style={{ fontSize: '0.8rem', color: '#64748b', maxWidth: '150px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                              {r.notes || '—'}
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+
+                <div className="form-actions" style={{ marginTop: '20px' }}>
+                  <button type="button" className="btn-secondary" onClick={() => setShowLedgerModal(false)}>Close</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }
