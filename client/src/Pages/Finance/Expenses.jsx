@@ -26,7 +26,7 @@ const emptyForm = {
 
 const CATEGORIES = {
   Office: ["Rent", "Electricity", "Staff Tea", "Stationery", "Internet", "Maintenance", "Other"],
-  House: ["MAIN HOUSE", "BEGUM KOT HOUSE", "KHOHKAR ROAD HOUSE", "Grocery", "Personal Withdrawal", "Utility Bills", "Education", "Travel", "Other"]
+  House: ["MAIN HOUSE", "BEGUM KOT HOUSE", "KHOHKAR ROAD HOUSE", "FEE SABEELALLAH", "Grocery", "Personal Withdrawal", "Utility Bills", "Education", "Travel", "Other"]
 };
 
 export default function Expenses({ type }) {
@@ -242,7 +242,7 @@ export default function Expenses({ type }) {
         matchType = true;
       } else if (filterType === "Pending Only") {
         matchType = r.payment_type === 'Pending';
-      } else if (["MAIN HOUSE", "BEGUM KOT HOUSE", "KHOHKAR ROAD HOUSE"].includes(filterType)) {
+      } else if (["MAIN HOUSE", "BEGUM KOT HOUSE", "KHOHKAR ROAD HOUSE", "FEE SABEELALLAH"].includes(filterType)) {
         const cat = (r.category || "").toUpperCase().trim();
         if (filterType === "MAIN HOUSE") {
           matchType = r.expense_type === "House" && (cat === "MAIN HOUSE" || cat === "MIAN HOUSE");
@@ -250,6 +250,8 @@ export default function Expenses({ type }) {
           matchType = r.expense_type === "House" && (cat === "BEGUM KOT HOUSE" || cat === "KAM HOUSE");
         } else if (filterType === "KHOHKAR ROAD HOUSE") {
           matchType = r.expense_type === "House" && (cat === "KHOHKAR ROAD HOUSE" || cat === "KR HOUSE");
+        } else if (filterType === "FEE SABEELALLAH") {
+          matchType = r.expense_type === "House" && cat === "FEE SABEELALLAH";
         }
       } else {
         matchType = r.expense_type === filterType;
@@ -293,6 +295,7 @@ export default function Expenses({ type }) {
     let mainHouseTotal = 0;
     let begumKotHouseTotal = 0;
     let khohkarRoadHouseTotal = 0;
+    let feeSabeelallahTotal = 0;
     let personalVehTotal = 0;
     let supplierVehTotal = 0;
     let pendingTotal = 0;
@@ -322,6 +325,8 @@ export default function Expenses({ type }) {
           begumKotHouseTotal += amount;
         } else if (catUpper === "KHOHKAR ROAD HOUSE" || catUpper === "KR HOUSE") {
           khohkarRoadHouseTotal += amount;
+        } else if (catUpper === "FEE SABEELALLAH") {
+          feeSabeelallahTotal += amount;
         }
       } else if (r.expense_type === "Personal Vehicle") {
         personalVehTotal += amount;
@@ -339,6 +344,7 @@ export default function Expenses({ type }) {
       mainHouseTotal,
       begumKotHouseTotal,
       khohkarRoadHouseTotal,
+      feeSabeelallahTotal,
       personalVehTotal,
       supplierVehTotal,
       pendingTotal,
@@ -415,6 +421,13 @@ export default function Expenses({ type }) {
           </div>
         </div>
         <div className="pos-stat-card">
+          <div className="icon green" style={{ background: '#f0fdf4', color: '#16a34a' }}><Wallet size={24} /></div>
+          <div className="info">
+            <span className="label">Fee Sabeelallah</span>
+            <span className="value">Rs. {stats.feeSabeelallahTotal.toLocaleString()}</span>
+          </div>
+        </div>
+        <div className="pos-stat-card">
           <div className="icon blue" style={{ background: '#ecfeff', color: '#0891b2' }}><Truck size={24} /></div>
           <div className="info">
             <span className="label">Personal Veh.</span>
@@ -477,7 +490,7 @@ export default function Expenses({ type }) {
         </div>
         
         <div className="filter-group">
-           {["All", "Pending Only", "Supplier Vehicle", "Personal Vehicle", "Office", "House", "MAIN HOUSE", "BEGUM KOT HOUSE", "KHOHKAR ROAD HOUSE", "Galla Closeout", "Admin Payment"].map(t => (
+           {["All", "Pending Only", "Supplier Vehicle", "Personal Vehicle", "Office", "House", "MAIN HOUSE", "BEGUM KOT HOUSE", "KHOHKAR ROAD HOUSE", "FEE SABEELALLAH", "Galla Closeout", "Admin Payment"].map(t => (
              <button key={t} className={`tab-btn ${filterType === t ? 'active' : ''}`} onClick={() => setFilterType(t)}>{t}</button>
            ))}
         </div>
