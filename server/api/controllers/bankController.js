@@ -99,8 +99,8 @@ async function updateBankAccountsCurrentBalances(poolOrClient) {
         ? "SELECT id, amount, payment_type, created_at FROM salary_payments WHERE (module_type = 'Wholesale' OR module_type IS NULL)"
         : "SELECT id, amount, payment_type, created_at FROM salary_payments WHERE module_type = $1";
       const rentQ = isWholesale
-        ? "SELECT id, amount, created_at FROM rent WHERE (module_type = 'Wholesale' OR module_type IS NULL)"
-        : "SELECT id, amount, created_at FROM rent WHERE module_type = $1";
+        ? "SELECT id, amount, status, rent_type, payment_type, created_at FROM rent WHERE (module_type = 'Wholesale' OR module_type IS NULL)"
+        : "SELECT id, amount, status, rent_type, payment_type, created_at FROM rent WHERE module_type = $1";
       const invQ = isWholesale
         ? "SELECT id, amount, created_at, date FROM investment WHERE (module_type = 'Wholesale' OR module_type IS NULL)"
         : "SELECT id, amount, created_at, date FROM investment WHERE module_type = $1";
@@ -137,7 +137,13 @@ async function updateBankAccountsCurrentBalances(poolOrClient) {
       });
 
       salaries.rows.forEach(s => txns.push({ id: s.id, type: 'expense', pt: 'Cash', amt: parseFloat(s.amount) || 0, date: new Date(s.created_at) }));
-      rents.rows.forEach(r => txns.push({ id: r.id, type: 'expense', pt: 'Cash', amt: parseFloat(r.amount) || 0, date: new Date(r.created_at) }));
+      rents.rows.forEach(r => {
+        if (r.status === 'Paid') {
+          const type = (r.rent_type === 'Received') ? 'income' : 'expense';
+          const pt = r.payment_type || 'Cash';
+          txns.push({ id: r.id, type, pt, amt: parseFloat(r.amount || 0), date: new Date(r.created_at) });
+        }
+      });
       investments.rows.forEach(i => txns.push({ id: i.id, type: 'income', pt: 'Cash', amt: parseFloat(i.amount) || 0, date: new Date(i.created_at || i.date) }));
       otherExp.rows.forEach(o => txns.push({ id: o.id, type: 'expense', pt: o.payment_method || 'Cash', amt: parseFloat(o.amount) || 0, date: new Date(o.created_at || o.date) }));
 
