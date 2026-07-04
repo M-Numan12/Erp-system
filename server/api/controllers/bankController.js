@@ -99,8 +99,8 @@ async function updateBankAccountsCurrentBalances(poolOrClient) {
         ? "SELECT id, amount, payment_type, created_at FROM salary_payments WHERE (module_type = 'Wholesale' OR module_type IS NULL)"
         : "SELECT id, amount, payment_type, created_at FROM salary_payments WHERE module_type = $1";
       const rentQ = isWholesale
-        ? "SELECT id, amount, status, rent_type, payment_type, created_at FROM rent WHERE (module_type = 'Wholesale' OR module_type IS NULL)"
-        : "SELECT id, amount, status, rent_type, payment_type, created_at FROM rent WHERE module_type = $1";
+        ? "SELECT id, amount, status, rent_type, payment_type, created_at FROM rent WHERE (module_type = 'Wholesale' OR module_type IS NULL) AND (is_property = FALSE OR is_property IS NULL)"
+        : "SELECT id, amount, status, rent_type, payment_type, created_at FROM rent WHERE module_type = $1 AND (is_property = FALSE OR is_property IS NULL)";
       const invQ = isWholesale
         ? "SELECT id, amount, created_at, date FROM investment WHERE (module_type = 'Wholesale' OR module_type IS NULL)"
         : "SELECT id, amount, created_at, date FROM investment WHERE module_type = $1";

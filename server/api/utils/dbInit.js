@@ -140,6 +140,8 @@ async function syncDatabaseSchema() {
     `ALTER TABLE other_expenses ALTER COLUMN payment_method TYPE TEXT;`,
     `ALTER TABLE rent ALTER COLUMN payment_type TYPE TEXT;`,
     `ALTER TABLE rent ADD COLUMN IF NOT EXISTS rent_type VARCHAR(50) DEFAULT 'Paid';`,
+    `ALTER TABLE rent ADD COLUMN IF NOT EXISTS is_property BOOLEAN DEFAULT FALSE;`,
+    `ALTER TABLE rent ADD COLUMN IF NOT EXISTS rent_month VARCHAR(50);`,
     `ALTER TABLE salary ALTER COLUMN payment_type TYPE TEXT;`,
     `ALTER TABLE investments ALTER COLUMN payment_type TYPE TEXT;`,
     `ALTER TABLE staff_ledger ALTER COLUMN payment_method TYPE TEXT;`,
