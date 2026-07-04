@@ -521,9 +521,15 @@ export default function Rent({ type }) {
                 </div>
               )}
               
-              <div style={{background: '#f8fafc', padding: '12px', borderRadius: '8px', marginBottom: '20px', fontSize: '0.85rem', color: '#64748b', border: '1px solid #e2e8f0'}}>
+              <div style={{background: '#f8fafc', padding: '12px', borderRadius: '8px', marginBottom: '20px', fontSize: '0.85rem', color: '#64748b', border: '1px solid #e2e8f0', lineHeight: '1.6'}}>
                 <strong>Property:</strong> {selectedRentForPay.property_name}<br/>
-                <strong>{selectedRentForPay.rent_type === 'Received' ? 'Tenant:' : 'Landlord:'}</strong> {selectedRentForPay.landlord_name || '—'}
+                <strong>{selectedRentForPay.rent_type === 'Received' ? 'Tenant:' : 'Landlord:'}</strong> {selectedRentForPay.landlord_name || '—'}<br/>
+                <strong>Date:</strong> {new Date(selectedRentForPay.rent_date).toLocaleDateString()}<br/>
+                {selectedRentForPay.notes && (
+                  <>
+                    <strong>Description:</strong> {selectedRentForPay.notes}
+                  </>
+                )}
               </div>
 
               <div className="form-actions" style={{display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '20px'}}>
