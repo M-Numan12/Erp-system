@@ -23,6 +23,7 @@ const emptyForm = {
   rent_date: new Date().toLocaleDateString('en-CA'),
   status: "Paid",
   notes: "",
+  rent_type: "Paid",
 };
 
 export default function Rent({ type }) {
@@ -62,6 +63,7 @@ export default function Rent({ type }) {
   const [showModal, setShowModal] = useState(false);
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState("All");
+  const [filterType, setFilterType] = useState("All");
   const [loading, setLoading] = useState(false);
 
   const fetchRecords = async () => {
@@ -91,18 +93,20 @@ export default function Rent({ type }) {
     try {
       const amt = parseFloat(form.amount || 0);
 
-      // Fetch live balances
-      const balRes = await fetch(`${API_BASE_URL}/banks/balances?type=${activeTab}`, {
-        headers: { "Authorization": `Bearer ${localStorage.getItem('token')}` }
-      });
-      if (balRes.ok) {
-        const balances = await balRes.json();
-        const currentAvailable = balances['Cash'] || 0;
-        
-        if (amt > currentAvailable) {
-          alert(`Insufficient Balance! You only have Rs. ${currentAvailable.toLocaleString()} in your Cash account. You cannot make a rent payment of Rs. ${amt.toLocaleString()}!`);
-          setLoading(false);
-          return;
+      // Fetch live balances for payments (only check balance if it is a payment)
+      if ((form.rent_type || 'Paid') !== 'Received') {
+        const balRes = await fetch(`${API_BASE_URL}/banks/balances?type=${activeTab}`, {
+          headers: { "Authorization": `Bearer ${localStorage.getItem('token')}` }
+        });
+        if (balRes.ok) {
+          const balances = await balRes.json();
+          const currentAvailable = balances['Cash'] || 0;
+          
+          if (amt > currentAvailable) {
+            alert(`Insufficient Balance! You only have Rs. ${currentAvailable.toLocaleString()} in your Cash account. You cannot make a rent payment of Rs. ${amt.toLocaleString()}!`);
+            setLoading(false);
+            return;
+          }
         }
       }
 
@@ -136,7 +140,8 @@ export default function Rent({ type }) {
     const matchSearch = (r.property_name || "").toLowerCase().includes(search.toLowerCase()) ||
                         (r.landlord_name || "").toLowerCase().includes(search.toLowerCase());
     const matchStatus = filterStatus === "All" || r.status === filterStatus;
-    return matchSearch && matchStatus;
+    const matchType = filterType === "All" || (r.rent_type || "Paid") === filterType;
+    return matchSearch && matchStatus && matchType;
   });
 
   const sortedFiltered = useMemo(() => {
@@ -148,6 +153,18 @@ export default function Rent({ type }) {
       }
       return (a.id || 0) - (b.id || 0);
     });
+  }, [filtered]);
+
+  const totalPaid = useMemo(() => {
+    return filtered.filter(r => (r.rent_type || 'Paid') === 'Paid').reduce((sum, r) => sum + parseFloat(r.amount || 0), 0);
+  }, [filtered]);
+
+  const totalReceived = useMemo(() => {
+    return filtered.filter(r => r.rent_type === 'Received').reduce((sum, r) => sum + parseFloat(r.amount || 0), 0);
+  }, [filtered]);
+
+  const settledCount = useMemo(() => {
+    return filtered.filter(r => r.status === 'Paid').length;
   }, [filtered]);
 
   // If Admin and no counter selected, show selection screen
@@ -201,26 +218,33 @@ export default function Rent({ type }) {
         </button>
       </div>
 
-      <div className="stats-grid-pos">
+      <div className="stats-grid-pos" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '15px', marginBottom: '20px' }}>
         <div className="pos-stat-card">
           <div className="icon blue"><Building size={24} /></div>
           <div className="info">
             <span className="label">Total Properties</span>
-            <span className="value">{new Set(records.map(r => r.property_name)).size} Units</span>
+            <span className="value">{new Set(filtered.map(r => r.property_name)).size} Units</span>
           </div>
         </div>
         <div className="pos-stat-card">
           <div className="icon red"><CircleDollarSign size={24} /></div>
           <div className="info">
             <span className="label">Total Paid (Rs.)</span>
-            <span className="value">Rs. {records.reduce((sum, r) => sum + parseFloat(r.amount || 0), 0).toLocaleString()}</span>
+            <span className="value">Rs. {totalPaid.toLocaleString()}</span>
+          </div>
+        </div>
+        <div className="pos-stat-card">
+          <div className="icon green" style={{ background: '#f0fdf4', color: '#16a34a' }}><CircleDollarSign size={24} /></div>
+          <div className="info">
+            <span className="label">Total Received (Rs.)</span>
+            <span className="value" style={{ color: '#15803d' }}>Rs. {totalReceived.toLocaleString()}</span>
           </div>
         </div>
         <div className="pos-stat-card">
           <div className="icon green"><CheckCircle size={24} /></div>
           <div className="info">
-            <span className="label">Settled Bills</span>
-            <span className="value">{records.filter(r => r.status === 'Paid').length} Paid</span>
+            <span className="label">Settled Entries</span>
+            <span className="value">{settledCount} Settled</span>
           </div>
         </div>
       </div>
@@ -228,14 +252,19 @@ export default function Rent({ type }) {
       <div className="pos-table-actions">
         <div className="search-bar">
           <Search size={18} />
-          <input type="text" placeholder="Search property or landlord..." value={search} onChange={(e) => setSearch(e.target.value)} />
+          <input type="text" placeholder="Search property, landlord or tenant..." value={search} onChange={(e) => setSearch(e.target.value)} />
         </div>
-        <div className="filter-group">
-           <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className="tab-select">
-             <option value="All">All Status</option>
-             <option value="Paid">Paid</option>
-             <option value="Pending">Pending</option>
-           </select>
+        <div className="filter-group" style={{ display: 'flex', gap: '10px' }}>
+          <select value={filterType} onChange={(e) => setFilterType(e.target.value)} className="tab-select">
+            <option value="All">All Types</option>
+            <option value="Paid">Paid (Expense)</option>
+            <option value="Received">Received (Income)</option>
+          </select>
+          <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className="tab-select">
+            <option value="All">All Status</option>
+            <option value="Paid">Paid</option>
+            <option value="Pending">Pending</option>
+          </select>
         </div>
       </div>
 
@@ -243,20 +272,35 @@ export default function Rent({ type }) {
         <DataTable value={sortedFiltered} paginator rows={10} rowsPerPageOptions={[5, 10, 25, 50]} 
                    emptyMessage="No rent records found." className="p-datatable-sm" stripedRows responsiveLayout="scroll">
           <Column header="S.No." body={(rowData, options) => <span style={{fontWeight: 700, color: '#64748b'}}>{options.rowIndex + 1}</span>} style={{width: '70px', textAlign: 'center'}} />
-          <Column header="Payment Date" body={(r) => (
+          <Column header="Date" body={(r) => (
             <div style={{fontWeight: 700}}>{new Date(r.rent_date).toLocaleDateString()}</div>
           )} sortable field="rent_date" />
+          
+          <Column header="Type" body={(r) => (
+            <span style={{
+              fontSize:'0.75rem', 
+              padding: '4px 10px', 
+              borderRadius: '4px', 
+              fontWeight: '700',
+              background: r.rent_type === 'Received' ? '#dcfce7' : '#eff6ff',
+              color: r.rent_type === 'Received' ? '#15803d' : '#1d4ed8'
+            }}>
+              {r.rent_type === 'Received' ? 'Received' : 'Paid'}
+            </span>
+          )} sortable field="rent_type" />
           
           <Column header="Property / Unit" body={(r) => (
             <span style={{fontWeight: 700, color: '#1e293b'}}>{r.property_name}</span>
           )} sortable field="property_name" />
           
-          <Column header="Landlord" body={(r) => (
+          <Column header="Landlord / Tenant" body={(r) => (
             <div style={{display:'flex', alignItems:'center', gap:'6px', color: '#475569'}}><User size={14}/> {r.landlord_name || '—'}</div>
           )} sortable field="landlord_name" />
           
           <Column header="Rent Amount" body={(r) => (
-            <span style={{fontWeight: 800, color: '#e11d48'}}>Rs. {parseFloat(r.amount).toLocaleString()}</span>
+            <span style={{fontWeight: 800, color: r.rent_type === 'Received' ? '#16a34a' : '#e11d48'}}>
+              Rs. {parseFloat(r.amount).toLocaleString()}
+            </span>
           )} sortable field="amount" />
           
           <Column header="Status" body={(r) => (
@@ -278,12 +322,22 @@ export default function Rent({ type }) {
         <div className="modal-overlay" onClick={() => setShowModal(false)}>
           <div className="modal" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
-              <h3>{editId ? "Edit Rent Record" : "Add Rent Payment"}</h3>
+              <h3>{editId ? "Edit Rent Record" : (form.rent_type === 'Received' ? "Record Rent Receipt" : "Add Rent Payment")}</h3>
               <button className="modal-close" onClick={() => setShowModal(false)}><X size={20} /></button>
             </div>
             <form onSubmit={handleSubmit}>
               <div className="section-label">Property Details</div>
               <div className="form-grid">
+                <div className="form-group">
+                  <label>Rent Type *</label>
+                  <div className="input-wrapper">
+                    <Tag size={18} />
+                    <select value={form.rent_type || 'Paid'} onChange={(e) => setForm({...form, rent_type: e.target.value})}>
+                      <option value="Paid">Rent Paid (Expense)</option>
+                      <option value="Received">Rent Received (Income)</option>
+                    </select>
+                  </div>
+                </div>
                 <div className="form-group">
                   <label>Property/Shop Name *</label>
                   <div className="input-wrapper">
@@ -293,16 +347,16 @@ export default function Rent({ type }) {
                   </div>
                 </div>
                 <div className="form-group">
-                  <label>Landlord Name</label>
+                  <label>{form.rent_type === 'Received' ? 'Tenant Name' : 'Landlord Name'}</label>
                   <div className="input-wrapper">
                     <User size={18} />
-                    <input type="text" value={form.landlord_name} placeholder="Owner of property"
+                    <input type="text" value={form.landlord_name} placeholder={form.rent_type === 'Received' ? "Name of Tenant" : "Owner of property"}
                       onChange={(e) => setForm({...form, landlord_name: e.target.value})} />
                   </div>
                 </div>
               </div>
 
-              <div className="section-label">Payment Information</div>
+              <div className="section-label">{form.rent_type === 'Received' ? 'Receipt Information' : 'Payment Information'}</div>
               <div className="form-grid">
                 <div className="form-group">
                   <label>Rent Amount (Rs.) *</label>
@@ -313,7 +367,7 @@ export default function Rent({ type }) {
                   </div>
                 </div>
                 <div className="form-group">
-                  <label>Payment Date</label>
+                  <label>{form.rent_type === 'Received' ? 'Receipt Date' : 'Payment Date'}</label>
                   <div className="input-wrapper">
                     <Calendar size={18} />
                     <input type="date" value={form.rent_date}
@@ -321,7 +375,7 @@ export default function Rent({ type }) {
                   </div>
                 </div>
                 <div className="form-group">
-                  <label>Payment Status</label>
+                  <label>{form.rent_type === 'Received' ? 'Receipt Status' : 'Payment Status'}</label>
                   <div className="input-wrapper">
                     <Tag size={18} />
                     <select value={form.status} onChange={(e) => setForm({...form, status: e.target.value})}>
