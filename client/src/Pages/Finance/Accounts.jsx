@@ -173,6 +173,8 @@ export default function Accounts() {
   const filteredRents = useMemo(() => {
     const targetModule = user?.role === 'admin' ? activeTab : (user?.module_type || 'Wholesale');
     return rents.filter(r => {
+      if (r.is_property === true) return false;
+      if (r.status !== 'Paid') return false;
       if (targetModule === 'Wholesale') return !r.module_type || r.module_type === 'Wholesale';
       return r.module_type === targetModule;
     });
@@ -785,7 +787,12 @@ export default function Accounts() {
           isExpense: s.transaction_type !== 'Advance Returned',
           payment_type: s.payment_type || 'Cash'
         })),
-      ...filteredRents.map(r => ({ ...r, isExpense: true, payment_type: 'Cash' })),
+      ...filteredRents.map(r => ({
+        ...r,
+        isExpense: r.rent_type !== 'Received',
+        isIncome: r.rent_type === 'Received',
+        payment_type: r.payment_type || 'Cash'
+      })),
       ...filteredOtherExpenses.map(o => ({ ...o, isExpense: true, payment_type: o.payment_method }))
     ].sort((a, b) => new Date(a.created_at || a.expense_date || a.purchase_date || a.date) - new Date(b.created_at || b.expense_date || b.purchase_date || b.date));
 
@@ -930,7 +937,14 @@ export default function Accounts() {
             created_at: s.payment_date || s.created_at
           };
         }),
-      ...filteredRents.map(r => ({ ...r, isExpense: true, customer_name: `Rent: ${r.property_name}`, payment_type: 'Cash', created_at: r.created_at || r.rent_date })),
+      ...filteredRents.map(r => ({
+        ...r,
+        isExpense: r.rent_type !== 'Received',
+        isIncome: r.rent_type === 'Received',
+        customer_name: `Rent: ${r.property_name}`,
+        payment_type: r.payment_type || 'Cash',
+        created_at: r.created_at || r.rent_date
+      })),
       ...filteredOtherExpenses.map(o => ({ ...o, isExpense: true, customer_name: `Other: ${o.title}`, payment_type: o.payment_method, created_at: o.created_at || o.date })),
       ...filteredInvestments.map(i => ({ ...i, isIncome: true, customer_name: `Invest: ${i.investor}`, payment_type: 'Cash', created_at: i.created_at || i.date }))
     ].map(s => {
@@ -1082,7 +1096,14 @@ export default function Accounts() {
             created_at: s.payment_date || s.created_at
           };
         }),
-      ...filteredRents.map(r => ({ ...r, isExpense: true, customer_name: `Rent: ${r.property_name}`, payment_type: 'Cash', created_at: r.created_at || r.rent_date })),
+      ...filteredRents.map(r => ({
+        ...r,
+        isExpense: r.rent_type !== 'Received',
+        isIncome: r.rent_type === 'Received',
+        customer_name: `Rent: ${r.property_name}`,
+        payment_type: r.payment_type || 'Cash',
+        created_at: r.created_at || r.rent_date
+      })),
       ...filteredOtherExpenses.map(o => ({ ...o, isExpense: true, customer_name: `Other: ${o.title}`, payment_type: o.payment_method, created_at: o.created_at || o.date })),
       ...filteredInvestments.map(i => ({ ...i, isIncome: true, customer_name: `Invest: ${i.investor}`, payment_type: 'Cash', created_at: i.created_at || i.date }))
     ].map(s => {
