@@ -26,7 +26,7 @@ const emptyForm = {
 
 const CATEGORIES = {
   Office: ["Rent", "Electricity", "Staff Tea", "Stationery", "Internet", "Maintenance", "Other"],
-  House: ["MIAN HOUSE", "KAM HOUSE", "KR HOUSE", "Grocery", "Personal Withdrawal", "Utility Bills", "Education", "Travel", "Other"]
+  House: ["MAIN HOUSE", "BEGUM KOT HOUSE", "KHOHKAR ROAD HOUSE", "Grocery", "Personal Withdrawal", "Utility Bills", "Education", "Travel", "Other"]
 };
 
 export default function Expenses({ type }) {
@@ -242,8 +242,15 @@ export default function Expenses({ type }) {
         matchType = true;
       } else if (filterType === "Pending Only") {
         matchType = r.payment_type === 'Pending';
-      } else if (["MIAN HOUSE", "KAM HOUSE", "KR HOUSE"].includes(filterType)) {
-        matchType = r.expense_type === "House" && (r.category || "").toUpperCase().trim() === filterType;
+      } else if (["MAIN HOUSE", "BEGUM KOT HOUSE", "KHOHKAR ROAD HOUSE"].includes(filterType)) {
+        const cat = (r.category || "").toUpperCase().trim();
+        if (filterType === "MAIN HOUSE") {
+          matchType = r.expense_type === "House" && (cat === "MAIN HOUSE" || cat === "MIAN HOUSE");
+        } else if (filterType === "BEGUM KOT HOUSE") {
+          matchType = r.expense_type === "House" && (cat === "BEGUM KOT HOUSE" || cat === "KAM HOUSE");
+        } else if (filterType === "KHOHKAR ROAD HOUSE") {
+          matchType = r.expense_type === "House" && (cat === "KHOHKAR ROAD HOUSE" || cat === "KR HOUSE");
+        }
       } else {
         matchType = r.expense_type === filterType;
       }
@@ -283,9 +290,9 @@ export default function Expenses({ type }) {
   const stats = useMemo(() => {
     let officeTotal = 0;
     let houseTotal = 0;
-    let mianHouseTotal = 0;
-    let kamHouseTotal = 0;
-    let krHouseTotal = 0;
+    let mainHouseTotal = 0;
+    let begumKotHouseTotal = 0;
+    let khohkarRoadHouseTotal = 0;
     let personalVehTotal = 0;
     let supplierVehTotal = 0;
     let pendingTotal = 0;
@@ -309,12 +316,12 @@ export default function Expenses({ type }) {
       } else if (r.expense_type === "House" && !isPending) {
         houseTotal += amount;
         const catUpper = (r.category || "").toUpperCase().trim();
-        if (catUpper === "MIAN HOUSE") {
-          mianHouseTotal += amount;
-        } else if (catUpper === "KAM HOUSE") {
-          kamHouseTotal += amount;
-        } else if (catUpper === "KR HOUSE") {
-          krHouseTotal += amount;
+        if (catUpper === "MAIN HOUSE" || catUpper === "MIAN HOUSE") {
+          mainHouseTotal += amount;
+        } else if (catUpper === "BEGUM KOT HOUSE" || catUpper === "KAM HOUSE") {
+          begumKotHouseTotal += amount;
+        } else if (catUpper === "KHOHKAR ROAD HOUSE" || catUpper === "KR HOUSE") {
+          khohkarRoadHouseTotal += amount;
         }
       } else if (r.expense_type === "Personal Vehicle") {
         personalVehTotal += amount;
@@ -329,9 +336,9 @@ export default function Expenses({ type }) {
     return {
       officeTotal,
       houseTotal,
-      mianHouseTotal,
-      kamHouseTotal,
-      krHouseTotal,
+      mainHouseTotal,
+      begumKotHouseTotal,
+      khohkarRoadHouseTotal,
       personalVehTotal,
       supplierVehTotal,
       pendingTotal,
@@ -389,22 +396,22 @@ export default function Expenses({ type }) {
         <div className="pos-stat-card">
           <div className="icon orange" style={{ background: '#fffbeb', color: '#d97706' }}><Home size={24} /></div>
           <div className="info">
-            <span className="label">Mian House</span>
-            <span className="value">Rs. {stats.mianHouseTotal.toLocaleString()}</span>
+            <span className="label">Main House</span>
+            <span className="value">Rs. {stats.mainHouseTotal.toLocaleString()}</span>
           </div>
         </div>
         <div className="pos-stat-card">
           <div className="icon orange" style={{ background: '#fef3c7', color: '#b45309' }}><Home size={24} /></div>
           <div className="info">
-            <span className="label">Kam House</span>
-            <span className="value">Rs. {stats.kamHouseTotal.toLocaleString()}</span>
+            <span className="label">Begum Kot House</span>
+            <span className="value">Rs. {stats.begumKotHouseTotal.toLocaleString()}</span>
           </div>
         </div>
         <div className="pos-stat-card">
           <div className="icon orange" style={{ background: '#fffbeb', color: '#92400e' }}><Home size={24} /></div>
           <div className="info">
-            <span className="label">KR House</span>
-            <span className="value">Rs. {stats.krHouseTotal.toLocaleString()}</span>
+            <span className="label">Khohkar Road House</span>
+            <span className="value">Rs. {stats.khohkarRoadHouseTotal.toLocaleString()}</span>
           </div>
         </div>
         <div className="pos-stat-card">
@@ -470,7 +477,7 @@ export default function Expenses({ type }) {
         </div>
         
         <div className="filter-group">
-           {["All", "Pending Only", "Supplier Vehicle", "Personal Vehicle", "Office", "House", "MIAN HOUSE", "KAM HOUSE", "KR HOUSE", "Galla Closeout", "Admin Payment"].map(t => (
+           {["All", "Pending Only", "Supplier Vehicle", "Personal Vehicle", "Office", "House", "MAIN HOUSE", "BEGUM KOT HOUSE", "KHOHKAR ROAD HOUSE", "Galla Closeout", "Admin Payment"].map(t => (
              <button key={t} className={`tab-btn ${filterType === t ? 'active' : ''}`} onClick={() => setFilterType(t)}>{t}</button>
            ))}
         </div>
