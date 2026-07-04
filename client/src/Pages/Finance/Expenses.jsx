@@ -237,9 +237,16 @@ export default function Expenses({ type }) {
     const yesterdayStr = yesterday.toLocaleDateString('en-CA');
 
     return records.filter(r => {
-      const matchType = filterType === "All" ? true 
-        : filterType === "Pending Only" ? r.payment_type === 'Pending' 
-        : r.expense_type === filterType;
+      let matchType = false;
+      if (filterType === "All") {
+        matchType = true;
+      } else if (filterType === "Pending Only") {
+        matchType = r.payment_type === 'Pending';
+      } else if (["MIAN HOUSE", "KAM HOUSE", "KR HOUSE"].includes(filterType)) {
+        matchType = r.expense_type === "House" && (r.category || "").toUpperCase().trim() === filterType;
+      } else {
+        matchType = r.expense_type === filterType;
+      }
       const matchSearch = (r.title || "").toLowerCase().includes(search.toLowerCase()) || 
                           (r.category || "").toLowerCase().includes(search.toLowerCase());
       
@@ -463,7 +470,7 @@ export default function Expenses({ type }) {
         </div>
         
         <div className="filter-group">
-           {["All", "Pending Only", "Supplier Vehicle", "Personal Vehicle", "Office", "House", "Galla Closeout", "Admin Payment"].map(t => (
+           {["All", "Pending Only", "Supplier Vehicle", "Personal Vehicle", "Office", "House", "MIAN HOUSE", "KAM HOUSE", "KR HOUSE", "Galla Closeout", "Admin Payment"].map(t => (
              <button key={t} className={`tab-btn ${filterType === t ? 'active' : ''}`} onClick={() => setFilterType(t)}>{t}</button>
            ))}
         </div>
