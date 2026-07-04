@@ -26,7 +26,7 @@ const emptyForm = {
 
 const CATEGORIES = {
   Office: ["Rent", "Electricity", "Staff Tea", "Stationery", "Internet", "Maintenance", "Other"],
-  House: ["Grocery", "Personal Withdrawal", "Utility Bills", "Education", "Travel", "Other"]
+  House: ["MIAN HOUSE", "KAM HOUSE", "KR HOUSE", "Grocery", "Personal Withdrawal", "Utility Bills", "Education", "Travel", "Other"]
 };
 
 export default function Expenses({ type }) {
@@ -65,6 +65,15 @@ export default function Expenses({ type }) {
   const [liveBalances, setLiveBalances] = useState({});
   const [personalVehicles, setPersonalVehicles] = useState([]);
   const [dateFilter, setDateFilter] = useState("All Time");
+
+  // Pagination State
+  const [currentPage, setCurrentPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(15);
+
+  // Reset pagination on search / filter changes
+  useEffect(() => {
+    setCurrentPage(0);
+  }, [search, filterType, dateFilter]);
 
   useEffect(() => {
     if (showModal || showPayModal) {
@@ -221,30 +230,32 @@ export default function Expenses({ type }) {
     } catch (err) { console.error(err); }
   };
 
-const filtered = records.filter(r => {
-
-
-    const matchType = filterType === "All" ? true 
-      : filterType === "Pending Only" ? r.payment_type === 'Pending' 
-      : r.expense_type === filterType;
-    const matchSearch = r.title.toLowerCase().includes(search.toLowerCase()) || 
-                        (r.category || "").toLowerCase().includes(search.toLowerCase());
-    
-    let matchDate = true;
+  const filtered = useMemo(() => {
     const todayStr = new Date().toLocaleDateString('en-CA');
-    const recDateStr = r.expense_date ? new Date(r.expense_date).toLocaleDateString('en-CA') : '';
-    
-    if (dateFilter === "Today") {
-      matchDate = recDateStr === todayStr;
-    } else if (dateFilter === "Yesterday") {
-      const yesterday = new Date();
-      yesterday.setDate(yesterday.getDate() - 1);
-      const yesterdayStr = yesterday.toLocaleDateString('en-CA');
-      matchDate = recDateStr === yesterdayStr;
-    }
-    
-    return matchType && matchSearch && matchDate;
-  });
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    const yesterdayStr = yesterday.toLocaleDateString('en-CA');
+
+    return records.filter(r => {
+      const matchType = filterType === "All" ? true 
+        : filterType === "Pending Only" ? r.payment_type === 'Pending' 
+        : r.expense_type === filterType;
+      const matchSearch = (r.title || "").toLowerCase().includes(search.toLowerCase()) || 
+                          (r.category || "").toLowerCase().includes(search.toLowerCase());
+      
+      let matchDate = true;
+      if (dateFilter !== "All Time") {
+        const recDateStr = r.expense_date ? new Date(r.expense_date).toLocaleDateString('en-CA') : '';
+        if (dateFilter === "Today") {
+          matchDate = recDateStr === todayStr;
+        } else if (dateFilter === "Yesterday") {
+          matchDate = recDateStr === yesterdayStr;
+        }
+      }
+      
+      return matchType && matchSearch && matchDate;
+    });
+  }, [records, filterType, search, dateFilter]);
 
   const sortedFiltered = useMemo(() => {
     return [...filtered].sort((a, b) => {
@@ -256,6 +267,70 @@ const filtered = records.filter(r => {
       return (a.id || 0) - (b.id || 0);
     });
   }, [filtered]);
+
+  const paginatedRecords = useMemo(() => {
+    const start = currentPage * rowsPerPage;
+    return sortedFiltered.slice(start, start + rowsPerPage);
+  }, [sortedFiltered, currentPage, rowsPerPage]);
+
+  const stats = useMemo(() => {
+    let officeTotal = 0;
+    let houseTotal = 0;
+    let mianHouseTotal = 0;
+    let kamHouseTotal = 0;
+    let krHouseTotal = 0;
+    let personalVehTotal = 0;
+    let supplierVehTotal = 0;
+    let pendingTotal = 0;
+    let grandPaidTotal = 0;
+
+    const personalVehiclesSet = new Set(personalVehicles.map(v => `${v.vehicle_number} (${v.driver_name})`));
+
+    for (let i = 0; i < filtered.length; i++) {
+      const r = filtered[i];
+      const amount = parseFloat(r.amount) || 0;
+      const isPending = r.payment_type === 'Pending';
+
+      if (isPending) {
+        pendingTotal += amount;
+      } else {
+        grandPaidTotal += amount;
+      }
+
+      if (r.expense_type === "Office" && !isPending) {
+        officeTotal += amount;
+      } else if (r.expense_type === "House" && !isPending) {
+        houseTotal += amount;
+        const catUpper = (r.category || "").toUpperCase().trim();
+        if (catUpper === "MIAN HOUSE") {
+          mianHouseTotal += amount;
+        } else if (catUpper === "KAM HOUSE") {
+          kamHouseTotal += amount;
+        } else if (catUpper === "KR HOUSE") {
+          krHouseTotal += amount;
+        }
+      } else if (r.expense_type === "Personal Vehicle") {
+        personalVehTotal += amount;
+      } else if (r.expense_type === "Supplier Vehicle" && !isPending) {
+        const isPersonal = personalVehiclesSet.has(r.category);
+        if (!isPersonal) {
+          supplierVehTotal += amount;
+        }
+      }
+    }
+
+    return {
+      officeTotal,
+      houseTotal,
+      mianHouseTotal,
+      kamHouseTotal,
+      krHouseTotal,
+      personalVehTotal,
+      supplierVehTotal,
+      pendingTotal,
+      grandPaidTotal
+    };
+  }, [filtered, personalVehicles]);
 
   const targetAccountName = form.payment_source === 'Bank' ? form.bank_name : 'Cash';
   const availableBal = liveBalances[targetAccountName] || 0;
@@ -294,42 +369,63 @@ const filtered = records.filter(r => {
           <div className="icon blue"><Building2 size={24} /></div>
           <div className="info">
             <span className="label">Office Total</span>
-            <span className="value">Rs. {filtered.filter(r => r.expense_type === "Office" && r.payment_type !== 'Pending').reduce((sum, r) => sum + parseFloat(r.amount), 0).toLocaleString()}</span>
+            <span className="value">Rs. {stats.officeTotal.toLocaleString()}</span>
           </div>
         </div>
         <div className="pos-stat-card">
           <div className="icon orange"><Home size={24} /></div>
           <div className="info">
             <span className="label">House Total</span>
-            <span className="value">Rs. {filtered.filter(r => r.expense_type === "House" && r.payment_type !== 'Pending').reduce((sum, r) => sum + parseFloat(r.amount), 0).toLocaleString()}</span>
+            <span className="value">Rs. {stats.houseTotal.toLocaleString()}</span>
+          </div>
+        </div>
+        <div className="pos-stat-card">
+          <div className="icon orange" style={{ background: '#fffbeb', color: '#d97706' }}><Home size={24} /></div>
+          <div className="info">
+            <span className="label">Mian House</span>
+            <span className="value">Rs. {stats.mianHouseTotal.toLocaleString()}</span>
+          </div>
+        </div>
+        <div className="pos-stat-card">
+          <div className="icon orange" style={{ background: '#fef3c7', color: '#b45309' }}><Home size={24} /></div>
+          <div className="info">
+            <span className="label">Kam House</span>
+            <span className="value">Rs. {stats.kamHouseTotal.toLocaleString()}</span>
+          </div>
+        </div>
+        <div className="pos-stat-card">
+          <div className="icon orange" style={{ background: '#fffbeb', color: '#92400e' }}><Home size={24} /></div>
+          <div className="info">
+            <span className="label">KR House</span>
+            <span className="value">Rs. {stats.krHouseTotal.toLocaleString()}</span>
           </div>
         </div>
         <div className="pos-stat-card">
           <div className="icon blue" style={{ background: '#ecfeff', color: '#0891b2' }}><Truck size={24} /></div>
           <div className="info">
             <span className="label">Personal Veh.</span>
-            <span className="value">Rs. {filtered.filter(r => r.expense_type === "Personal Vehicle").reduce((sum, r) => sum + parseFloat(r.amount), 0).toLocaleString()}</span>
+            <span className="value">Rs. {stats.personalVehTotal.toLocaleString()}</span>
           </div>
         </div>
         <div className="pos-stat-card">
           <div className="icon orange" style={{ background: '#fff7ed', color: '#c2410c' }}><Truck size={24} /></div>
           <div className="info">
             <span className="label">Supplier Veh.</span>
-            <span className="value">Rs. {filtered.filter(r => r.expense_type === "Supplier Vehicle" && r.expense_type !== "Personal Vehicle" && !personalVehicles.some(v => `${v.vehicle_number} (${v.driver_name})` === r.category) && r.payment_type !== 'Pending').reduce((sum, r) => sum + parseFloat(r.amount), 0).toLocaleString()}</span>
+            <span className="value">Rs. {stats.supplierVehTotal.toLocaleString()}</span>
           </div>
         </div>
         <div className="pos-stat-card">
           <div className="icon red" style={{ background: '#fef2f2', color: '#ef4444' }}><CircleDollarSign size={24} /></div>
           <div className="info">
             <span className="label" style={{color: '#ef4444', fontWeight: 'bold'}}>PENDING TOTAL</span>
-            <span className="value" style={{color: '#b91c1c', fontWeight: '900'}}>Rs. {filtered.filter(r => r.payment_type === 'Pending').reduce((sum, r) => sum + parseFloat(r.amount), 0).toLocaleString()}</span>
+            <span className="value" style={{color: '#b91c1c', fontWeight: '900'}}>Rs. {stats.pendingTotal.toLocaleString()}</span>
           </div>
         </div>
         <div className="pos-stat-card">
           <div className="icon green"><Wallet size={24} /></div>
           <div className="info">
             <span className="label">Grand Paid Total</span>
-            <span className="value">Rs. {filtered.filter(r => r.payment_type !== 'Pending').reduce((sum, r) => sum + parseFloat(r.amount), 0).toLocaleString()}</span>
+            <span className="value">Rs. {stats.grandPaidTotal.toLocaleString()}</span>
           </div>
         </div>
       </div>
@@ -389,9 +485,9 @@ const filtered = records.filter(r => {
             {sortedFiltered.length === 0 ? (
               <tr><td colSpan="6" className="empty-msg">No expenses found for {activeTab}.</td></tr>
             ) : (
-              sortedFiltered.map((r, index) => (
+              paginatedRecords.map((r, index) => (
                 <tr key={r.id}>
-                  <td style={{textAlign: 'center', fontWeight: 'bold', color: '#64748b'}}>{index + 1}</td>
+                  <td style={{textAlign: 'center', fontWeight: 'bold', color: '#64748b'}}>{currentPage * rowsPerPage + index + 1}</td>
                   <td>{new Date(r.expense_date).toLocaleDateString()}</td>
                   <td>
                     <div className="prod-main-info">
@@ -430,6 +526,92 @@ const filtered = records.filter(r => {
             )}
           </tbody>
         </table>
+        
+        {/* Pagination Controls */}
+        {sortedFiltered.length > 0 && (
+          <div className="pagination-controls" style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            padding: '15px 20px',
+            background: 'white',
+            borderTop: '1px solid #e2e8f0',
+            borderBottomLeftRadius: '16px',
+            borderBottomRightRadius: '16px',
+            flexWrap: 'wrap',
+            gap: '10px'
+          }}>
+            <div style={{ fontSize: '0.9rem', color: '#64748b', fontWeight: 500 }}>
+              Showing {currentPage * rowsPerPage + 1} to {Math.min((currentPage + 1) * rowsPerPage, sortedFiltered.length)} of {sortedFiltered.length} entries
+            </div>
+            <div style={{ display: 'flex', gap: '5px', alignItems: 'center', flexWrap: 'wrap' }}>
+              <button 
+                type="button"
+                disabled={currentPage === 0} 
+                onClick={() => setCurrentPage(prev => prev - 1)}
+                style={{
+                  padding: '6px 12px',
+                  borderRadius: '6px',
+                  border: '1px solid #cbd5e1',
+                  background: currentPage === 0 ? '#f1f5f9' : 'white',
+                  color: currentPage === 0 ? '#94a3b8' : '#334155',
+                  cursor: currentPage === 0 ? 'not-allowed' : 'pointer',
+                  fontWeight: 600,
+                  fontSize: '0.85rem',
+                  transition: 'all 0.2s'
+                }}
+              >
+                Previous
+              </button>
+              
+              <span style={{ fontSize: '0.9rem', color: '#334155', fontWeight: 700, padding: '0 10px' }}>
+                Page {currentPage + 1} of {Math.max(1, Math.ceil(sortedFiltered.length / rowsPerPage))}
+              </span>
+
+              <button 
+                type="button"
+                disabled={currentPage >= Math.ceil(sortedFiltered.length / rowsPerPage) - 1} 
+                onClick={() => setCurrentPage(prev => prev + 1)}
+                style={{
+                  padding: '6px 12px',
+                  borderRadius: '6px',
+                  border: '1px solid #cbd5e1',
+                  background: currentPage >= Math.ceil(sortedFiltered.length / rowsPerPage) - 1 ? '#f1f5f9' : 'white',
+                  color: currentPage >= Math.ceil(sortedFiltered.length / rowsPerPage) - 1 ? '#94a3b8' : '#334155',
+                  cursor: currentPage >= Math.ceil(sortedFiltered.length / rowsPerPage) - 1 ? 'not-allowed' : 'pointer',
+                  fontWeight: 600,
+                  fontSize: '0.85rem',
+                  transition: 'all 0.2s'
+                }}
+              >
+                Next
+              </button>
+
+              <select
+                value={rowsPerPage}
+                onChange={(e) => {
+                  setRowsPerPage(Number(e.target.value));
+                  setCurrentPage(0);
+                }}
+                style={{
+                  marginLeft: '10px',
+                  padding: '5px 8px',
+                  borderRadius: '6px',
+                  border: '1px solid #cbd5e1',
+                  fontSize: '0.85rem',
+                  fontWeight: 600,
+                  color: '#334155',
+                  outline: 'none',
+                  cursor: 'pointer'
+                }}
+              >
+                {[15, 25, 50, 100].map(val => (
+                  <option key={val} value={val}>{val} rows</option>
+                ))}
+              </select>
+            </div>
+          </div>
+        )}
       </div>
 
       {showModal && (
