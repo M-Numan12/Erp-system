@@ -72,6 +72,7 @@ export default function Suppliers({ type }) {
    const [ledgerData, setLedgerData] = useState([]);
   const [ledgerOpeningBalance, setLedgerOpeningBalance] = useState(0);
   const [adjForm, setAdjForm] = useState({ type: "Debit", amount: "", notes: "" });
+  const [undoLoading, setUndoLoading] = useState(false);
 
   const sortedLedgerData = useMemo(() => {
     const sorted = [...ledgerData].sort((a, b) => new Date(a.purchase_date) - new Date(b.purchase_date));
@@ -394,6 +395,37 @@ export default function Suppliers({ type }) {
       }
     } catch (err) {
       console.error("Failed to update entry", err);
+    }
+  };
+
+  const handleUndoTransaction = async (purchaseId) => {
+    if (!purchaseId) return;
+    if (!window.confirm('Are you sure you want to undo this ledger entry?')) return;
+    setUndoLoading(true);
+    try {
+      const res = await fetch(`${API_BASE_URL}/purchases/ledger/undo`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({ purchase_id: purchaseId })
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        alert('Transaction undone successfully');
+        const updatedRecords = await fetchRecords();
+        const updatedSup = (updatedRecords || []).find(s => s.id === selectedSupplier.id);
+        if (updatedSup) setSelectedSupplier(updatedSup);
+        openLedger(updatedSup || selectedSupplier, ledgerFilter);
+      } else {
+        alert(data.error || 'Undo failed');
+      }
+    } catch (err) {
+      console.error('Undo failed', err);
+      alert('An error occurred while undoing transaction');
+    } finally {
+      setUndoLoading(false);
     }
   };
 
@@ -999,6 +1031,25 @@ export default function Suppliers({ type }) {
                       footerStyle={{ textAlign: 'right' }}
                       style={{ textAlign: 'right', width: '120px' }}
                     />
+                    {user?.role === 'admin' && (
+                      <Column 
+                        header="Actions" 
+                        body={(rec) => {
+                          if (rec.isOpening) return null;
+                          return (
+                            <button 
+                              className="btn-secondary" 
+                              style={{ padding: '2px 6px', fontSize: '0.7rem', height: '20px', lineHeight: '1' }} 
+                              onClick={() => handleUndoTransaction(rec.id)}
+                              disabled={undoLoading}
+                            >
+                              Undo
+                            </button>
+                          );
+                        }} 
+                        style={{ width: '80px', textAlign: 'center' }}
+                      />
+                    )}
                   </DataTable>
                 </div>
               )}

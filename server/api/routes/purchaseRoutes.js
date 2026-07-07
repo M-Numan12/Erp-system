@@ -258,6 +258,61 @@ router.post('/adjustment', auth, async (req, res) => {
   }
 });
 
+// Undo a purchase ledger entry (Purchase, Payment, Return, or Adjustment)
+router.post('/ledger/undo', auth, async (req, res) => {
+  if (!isAdmin(req)) return res.status(403).json({ error: 'Only admins can undo ledger entries' });
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const { purchase_id } = req.body;
+    if (!purchase_id) throw new Error('purchase_id is required');
+
+    // 1. Get the purchase record
+    const purchaseRes = await client.query('SELECT * FROM purchases WHERE id = $1 FOR UPDATE', [purchase_id]);
+    if (purchaseRes.rows.length === 0) throw new Error('Purchase record not found');
+    const purchase = purchaseRes.rows[0];
+
+    // 2. Revert Supplier Balance
+    if (purchase.supplier_id) {
+      await client.query(
+        'UPDATE suppliers SET balance = balance - $1 WHERE id = $2',
+        [parseFloat(purchase.balance_amount) || 0, purchase.supplier_id]
+      );
+    }
+
+    // 3. Revert Product Stock
+    if (purchase.product_id && (parseFloat(purchase.quantity) || 0) !== 0) {
+      await client.query(
+        'UPDATE products SET stock_quantity = stock_quantity - $1 WHERE id = $2',
+        [parseFloat(purchase.quantity) || 0, purchase.product_id]
+      );
+    }
+
+    // 4. Revert Vehicle earnings and delete transport expense if applicable
+    if (purchase.vehicle_id && parseFloat(purchase.delivery_charges) > 0) {
+      await client.query(
+        'UPDATE vehicles SET total_earnings = total_earnings - $1 WHERE id = $2',
+        [parseFloat(purchase.delivery_charges), purchase.vehicle_id]
+      );
+      await client.query(
+        "DELETE FROM expenses WHERE vehicle_id = $1 AND amount = $2 AND category = 'Transport'",
+        [purchase.vehicle_id, parseFloat(purchase.delivery_charges)]
+      );
+    }
+
+    // 5. Delete the purchase entry itself
+    await client.query('DELETE FROM purchases WHERE id = $1', [purchase_id]);
+
+    await client.query('COMMIT');
+    res.json({ success: true, message: 'Transaction undone successfully' });
+  } catch (err) {
+    await client.query('ROLLBACK');
+    res.status(500).json({ error: err.message });
+  } finally {
+    client.release();
+  }
+});
+
 // Update a specific purchase entry (from Ledger)
 router.post('/update-ledger-entry', auth, async (req, res) => {
   if (!isAdmin(req)) return res.status(403).json({ error: 'Only admins can edit ledger entries' });
