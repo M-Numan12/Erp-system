@@ -96,6 +96,47 @@ router.get('/:id/ledger', auth, async (req, res) => {
   }
 });
 
+// Undo ledger transaction (Advance/Return)
+router.post('/ledger/undo', auth, async (req, res) => {
+  if (!isAdmin(req)) return res.status(403).json({ error: 'Only admins can undo ledger entries' });
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const { ledger_id } = req.body;
+    if (!ledger_id) throw new Error('ledger_id is required');
+
+    // 1. Get the ledger record
+    const ledgerRes = await client.query('SELECT * FROM staff_ledger WHERE id = $1 FOR UPDATE', [ledger_id]);
+    if (ledgerRes.rows.length === 0) throw new Error('Ledger entry not found');
+    const ledger = ledgerRes.rows[0];
+    const { staff_id, debit, credit } = ledger;
+
+    const db = parseFloat(debit) || 0;
+    const cr = parseFloat(credit) || 0;
+
+    // 2. Revert staff balance
+    await client.query(
+      'UPDATE staff SET current_balance = current_balance - $1 + $2 WHERE id = $3',
+      [db, cr, staff_id]
+    );
+
+    // 3. Delete linked expense record
+    const expenseNote = `Staff Ledger ID: ${ledger_id}`;
+    await client.query('DELETE FROM expenses WHERE notes = $1', [expenseNote]);
+
+    // 4. Delete the ledger entry itself
+    await client.query('DELETE FROM staff_ledger WHERE id = $1', [ledger_id]);
+
+    await client.query('COMMIT');
+    res.json({ success: true, message: 'Transaction undone successfully' });
+  } catch (err) {
+    await client.query('ROLLBACK');
+    res.status(500).json({ error: err.message });
+  } finally {
+    client.release();
+  }
+});
+
 // Add ledger transaction (Advance/Return)
 router.post('/:id/ledger', auth, async (req, res) => {
   const client = await pool.connect();
