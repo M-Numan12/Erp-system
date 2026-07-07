@@ -90,8 +90,8 @@ async function updateBankAccountsCurrentBalances(poolOrClient) {
         ? "SELECT id, paid_amount, payment_type, created_at FROM sales WHERE (sale_type = 'Wholesale' OR sale_type IS NULL)"
         : "SELECT id, paid_amount, payment_type, created_at FROM sales WHERE sale_type = $1";
       const purchQ = isWholesale
-        ? "SELECT p.id, p.paid_amount, p.payment_type, p.delivery_charges, p.fare_payment_type, p.purchase_date FROM purchases p LEFT JOIN products pr ON p.product_id = pr.id WHERE (p.module_type = 'Wholesale' OR p.module_type IS NULL) AND pr.name IS NULL"
-        : "SELECT p.id, p.paid_amount, p.payment_type, p.delivery_charges, p.fare_payment_type, p.purchase_date FROM purchases p LEFT JOIN products pr ON p.product_id = pr.id WHERE p.module_type = $1 AND pr.name IS NULL";
+        ? "SELECT p.id, p.paid_amount, p.payment_type, p.delivery_charges, p.fare_payment_type, p.purchase_date FROM purchases p LEFT JOIN products pr ON p.product_id = pr.id WHERE (p.module_type = 'Wholesale' OR p.module_type IS NULL)"
+        : "SELECT p.id, p.paid_amount, p.payment_type, p.delivery_charges, p.fare_payment_type, p.purchase_date FROM purchases p LEFT JOIN products pr ON p.product_id = pr.id WHERE p.module_type = $1";
       const expQ = isWholesale
         ? "SELECT id, amount, payment_type, expense_type, created_at FROM expenses WHERE (module_type = 'Wholesale' OR module_type IS NULL)"
         : "SELECT id, amount, payment_type, expense_type, created_at FROM expenses WHERE module_type = $1";
