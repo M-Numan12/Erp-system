@@ -711,37 +711,51 @@ export default function Suppliers({ type }) {
                     </td>
                   </tr>
                   
-                  {sortedLedgerData.map((row, index) => (
-                    <tr key={row.id}>
-                      <td style={{border: '1px solid #cbd5e1', padding: '8px'}}>{index + 1}</td>
-                      <td style={{border: '1px solid #cbd5e1', padding: '8px'}}>{new Date(row.purchase_date).toLocaleDateString()}</td>
-                      <td style={{border: '1px solid #cbd5e1', padding: '8px'}}>
-                        {row.product_name ? `${row.brand || ''} ${row.product_name}` : (row.vehicle_number || row.payment_type || 'Manual Entry')}
-                      </td>
-                      <td style={{border: '1px solid #cbd5e1', padding: '8px'}}>{row.product_name ? (row.vehicle_number || '—') : 'N/A'}</td>
-                      <td style={{border: '1px solid #cbd5e1', padding: '8px', textAlign: 'right'}}>
-                        {row.product_name ? `${row.quantity} ${row.unit}` : '—'}
-                      </td>
-                      <td style={{border: '1px solid #cbd5e1', padding: '8px', textAlign: 'right', color: 'green'}}>
-                        {parseFloat(row.paid_amount) > 0 ? parseFloat(row.paid_amount).toLocaleString() : '—'}
-                      </td>
-                      <td style={{border: '1px solid #cbd5e1', padding: '8px', textAlign: 'right', color: 'red'}}>
-                        {parseFloat(row.total_amount) > 0 ? parseFloat(row.total_amount).toLocaleString() : '—'}
-                      </td>
-                      <td style={{border: '1px solid #cbd5e1', padding: '8px', textAlign: 'right', fontWeight: 'bold'}}>
-                        Rs. {Math.abs(parseFloat(row.running_balance || 0)).toLocaleString()} {parseFloat(row.running_balance || 0) > 0 ? 'Dr' : 'Cr'}
-                      </td>
-                    </tr>
-                  ))}
+                  {sortedLedgerData.map((row, index) => {
+                    const tot = parseFloat(row.total_amount) || 0;
+                    const paid = parseFloat(row.paid_amount) || 0;
+                    const debitVal = tot < 0 ? Math.abs(tot) : (paid > 0 ? paid : 0);
+                    const creditVal = tot > 0 ? tot : (paid < 0 ? Math.abs(paid) : 0);
+                    return (
+                      <tr key={row.id}>
+                        <td style={{border: '1px solid #cbd5e1', padding: '8px'}}>{index + 1}</td>
+                        <td style={{border: '1px solid #cbd5e1', padding: '8px'}}>{new Date(row.purchase_date).toLocaleDateString()}</td>
+                        <td style={{border: '1px solid #cbd5e1', padding: '8px'}}>
+                          {row.product_name ? `${row.brand || ''} ${row.product_name}` : (row.vehicle_number || row.payment_type || 'Manual Entry')}
+                        </td>
+                        <td style={{border: '1px solid #cbd5e1', padding: '8px'}}>{row.product_name ? (row.vehicle_number || '—') : 'N/A'}</td>
+                        <td style={{border: '1px solid #cbd5e1', padding: '8px', textAlign: 'right'}}>
+                          {row.product_name ? `${row.quantity} ${row.unit}` : '—'}
+                        </td>
+                        <td style={{border: '1px solid #cbd5e1', padding: '8px', textAlign: 'right', color: 'green'}}>
+                          {debitVal > 0 ? debitVal.toLocaleString() : '—'}
+                        </td>
+                        <td style={{border: '1px solid #cbd5e1', padding: '8px', textAlign: 'right', color: 'red'}}>
+                          {creditVal > 0 ? creditVal.toLocaleString() : '—'}
+                        </td>
+                        <td style={{border: '1px solid #cbd5e1', padding: '8px', textAlign: 'right', fontWeight: 'bold'}}>
+                          Rs. {Math.abs(parseFloat(row.running_balance || 0)).toLocaleString()} {parseFloat(row.running_balance || 0) > 0 ? 'Dr' : 'Cr'}
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
                 <tfoot>
                   <tr style={{background: '#f8fafc', fontWeight: 'bold'}}>
                     <td colSpan="5" style={{border: '1px solid #cbd5e1', padding: '8px', textAlign: 'right'}}>Final Outstanding Balance:</td>
                     <td style={{border: '1px solid #cbd5e1', padding: '8px', textAlign: 'right', color: 'green'}}>
-                      Rs. {sortedLedgerData.reduce((sum,r)=>sum+parseFloat(r.paid_amount||0),0).toLocaleString()}
+                      Rs. {sortedLedgerData.reduce((sum, r) => {
+                        const tot = parseFloat(r.total_amount) || 0;
+                        const paid = parseFloat(r.paid_amount) || 0;
+                        return sum + (tot < 0 ? Math.abs(tot) : (paid > 0 ? paid : 0));
+                      }, 0).toLocaleString()}
                     </td>
                     <td style={{border: '1px solid #cbd5e1', padding: '8px', textAlign: 'right', color: 'red'}}>
-                      Rs. {sortedLedgerData.reduce((sum,r)=>sum+parseFloat(r.total_amount||0),0).toLocaleString()}
+                      Rs. {sortedLedgerData.reduce((sum, r) => {
+                        const tot = parseFloat(r.total_amount) || 0;
+                        const paid = parseFloat(r.paid_amount) || 0;
+                        return sum + (tot > 0 ? tot : (paid < 0 ? Math.abs(paid) : 0));
+                      }, 0).toLocaleString()}
                     </td>
                     <td style={{border: '1px solid #cbd5e1', padding: '8px', textAlign: 'right', color: parseFloat(selectedSupplier.balance) > 0 ? 'red' : 'green'}}>
                       Rs. {Math.abs(parseFloat(selectedSupplier.balance)).toLocaleString()} ({parseFloat(selectedSupplier.balance) > 0 ? 'Payable' : 'Advance'})
@@ -876,7 +890,7 @@ export default function Suppliers({ type }) {
                       header="Qty" 
                       body={row => {
                         if (row.isOpening) return null;
-                        if (row.product_name && parseFloat(row.total_amount) > 0) {
+                        if (row.product_name) {
                           return (
                             <div style={{display: 'flex', alignItems: 'center', gap: '4px'}}>
                               {user?.role === 'admin' ? (
@@ -901,7 +915,7 @@ export default function Suppliers({ type }) {
                       header="Rate" 
                       body={row => {
                         if (row.isOpening) return null;
-                        if (row.product_name && parseFloat(row.total_amount) > 0) {
+                        if (row.product_name) {
                           return user?.role === 'admin' ? (
                             <input 
                               key={`rate-${row.id}`}
@@ -921,15 +935,45 @@ export default function Suppliers({ type }) {
                     />
                     <Column 
                       header="Debit (-)" 
-                      body={row => (!row.isOpening && parseFloat(row.paid_amount) > 0) ? <span style={{fontWeight: '600', color: '#16a34a'}}>Rs. {parseFloat(row.paid_amount).toLocaleString()}</span> : <span style={{color:'#cbd5e1'}}>—</span>}
-                      footer={`Rs. ${sortedLedgerData.reduce((sum, r) => sum + parseFloat(r.paid_amount || 0), 0).toLocaleString()}`}
+                      body={row => {
+                        if (row.isOpening) return <span style={{color:'#cbd5e1'}}>—</span>;
+                        const tot = parseFloat(row.total_amount) || 0;
+                        const paid = parseFloat(row.paid_amount) || 0;
+                        const debitVal = tot < 0 ? Math.abs(tot) : (paid > 0 ? paid : 0);
+                        return debitVal > 0 ? (
+                          <span style={{fontWeight: '600', color: '#16a34a'}}>
+                            Rs. {debitVal.toLocaleString()}
+                          </span>
+                        ) : <span style={{color:'#cbd5e1'}}>—</span>;
+                      }}
+                      footer={`Rs. ${sortedLedgerData.reduce((sum, r) => {
+                        const tot = parseFloat(r.total_amount) || 0;
+                        const paid = parseFloat(r.paid_amount) || 0;
+                        const debitVal = tot < 0 ? Math.abs(tot) : (paid > 0 ? paid : 0);
+                        return sum + debitVal;
+                      }, 0).toLocaleString()}`}
                       footerStyle={{ textAlign: 'right', fontWeight: '700', color: '#16a34a' }}
                       style={{ textAlign: 'right', width: '110px' }}
                     />
                     <Column 
                       header="Credit (+)" 
-                      body={row => (!row.isOpening && parseFloat(row.total_amount) > 0) ? <span style={{fontWeight: '600', color: '#ef4444'}}>Rs. {parseFloat(row.total_amount).toLocaleString()}</span> : <span style={{color:'#cbd5e1'}}>—</span>}
-                      footer={`Rs. ${sortedLedgerData.reduce((sum, r) => sum + parseFloat(r.total_amount || 0), 0).toLocaleString()}`}
+                      body={row => {
+                        if (row.isOpening) return <span style={{color:'#cbd5e1'}}>—</span>;
+                        const tot = parseFloat(row.total_amount) || 0;
+                        const paid = parseFloat(row.paid_amount) || 0;
+                        const creditVal = tot > 0 ? tot : (paid < 0 ? Math.abs(paid) : 0);
+                        return creditVal > 0 ? (
+                          <span style={{fontWeight: '600', color: '#ef4444'}}>
+                            Rs. {creditVal.toLocaleString()}
+                          </span>
+                        ) : <span style={{color:'#cbd5e1'}}>—</span>;
+                      }}
+                      footer={`Rs. ${sortedLedgerData.reduce((sum, r) => {
+                        const tot = parseFloat(r.total_amount) || 0;
+                        const paid = parseFloat(r.paid_amount) || 0;
+                        const creditVal = tot > 0 ? tot : (paid < 0 ? Math.abs(paid) : 0);
+                        return sum + creditVal;
+                      }, 0).toLocaleString()}`}
                       footerStyle={{ textAlign: 'right', fontWeight: '700', color: '#ef4444' }}
                       style={{ textAlign: 'right', width: '110px' }}
                     />
