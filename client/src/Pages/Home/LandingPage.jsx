@@ -178,7 +178,7 @@ const LandingPage = () => {
           <div className="product-card glass-card">
             <div
               className="product-image"
-              style={{ backgroundImage: `url('https://images.unsplash.com/photo-1578328819058-b69f3a3b0f6b?auto=format&fit=crop&w=600&q=80')` }}
+              style={{ backgroundImage: `url('https://images.unsplash.com/photo-1508459855340-fb63ac591728?auto=format&fit=crop&w=600&q=80')` }}
             ></div>
             <div className="product-info">
               <div className="product-icon-title">

@@ -29,6 +29,36 @@ router.get('/ledger/all', auth, async (req, res) => {
   }
 });
 
+// Get purchases/receipts for a specific product
+router.get('/product/:productId', auth, async (req, res) => {
+  try {
+    const { type } = req.query;
+    let query = `
+      SELECT p.*, pr.name as product_name, pr.unit, pr.brand, s.name as supplier_name
+      FROM purchases p
+      LEFT JOIN products pr ON p.product_id = pr.id
+      LEFT JOIN suppliers s ON p.supplier_id = s.id
+      WHERE p.product_id = $1
+    `;
+    let params = [req.params.productId];
+    let pIdx = 2;
+
+    if (!isAdmin(req)) {
+      query += ` AND p.module_type = $${pIdx++}`;
+      params.push(req.user.module_type || 'Retail 1');
+    } else if (type) {
+      query += ` AND p.module_type = $${pIdx++}`;
+      params.push(type);
+    }
+
+    query += ' ORDER BY p.purchase_date DESC';
+    const result = await pool.query(query, params);
+    res.json(result.rows);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // Get all purchases for a specific supplier (Ledger)
 router.get('/supplier/:supplierId', auth, async (req, res) => {
   try {

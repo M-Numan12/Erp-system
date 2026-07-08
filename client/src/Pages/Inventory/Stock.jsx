@@ -23,6 +23,9 @@ export default function Stock({ type }) {
   const [filterStock, setFilterStock] = useState("All");
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
+  const [showLedgerModal, setShowLedgerModal] = useState(false);
+  const [stockHistory, setStockHistory] = useState([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
   const [showReceiveModal, setShowReceiveModal] = useState(false);
   const [showPurchaseReturnModal, setShowPurchaseReturnModal] = useState(false);
   const [receiveForm, setReceiveForm] = useState({
@@ -119,6 +122,31 @@ export default function Stock({ type }) {
     const interval = setInterval(fetchData, 15000);
     return () => clearInterval(interval);
   }, [activeTab]);
+
+  const fetchStockHistory = async (prodId) => {
+    if (!prodId) return;
+    setHistoryLoading(true);
+    try {
+      const headers = { "Authorization": `Bearer ${localStorage.getItem('token')}` };
+      const res = await fetch(`${API_BASE_URL}/purchases/product/${prodId}?type=${activeTab}`, { headers });
+      if (res.ok) {
+        const data = await res.json();
+        setStockHistory(Array.isArray(data) ? data : []);
+      }
+    } catch (err) {
+      console.error("Failed to fetch stock history:", err);
+    } finally {
+      setHistoryLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (showLedgerModal && selectedProduct) {
+      fetchStockHistory(selectedProduct.id);
+    } else {
+      setStockHistory([]);
+    }
+  }, [showLedgerModal, selectedProduct]);
 
   // If Admin and no counter selected, show selection screen
   if (user?.role === 'admin' && !activeTab && !type) {
@@ -535,6 +563,14 @@ export default function Stock({ type }) {
               <Column header="" body={(prod) => (
                 <ActionMenu
                   extraItems={[
+                    ...(user?.role === 'admin' ? [{
+                      label: 'View Ledger',
+                      icon: 'pi pi-book',
+                      command: () => {
+                        setSelectedProduct(prod);
+                        setShowLedgerModal(true);
+                      }
+                    }] : []),
                     {
                       label: 'Receive Stock',
                       icon: 'pi pi-truck',
@@ -619,14 +655,111 @@ export default function Stock({ type }) {
                 </div>
               )}
 
-              <div className="detail-actions">
-                <button className="btn-secondary" onClick={() => setShowDetailModal(false)}>Close</button>
+              <div className="detail-actions" style={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
+                <div style={{ display: 'flex', gap: '10px' }}>
+                  <button className="btn-secondary" onClick={() => setShowDetailModal(false)}>Close</button>
+                  {user?.role === 'admin' && (
+                    <button className="btn-primary" onClick={() => { setShowDetailModal(false); setShowLedgerModal(true); }} style={{ background: '#3b82f6', border: 'none', color: 'white', padding: '8px 16px', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 600 }}>
+                      <Boxes size={18} /> View Ledger
+                    </button>
+                  )}
+                </div>
                 <div className="quick-add">
                   <span>Adjust Stock:</span>
                   <button onClick={(e) => updateStock(e, selectedProduct, -5)} className="btn-quick-adjust red">-5</button>
                   <button onClick={(e) => updateStock(e, selectedProduct, 5)} className="btn-quick-adjust green">+5</button>
                 </div>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Stock Ledger Modal */}
+      {showLedgerModal && selectedProduct && (
+        <div className="modal-overlay" onClick={() => setShowLedgerModal(false)}>
+          <div className="modal stock-ledger-modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '900px', width: '95%', background: 'white', borderRadius: '16px', display: 'flex', flexDirection: 'column', maxHeight: '90vh' }}>
+            <div className="modal-header" style={{ padding: '20px 30px', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div className="header-info" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <Boxes size={24} color="#3b82f6" />
+                <div>
+                  <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 700, color: '#1e293b' }}>Stock Ledger: {selectedProduct.name}</h3>
+                  <p style={{ margin: 0, fontSize: '0.85rem', color: '#64748b' }}>Stock arrival history and supplier tracking ({activeTab})</p>
+                </div>
+              </div>
+              <button className="modal-close" onClick={() => setShowLedgerModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b' }}><X size={20} /></button>
+            </div>
+
+            <div className="modal-body" style={{ padding: '30px', overflowY: 'auto', flexGrow: 1 }}>
+              {historyLoading ? (
+                <div style={{ textAlign: 'center', padding: '40px 0' }}>
+                  <div className="premium-spinner" style={{ margin: '0 auto 15px auto', border: '3px solid #f3f3f3', borderTop: '3px solid #3b82f6', borderRadius: '50%', width: '36px', height: '36px', animation: 'spin 1s linear infinite' }} />
+                  <span style={{ color: '#64748b' }}>Loading stock ledger...</span>
+                </div>
+              ) : stockHistory.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '40px 0', background: '#f8fafc', borderRadius: '12px', border: '1px dashed #cbd5e1' }}>
+                  <Boxes size={40} color="#94a3b8" style={{ marginBottom: '12px', opacity: 0.7 }} />
+                  <p style={{ margin: 0, color: '#64748b', fontWeight: 500 }}>No stock history entries found for this product.</p>
+                </div>
+              ) : (
+                <div className="table-responsive" style={{ border: '1px solid #e2e8f0', borderRadius: '12px', overflow: 'hidden' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.9rem', color: '#334155' }}>
+                    <thead>
+                      <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569', fontWeight: 600 }}>
+                        <th style={{ padding: '12px 16px' }}>Date</th>
+                        <th style={{ padding: '12px 16px' }}>Supplier / Source</th>
+                        <th style={{ padding: '12px 16px' }}>Type</th>
+                        <th style={{ padding: '12px 16px', textAlign: 'right' }}>Qty</th>
+                        <th style={{ padding: '12px 16px', textAlign: 'right' }}>Rate</th>
+                        <th style={{ padding: '12px 16px', textAlign: 'right' }}>Total</th>
+                        <th style={{ padding: '12px 16px', textAlign: 'right' }}>Paid</th>
+                        <th style={{ padding: '12px 16px', textAlign: 'right' }}>Balance</th>
+                        <th style={{ padding: '12px 16px' }}>Vehicle / GP</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {stockHistory.map((item) => {
+                        const isReturn = parseFloat(item.quantity) < 0;
+                        const dateFormatted = new Date(item.purchase_date).toLocaleDateString('en-GB', {
+                          day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit'
+                        });
+                        return (
+                          <tr key={item.id} style={{ borderBottom: '1px solid #f1f5f9' }} className="ledger-row-hover">
+                            <td style={{ padding: '12px 16px', whiteSpace: 'nowrap' }}>{dateFormatted}</td>
+                            <td style={{ padding: '12px 16px', fontWeight: 600 }}>{item.supplier_name || 'Manual Adjustment / System'}</td>
+                            <td style={{ padding: '12px 16px' }}>
+                              <span style={{
+                                padding: '4px 8px', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 700,
+                                background: isReturn ? '#fef2f2' : '#f0fdf4',
+                                color: isReturn ? '#ef4444' : '#15803d'
+                              }}>
+                                {isReturn ? 'Purchase Return' : 'Stock Receive'}
+                              </span>
+                            </td>
+                            <td style={{ padding: '12px 16px', textAlign: 'right', fontWeight: 700, color: isReturn ? '#ef4444' : '#15803d' }}>
+                              {isReturn ? '' : '+'}{parseFloat(item.quantity).toLocaleString()} {item.unit}
+                            </td>
+                            <td style={{ padding: '12px 16px', textAlign: 'right' }}>Rs. {parseFloat(item.rate).toLocaleString()}</td>
+                            <td style={{ padding: '12px 16px', textAlign: 'right', fontWeight: 600 }}>Rs. {Math.abs(parseFloat(item.total_amount)).toLocaleString()}</td>
+                            <td style={{ padding: '12px 16px', textAlign: 'right', color: '#16a34a' }}>Rs. {Math.abs(parseFloat(item.paid_amount)).toLocaleString()}</td>
+                            <td style={{ padding: '12px 16px', textAlign: 'right', color: parseFloat(item.balance_amount) > 0 ? '#ef4444' : '#475569', fontWeight: parseFloat(item.balance_amount) > 0 ? 700 : 400 }}>
+                              Rs. {parseFloat(item.balance_amount).toLocaleString()}
+                            </td>
+                            <td style={{ padding: '12px 16px', color: '#64748b', fontSize: '0.85rem' }}>
+                              <div>{item.vehicle_number || 'N/A'}</div>
+                              {item.gatepass && <div style={{ fontSize: '0.75rem', background: '#f1f5f9', padding: '2px 4px', borderRadius: '4px', display: 'inline-block', marginTop: '2px' }}>GP: {item.gatepass}</div>}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+
+            <div className="modal-footer" style={{ padding: '20px 30px', borderTop: '1px solid #e2e8f0', display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+              <button className="btn-secondary" onClick={() => setShowLedgerModal(false)}>Close Ledger</button>
             </div>
           </div>
         </div>

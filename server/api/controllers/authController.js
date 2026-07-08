@@ -209,14 +209,14 @@ exports.login = async (req, res) => {
 
       if (pendingDeviceResult.rows.length > 0) {
         const pendingDevice = pendingDeviceResult.rows[0];
-        isApproved = pendingDevice.is_approved;
+        isApproved = pendingDevice.is_approved || process.env.NODE_ENV === 'development';
         await pool.query(
-          'UPDATE user_devices SET latitude = $1, longitude = $2, last_login_at = CURRENT_TIMESTAMP, user_agent = $3 WHERE id = $4',
-          [lat || pendingDevice.latitude, lon || pendingDevice.longitude, normalizedUA, pendingDevice.id]
+          'UPDATE user_devices SET is_approved = $1, latitude = $2, longitude = $3, last_login_at = CURRENT_TIMESTAMP, user_agent = $4 WHERE id = $5',
+          [isApproved, lat || pendingDevice.latitude, lon || pendingDevice.longitude, normalizedUA, pendingDevice.id]
         );
       } else {
         // It's a new device!
-        isApproved = (user.role === 'admin');
+        isApproved = (user.role === 'admin' || process.env.NODE_ENV === 'development');
 
         // Geolocation lookup
         let location = null;
