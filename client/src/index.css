@@ -31,7 +31,7 @@ code {
   }
 
   /* Global Layout Resets to prevent flexbox, scrollbar clipping, and margin offsets when printing */
-  html, body, #root, .main-layout, .content-area, .module-page, .billing-page, .modal-overlay, .receipt-preview-overlay, .modal, .p-dialog-mask, .p-dialog {
+  html, body, #root, .main-layout, .content-area, .module-page, .billing-page, .modal-overlay, .receipt-preview-overlay, .modal, .p-dialog-mask, .p-dialog, .counter-hub-page, .hub-content {
     display: block !important;
     position: static !important;
     margin: 0 !important;
@@ -99,7 +99,7 @@ code {
   body:has(.thermal-receipt, #return-slip-print, .print-bill-box, .ledger-report) .main-layout > *:not(.content-area) {
     display: none !important;
   }
-  body:has(.thermal-receipt, #return-slip-print, .print-bill-box, .ledger-report) .content-area > *:not(.module-page) {
+  body:has(.thermal-receipt, #return-slip-print, .print-bill-box, .ledger-report) .content-area > *:not(.module-page, .counter-hub-page) {
     display: none !important;
   }
   body:has(.thermal-receipt, #return-slip-print, .print-bill-box, .ledger-report) .module-page > *:not(.thermal-receipt, #return-slip-print, .print-bill-box, .ledger-report, .modal-overlay, .modal) {
