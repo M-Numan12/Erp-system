@@ -1,7 +1,7 @@
 // Premium Landing Page Styles for Data Waley Cement Depot
 // Theme: Obsidian Dark (#030712) & Metallic Gold (#b89047 / #d97706)
 
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Playfair+Display:ital,wght@1,600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Playfair+Display:ital,wght@1,600&family=Alex+Brush&display=swap');
 
 $bg-dark: #030712;
 $bg-card: rgba(15, 23, 42, 0.7);
@@ -12,6 +12,7 @@ $text-light: #f8fafc;
 $text-muted: #94a3b8;
 $font-family: 'Outfit', sans-serif;
 $font-ceo: 'Playfair Display', serif;
+$font-signature: 'Alex Brush', cursive;
 
 .landing-container {
   background-color: $bg-dark;
@@ -20,6 +21,33 @@ $font-ceo: 'Playfair Display', serif;
   overflow-x: hidden;
   scroll-behavior: smooth;
   min-height: 100vh;
+  position: relative;
+
+  // Background Aura Spheres
+  .bg-aura {
+    position: absolute;
+    width: 600px;
+    height: 600px;
+    border-radius: 50%;
+    filter: blur(160px);
+    opacity: 0.15;
+    z-index: 0;
+    pointer-events: none;
+    animation: floatAura 25s infinite alternate ease-in-out;
+
+    &.gold {
+      background: radial-gradient(circle, $gold-primary 0%, transparent 70%);
+      top: 10%;
+      left: -100px;
+    }
+
+    &.blue {
+      background: radial-gradient(circle, #3b82f6 0%, transparent 70%);
+      bottom: 20%;
+      right: -100px;
+      animation-delay: -5s;
+    }
+  }
 
   // Glassmorphism base
   .glass-card {
@@ -31,8 +59,8 @@ $font-ceo: 'Playfair Display', serif;
     transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
 
     &:hover {
-      border-color: rgba($gold-primary, 0.3);
-      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5), 0 0 30px rgba($gold-primary, 0.05);
+      border-color: rgba($gold-primary, 0.4);
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6), 0 0 40px rgba($gold-primary, 0.1);
       transform: translateY(-6px);
     }
   }
@@ -888,12 +916,14 @@ $font-ceo: 'Playfair Display', serif;
           }
 
           .signature {
-            font-family: $font-ceo;
-            font-size: 2rem;
+            font-family: $font-signature;
+            font-size: 3.5rem;
             color: $gold-primary;
             letter-spacing: 0.05em;
             margin: 0;
-            opacity: 0.9;
+            opacity: 0.95;
+            line-height: 1;
+            padding-top: 5px;
           }
         }
       }
@@ -1063,5 +1093,18 @@ $font-ceo: 'Playfair Display', serif;
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+// Background Aura Float Animation Keyframes
+@keyframes floatAura {
+  0% {
+    transform: translate(0, 0) scale(1);
+  }
+  50% {
+    transform: translate(40px, 60px) scale(1.05);
+  }
+  100% {
+    transform: translate(-20px, -40px) scale(0.95);
   }
 }

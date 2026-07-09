@@ -23,6 +23,10 @@ import {
 const LandingPage = () => {
   return (
     <div className="landing-container">
+      {/* Background Aura Glimmers */}
+      <div className="bg-aura gold"></div>
+      <div className="bg-aura blue"></div>
+
       {/* 1. Navigation Header */}
       <header className="nav-header">
         <Link to="/" className="logo">
@@ -38,6 +42,9 @@ const LandingPage = () => {
           <a href="#contact">Contact</a>
         </nav>
 
+        <div className="portal-buttons">
+          <Link to="/login" className="btn-portal-user">Staff Portal</Link>
+        </div>
       </header>
 
       {/* 2. Hero Section */}
@@ -536,9 +543,6 @@ const LandingPage = () => {
           </div>
         </div>
       </footer>
-      <div className="portal-buttons">
-        <Link to="/login" className="btn-portal-user">Staff Portal</Link>
-      </div>
     </div>
   );
 };
