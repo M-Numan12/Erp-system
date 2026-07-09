@@ -725,8 +725,11 @@ export default function Billing({ type }) {
           } catch (e) { console.error("Labour logging failed:", e); }
         }
 
-        const finalBal = result.customer_balance !== undefined ? parseFloat(result.customer_balance) : (selectedCustomer ? parseFloat(selectedCustomer.balance) + balance : balance);
-        const prevBal = finalBal - balance;
+        const isWalkIn = !selectedCustomer && (!customerName || customerName.trim().toLowerCase() === 'walk-in customer');
+        const finalBal = isWalkIn 
+          ? balance 
+          : (result.customer_balance !== undefined ? parseFloat(result.customer_balance) : (selectedCustomer ? parseFloat(selectedCustomer.balance) + balance : balance));
+        const prevBal = isWalkIn ? 0 : finalBal - balance;
 
         const selectedVehList = vehicles.filter(v => v && selectedVehicleIds.includes(v.id));
         const vehicleNumbersStr = transportType === 'Supplier' ? supplierVehicleNumber : (selectedVehList.map(v => v.vehicle_number).join(', ') || '');
@@ -1504,11 +1507,15 @@ export default function Billing({ type }) {
                         totalAmount: s.net_amount,
                         paidAmount: s.paid_amount,
                         previousBalance: (() => {
+                          const isWalkIn = !s.customer_id || (s.customer_name || '').trim().toLowerCase() === 'walk-in customer';
+                          if (isWalkIn) return 0;
                           const matchedCust = customers.find(c => c.id === s.customer_id);
                           const finalBal = matchedCust ? parseFloat(matchedCust.balance || 0) : parseFloat(s.balance_amount || 0);
                           return finalBal - parseFloat(s.balance_amount || 0);
                         })(),
                         newBalance: (() => {
+                          const isWalkIn = !s.customer_id || (s.customer_name || '').trim().toLowerCase() === 'walk-in customer';
+                          if (isWalkIn) return parseFloat(s.balance_amount || 0);
                           const matchedCust = customers.find(c => c.id === s.customer_id);
                           return matchedCust ? parseFloat(matchedCust.balance || 0) : parseFloat(s.balance_amount || 0);
                         })(),
