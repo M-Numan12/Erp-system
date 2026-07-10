@@ -175,15 +175,17 @@ const LandingPage = () => {
       </section>
 
       {/* 4. Vision Section */}
-      <section id="about" className="vision-section section-padding">
+      <section id="about" className="vision-section">
         <ScrollReveal stagger className="vision-content">
-          <h2 className="reveal-item">BUILDING A STRONGER <span className="gold-accent">PAKISTAN</span></h2>
+          <h2 className="reveal-item">
+            BUILDING A<br />
+            STRONGER<br />
+            <span className="gold-accent">PAKISTAN</span>
+          </h2>
           <p className="reveal-item">
-            For more than four decades, Data Waley Cement Depot has stood as a symbol of reliability
-            and strength in Punjab's construction sector. We empower builders, developers, and homeowners
-            by delivering premium-grade brick, cement, and steel materials that stand the test of time.
-            Our commitment is rooted in integrity, ensuring that every grain of sand and bar of steel
-            we supply contributes to a safer, stronger, and more prosperous nation.
+            Our vision extends beyond materials. We're committed to becoming Punjab's most trusted construction partner, 
+            empowering builders, contractors, and retailers with uncompromising quality and unwavering reliability. 
+            Every brick, every bag of cement, every steel rod carries our 46-year legacy of excellence.
           </p>
         </ScrollReveal>
       </section>
