@@ -4,12 +4,15 @@ body {
   margin: 0;
   font-family: Arial, sans-serif;
   background: $light;
+  color: $text;
 }
 
 input {
   padding: 12px;
   border-radius: 8px;
-  border: 1px solid #ccc;
+  border: 1px solid #444;
+  background: #1e1e1e;
+  color: $text;
 }
 
 button {
@@ -19,4 +22,150 @@ button {
   border: none;
   border-radius: 8px;
   cursor: pointer;
+}
+
+/* Global Dark/Light Black Theme Overrides */
+.module-page {
+  color: #f8fafc !important;
+
+  .module-header .module-title h1 {
+    color: #f8fafc !important;
+  }
+
+  .module-header .module-title p {
+    color: #94a3b8 !important;
+  }
+}
+
+// Summary cards
+.summary-card {
+  background: #1a1a1a !important;
+  border-color: #2d2d30 !important;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4) !important;
+
+  .summary-value {
+    color: #f8fafc !important;
+  }
+}
+
+// Chips/Breakdowns
+.breakdown-chip {
+  background: #1a1a1a !important;
+  border-color: #2d2d30 !important;
+
+  .chip-value {
+    color: #f8fafc !important;
+  }
+}
+
+// Page forms/panels
+.form-container, .card, .panel, .module-card, .data-card, .billing-form, .billing-summary, .p-card {
+  background: #1a1a1a !important;
+  color: #f8fafc !important;
+  border-color: #2d2d30 !important;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4) !important;
+
+  h2, h3, h4, label {
+    color: #f8fafc !important;
+  }
+}
+
+// Inputs global overrides
+input, select, textarea, .p-inputtext, .p-dropdown, .p-calendar input, .p-autocomplete input {
+  background: #121212 !important;
+  color: #f8fafc !important;
+  border-color: #3d3d40 !important;
+
+  &:focus {
+    border-color: $primary !important;
+    box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.2) !important;
+  }
+}
+
+// Select options/dropdown panel
+.p-dropdown-panel, .p-autocomplete-panel, .p-multiselect-panel {
+  background: #1a1a1a !important;
+  border-color: #3d3d40 !important;
+  color: #f8fafc !important;
+
+  .p-dropdown-items .p-dropdown-item {
+    color: #f8fafc !important;
+
+    &:hover, &.p-highlight {
+      background: #252528 !important;
+    }
+  }
+}
+
+// PrimeReact Table Dark Theme fine-tuning
+.p-datatable {
+  .p-datatable-thead > tr > th {
+    background: #1a1a1a !important;
+    color: #f8fafc !important;
+    border-color: #2d2d30 !important;
+  }
+
+  .p-datatable-tbody > tr {
+    background: #121212 !important;
+    color: #f8fafc !important;
+
+    > td {
+      border-color: #2d2d30 !important;
+      color: #f8fafc !important;
+      background: transparent !important;
+    }
+
+    &:nth-child(even) {
+      background: #151517 !important;
+    }
+
+    &:hover {
+      background: #1e1e20 !important;
+    }
+  }
+}
+
+// Custom lists / tables / panels inside module pages
+.custom-table, .transaction-table, .labour-table, .expenses-table, .profit-table {
+  background: #1a1a1a !important;
+  border-color: #2d2d30 !important;
+
+  th {
+    background: #121212 !important;
+    color: #f8fafc !important;
+    border-color: #2d2d30 !important;
+  }
+
+  td {
+    color: #f8fafc !important;
+    border-color: #2c2c2f !important;
+  }
+
+  tr:nth-child(even) {
+    background: #151517 !important;
+  }
+}
+
+// Dialogue boxes and modals
+.p-dialog, .p-dialog-mask, .modal, .modal-overlay, .p-confirm-dialog {
+  .p-dialog-header, .p-dialog-content, .p-dialog-footer {
+    background: #1a1a1a !important;
+    color: #f8fafc !important;
+    border-color: #2d2d30 !important;
+  }
+
+  .p-dialog-title {
+    color: #f8fafc !important;
+  }
+}
+
+// Buttons primary/secondary text alignment for contrast
+.btn-secondary, button.secondary {
+  background: #2c2c2f !important;
+  color: #f8fafc !important;
+  border-color: #3d3d40 !important;
+
+  &:hover {
+    background: #3d3d40 !important;
+  }
 }

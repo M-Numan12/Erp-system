@@ -19,7 +19,8 @@ import {
   Award,
   ChevronRight,
   ChevronLeft,
-  Send
+  Send,
+  Package
 } from 'lucide-react';
 
 const AnimatedCounter = ({ target, duration = 1500, suffix = "" }) => {
@@ -148,33 +149,29 @@ const LandingPage = () => {
     setActiveProject((prev) => (prev - 1 + projects.length) % projects.length);
   };
 
-  // Testimonials Slider State
-  const [activeTestimonial, setActiveTestimonial] = useState(0);
+  // Testimonials Data
   const testimonials = [
     {
-      quote: "We have been buying cement and grade-60 steel from Data Waley for over a decade now. Their stock reliability is unparalleled. Even during extreme market shortages, they fulfilled our warehouse requirements without raising prices unfairly.",
+      quote: "I've been working with Data Waley for over 15 years. Their cement quality is unmatched, and they never compromise on delivery timelines. A true partner in construction.",
       author: "Muhammad Aslam",
       designation: "Civil Contractor, Lahore"
     },
     {
-      quote: "Their digital billing and automated statement system is incredibly convenient. I can verify our loading receipts, track active shipments, and clear outstanding dues instantly. Highly professional cement depot.",
+      quote: "The steel sariya quality from Data Waley has been exceptional for our housing projects. Their pricing is competitive and they understand the needs of large-scale builders.",
       author: "Ahmed Khan",
-      designation: "Developer, Khan Builders Ltd."
+      designation: "Builder & Developer"
     },
     {
-      quote: "Fast same-day delivery is the main reason we partner with them. When we are pouring concrete, any delay in cement supply costs thousands. Data Waley's fleet always delivers on time, without fail.",
-      author: "Mian Rashid Mahmood",
-      designation: "Retail Partner, Sharaqpur"
+      quote: "As a retailer, reliability is everything. Data Waley has never let us down. Their wholesale rates and consistent supply have helped grow our business tremendously.",
+      author: "Rashid Mahmood",
+      designation: "Retail Partner"
+    },
+    {
+      quote: "From bricks to cement, Data Waley maintains the highest standards. Their prompt delivery and excellent customer relationship management make them our top choice.",
+      author: "Zaheer Abbas",
+      designation: "Construction Manager"
     }
   ];
-
-  const nextTestimonial = () => {
-    setActiveTestimonial((prev) => (prev + 1) % testimonials.length);
-  };
-
-  const prevTestimonial = () => {
-    setActiveTestimonial((prev) => (prev - 1 + testimonials.length) % testimonials.length);
-  };
 
   // Contact Form State
   const [formData, setFormData] = useState({ name: '', email: '', phone: '', message: '' });
@@ -448,6 +445,52 @@ const LandingPage = () => {
         </ScrollReveal>
       </section>
 
+      {/* 6b. ERP Tech Operations Section */}
+      <section className="tech-section section-padding">
+        <ScrollReveal className="tech-container">
+          <div className="tech-content reveal-item">
+            <h2>
+              POWERED BY<br />
+              <span className="gold-accent">TECHNOLOGY.</span><br />
+              DRIVEN BY<br />
+              TRUST.
+            </h2>
+            <p className="tech-desc">
+              Our modern ERP system ensures real time inventory tracking, automated order processing, and seamless logistics coordination. Technology meets tradition to deliver excellence.
+            </p>
+            <div className="tech-bullets">
+              <div className="bullet">
+                <CheckCircle2 size={20} color="#b89047" />
+                <div className="bullet-text">
+                  <span>Real-time Inventory Management</span>
+                </div>
+              </div>
+              <div className="bullet">
+                <CheckCircle2 size={20} color="#b89047" />
+                <div className="bullet-text">
+                  <span>Automated Order Processing</span>
+                </div>
+              </div>
+              <div className="bullet">
+                <CheckCircle2 size={20} color="#b89047" />
+                <div className="bullet-text">
+                  <span>Fleet Tracking & Logistics</span>
+                </div>
+              </div>
+              <div className="bullet">
+                <CheckCircle2 size={20} color="#b89047" />
+                <div className="bullet-text">
+                  <span>Customer Portal Access</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div className="tech-visual reveal-item">
+            <img src="/dashboard_mockup.png" alt="ERP Dashboard Mockup" />
+          </div>
+        </ScrollReveal>
+      </section>
+
       {/* 7. Services Section */}
       <section id="services" className="services-section section-padding">
         <ScrollReveal className="section-header">
@@ -548,32 +591,123 @@ const LandingPage = () => {
         </ScrollReveal>
       </section>
 
+      {/* 8. Supply & Logistics Section */}
+      <section className="supply-section section-padding">
+        <ScrollReveal className="supply-header">
+          <h2>
+            SUPPLY ACROSS<br />
+            ALL OF <span className="gold-accent">PUNJAB</span>
+          </h2>
+        </ScrollReveal>
+        
+        <ScrollReveal className="supply-images-container">
+          <div className="supply-img-wrapper">
+            <img src="/truck1.jpg" alt="Truck driving in Punjab" className="supply-img" />
+          </div>
+          <div className="supply-img-wrapper">
+            <img src="/truck2.jpg" alt="Traditional Pakistani truck" className="supply-img" />
+          </div>
+        </ScrollReveal>
+
+        <ScrollReveal stagger className="supply-cards-grid">
+          <div className="supply-card glass-card reveal-item">
+            <div className="supply-icon">
+              <Truck size={28} color="#b89047" />
+            </div>
+            <h3>Fleet Logistics</h3>
+            <p>Modern fleet ensuring timely deliveries across Punjab</p>
+          </div>
+          
+          <div className="supply-card glass-card reveal-item">
+            <div className="supply-icon">
+              <Package size={28} color="#b89047" />
+            </div>
+            <h3>Bulk Orders</h3>
+            <p>Competitive pricing for large-scale wholesale orders</p>
+          </div>
+          
+          <div className="supply-card glass-card reveal-item">
+            <div className="supply-icon">
+              <Building2 size={28} color="#b89047" />
+            </div>
+            <h3>Distribution Network</h3>
+            <p>Strategic partnerships with 250+ retailers</p>
+          </div>
+        </ScrollReveal>
+      </section>
+
       {/* 9. Testimonials Section */}
       <section className="testimonials-section section-padding">
         <ScrollReveal className="test-header">
-          <h2>WHAT OUR CLIENTS <span className="gold-accent">SAY</span></h2>
+          <h2>
+            TRUSTED BY BUILDERS<br />
+            ACROSS <span className="gold-accent">LAHORE</span>
+          </h2>
         </ScrollReveal>
-        <ScrollReveal className="slider-wrapper">
-          <div className="slider-container">
-            <div className="test-card glass-card single-testimonial">
-              <div className="stars">
-                {[...Array(5)].map((_, i) => <Star key={i} size={18} fill="#b89047" color="#b89047" />)}
+        
+        <div className="marquee-wrapper">
+          <div className="marquee-track">
+            {[...testimonials, ...testimonials].map((t, idx) => (
+              <div key={idx} className="test-card glass-card marquee-item">
+                <div className="stars">
+                  {[...Array(5)].map((_, i) => <Star key={i} size={16} fill="#b89047" color="#b89047" />)}
+                </div>
+                <p className="quote">"{t.quote}"</p>
+                <div className="client-info">
+                  <h4>{t.author}</h4>
+                  <p className="gold-accent">{t.designation}</p>
+                </div>
               </div>
-              <p className="quote">
-                "{testimonials[activeTestimonial].quote}"
-              </p>
-              <div className="client-info">
-                <h4>{testimonials[activeTestimonial].author}</h4>
-                <p className="gold-accent">{testimonials[activeTestimonial].designation}</p>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* 9b. CEO Message Section */}
+      <section className="ceo-section section-padding">
+        <ScrollReveal className="ceo-container">
+          <div className="ceo-photo">
+            <img src="/ceo.jpg" alt="Mian Hassam Ahmad, CEO" />
+            <div className="ceo-badge">
+              <svg viewBox="0 0 100 100">
+                <path id="circlePath" d="M 50, 50 m -35, 0 a 35,35 0 1,1 70,0 a 35,35 0 1,1 -70,0" fill="none" />
+                <text font-size="8.2" font-weight="900" fill="#b89047" letter-spacing="1">
+                  <textPath href="#circlePath">
+                    DATA ESTABLISHED 1978 • DATA ESTABLISHED 1978 •
+                  </textPath>
+                </text>
+              </svg>
+              <div className="badge-center">
+                <span className="years">46+</span>
+                <span className="label">YRS</span>
               </div>
-              <div className="slider-controls" style={{ marginTop: '20px' }}>
-                <button onClick={prevTestimonial} className="btn-slider-arrow">
-                  <ChevronLeft size={20} />
-                </button>
-                <button onClick={nextTestimonial} className="btn-slider-arrow">
-                  <ChevronRight size={20} />
-                </button>
-              </div>
+            </div>
+          </div>
+          
+          <div className="ceo-content">
+            <span className="ceo-tag">From The CEO</span>
+            <h2>
+              BUILDING TRUST.<br />
+              <span className="gold-accent">DELIVERING EXCELLENCE.</span>
+            </h2>
+            
+            <p>
+              Since 1978, Data Waley Cement Depot has been built on a simple promise: provide quality materials, honest service, and dependable support to every customer we serve.
+            </p>
+            <p>
+              Over the decades, we have grown from a single depot into a trusted supplier serving thousands of builders, contractors, retailers, and homeowners across Punjab. While our scale has expanded, our values remain unchanged.
+            </p>
+            <p>
+              Every order, every delivery, and every relationship is guided by integrity, reliability, and a commitment to excellence. We believe that strong communities are built on strong foundations, and we are proud to contribute to the projects that shape our cities and our future.
+            </p>
+            <p>
+              Thank you for placing your trust in us. We look forward to serving the next generation of builders with the same dedication that has defined us for more than four decades.
+            </p>
+            
+            <div className="ceo-signature-block">
+              <p className="signature">Mian Hassam Ahmad</p>
+              <p className="ceo-name">Mian Hassam Ahmad</p>
+              <p className="ceo-title">Chief Executive Officer · Data Waley Cement Depot</p>
             </div>
           </div>
         </ScrollReveal>
