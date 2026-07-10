@@ -1024,15 +1024,15 @@ $font-signature: 'Alex Brush', cursive;
         display: flex;
         justify-content: center;
         position: relative;
-        max-width: 320px;
+        max-width: 350px;
         width: 100%;
 
         img {
           width: 100%;
-          max-width: 320px;
-          height: 380px;
+          max-width: 350px;
+          height: 440px;
           object-fit: cover;
-          object-position: center 20%;
+          object-position: center 22%;
           border-radius: 24px;
           border: 2px solid rgba($gold-primary, 0.2);
           box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
@@ -1114,27 +1114,46 @@ $font-signature: 'Alex Brush', cursive;
           border-top: 1px solid rgba(255, 255, 255, 0.08);
           padding-top: 20px;
 
-          .ceo-name {
-            font-size: 1.25rem;
-            font-weight: 700;
-            margin: 0 0 4px 0;
-          }
-
-          .ceo-title {
-            font-size: 0.9rem;
-            color: $text-muted;
-            margin: 0 0 15px 0;
-          }
-
           .signature {
             font-family: $font-signature;
             font-size: 3.5rem;
-            color: $gold-primary;
+            color: #ffffff;
             letter-spacing: 0.05em;
-            margin: 0;
+            margin: 0 0 10px 0;
             opacity: 0.95;
             line-height: 1;
             padding-top: 5px;
+          }
+
+          .ceo-meta {
+            position: relative;
+            padding-left: 45px;
+            display: flex;
+            flex-direction: column;
+            text-align: left;
+
+            &::before {
+              content: "";
+              position: absolute;
+              left: 0;
+              top: 11px;
+              width: 30px;
+              height: 2px;
+              background-color: $gold-primary;
+            }
+
+            .ceo-name {
+              font-size: 1.25rem;
+              font-weight: 700;
+              margin: 0 0 4px 0;
+              color: #ffffff;
+            }
+
+            .ceo-title {
+              font-size: 0.9rem;
+              color: $text-muted;
+              margin: 0;
+            }
           }
         }
       }

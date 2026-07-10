@@ -706,8 +706,10 @@ const LandingPage = () => {
             
             <div className="ceo-signature-block">
               <p className="signature">Mian Hassam Ahmad</p>
-              <p className="ceo-name">Mian Hassam Ahmad</p>
-              <p className="ceo-title">Chief Executive Officer · Data Waley Cement Depot</p>
+              <div className="ceo-meta">
+                <p className="ceo-name">Mian Hassam Ahmad</p>
+                <p className="ceo-title">Chief Executive Officer · Data Waley Cement Depot</p>
+              </div>
             </div>
           </div>
         </ScrollReveal>
