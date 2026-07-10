@@ -384,10 +384,14 @@ $font-signature: 'Alex Brush', cursive;
 
     .products-grid {
       display: grid;
-      grid-template-columns: 1fr;
-      gap: 60px;
-      max-width: 850px;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 40px;
+      max-width: 1200px;
       margin: 0 auto;
+
+      @media (max-width: 900px) {
+        grid-template-columns: 1fr;
+      }
 
       .product-card {
         overflow: hidden;
@@ -395,7 +399,7 @@ $font-signature: 'Alex Brush', cursive;
         flex-direction: column;
 
         .product-image {
-          height: 420px;
+          height: 280px;
           background-size: cover;
           background-position: center;
           border-bottom: 1px solid rgba(255, 255, 255, 0.06);
