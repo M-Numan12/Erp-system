@@ -299,9 +299,10 @@ $font-signature: 'Alex Brush', cursive;
 
   // 3. Statistics
   .stats-section {
-    background-color: rgba(15, 23, 42, 0.3);
-    border-top: 1px solid rgba(255, 255, 255, 0.03);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+    background-color: #000000;
+    border-top: none;
+    border-bottom: none;
+    padding: 80px 5% 60px 5%;
 
     .stats-grid {
       display: grid;
@@ -317,26 +318,37 @@ $font-signature: 'Alex Brush', cursive;
 
       .stat-card {
         text-align: center;
-        padding: 30px 20px;
+        padding: 35px 25px;
+        background: #121212 !important;
+        border: 1px solid rgba(255, 255, 255, 0.05) !important;
+        border-radius: 20px;
+        box-shadow: none !important;
+        transition: all 0.3s ease;
+
+        &:hover {
+          border-color: rgba($gold-primary, 0.3) !important;
+          transform: translateY(-4px) !important;
+          box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5) !important;
+        }
 
         .stat-num {
-          font-size: 3.5rem;
-          font-weight: 800;
-          color: $text-light;
-          line-height: 1;
-          margin-bottom: 10px;
-          background: linear-gradient(135deg, #fff, $gold-primary);
-          -webkit-background-clip: text;
-          background-clip: text;
-          -webkit-text-fill-color: transparent;
+          font-size: 4rem;
+          font-weight: 700;
+          color: $gold-primary;
+          line-height: 1.1;
+          margin-bottom: 12px;
+          background: none;
+          -webkit-background-clip: initial;
+          background-clip: initial;
+          -webkit-text-fill-color: initial;
         }
 
         .stat-label {
-          font-size: 0.9rem;
-          color: $text-muted;
-          font-weight: 600;
-          text-transform: uppercase;
-          letter-spacing: 0.05em;
+          font-size: 0.95rem;
+          color: rgba(255, 255, 255, 0.6);
+          font-weight: 500;
+          text-transform: none;
+          letter-spacing: normal;
         }
       }
     }
