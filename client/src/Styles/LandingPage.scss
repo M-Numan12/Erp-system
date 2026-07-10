@@ -251,12 +251,14 @@ $font-signature: 'Alex Brush', cursive;
       }
 
       h1 {
-        font-size: 4rem;
-        line-height: 1.1;
+        font-size: 5.2rem;
+        line-height: 1.05;
+        font-weight: 900;
+        letter-spacing: -0.03em;
         margin-bottom: 24px;
 
         @media (max-width: 768px) {
-          font-size: 2.5rem;
+          font-size: 3rem;
         }
       }
 

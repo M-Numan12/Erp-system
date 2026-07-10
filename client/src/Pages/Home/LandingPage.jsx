@@ -106,26 +106,26 @@ const ScrollReveal = ({ children, className = "", stagger = false, delay = 0 }) 
 };
 
 const LandingPage = () => {
-  // Projects Slider State
+  // Supply Projects Slider State
   const [activeProject, setActiveProject] = useState(0);
   const projects = [
     {
-      title: "The Falcon Tower",
-      category: "Commercial",
-      image: "https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?auto=format&fit=crop&w=800&q=80",
-      description: "A 45-story luxury business hub in the heart of Islamabad, featuring state-of-the-art infrastructure and eco-friendly design."
+      title: "Lahore Motorway Expansion",
+      category: "Infrastructure",
+      image: "https://images.unsplash.com/photo-1541888946425-d81bb19240f5?auto=format&fit=crop&w=800&q=80",
+      description: "Supplying over 10,000 tons of grade-60 steel rebars and high-strength factory-direct cement for critical motorway infrastructure."
     },
     {
-      title: "Marina Residences",
+      title: "Gulberg Heights Tower",
+      category: "Commercial",
+      image: "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=800&q=80",
+      description: "Exclusive supplier of premium OPC cement and Margalla crush aggregates for heavy concrete foundations on a 20-story business tower."
+    },
+    {
+      title: "DHA Phase-8 Luxury Villas",
       category: "Residential",
       image: "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=800&q=80",
-      description: "A premium waterfront residential development offering modern apartments, smart home integration, and world-class amenities."
-    },
-    {
-      title: "Centaurus Vista",
-      category: "Mixed-Use",
-      image: "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=800&q=80",
-      description: "A modern complex merging retail, corporate offices, and premium penthouses in Lahore's elite commercial district."
+      description: "Prompt delivery of over 500,000 Awwal class baked clay bricks and screened river sand for premium residential masonry."
     }
   ];
 
@@ -135,6 +135,34 @@ const LandingPage = () => {
 
   const prevProject = () => {
     setActiveProject((prev) => (prev - 1 + projects.length) % projects.length);
+  };
+
+  // Testimonials Slider State
+  const [activeTestimonial, setActiveTestimonial] = useState(0);
+  const testimonials = [
+    {
+      quote: "We have been buying cement and grade-60 steel from Data Waley for over a decade now. Their stock reliability is unparalleled. Even during extreme market shortages, they fulfilled our warehouse requirements without raising prices unfairly.",
+      author: "Muhammad Aslam",
+      designation: "Civil Contractor, Lahore"
+    },
+    {
+      quote: "Their digital billing and automated statement system is incredibly convenient. I can verify our loading receipts, track active shipments, and clear outstanding dues instantly. Highly professional cement depot.",
+      author: "Ahmed Khan",
+      designation: "Developer, Khan Builders Ltd."
+    },
+    {
+      quote: "Fast same-day delivery is the main reason we partner with them. When we are pouring concrete, any delay in cement supply costs thousands. Data Waley's fleet always delivers on time, without fail.",
+      author: "Mian Rashid Mahmood",
+      designation: "Retail Partner, Sharaqpur"
+    }
+  ];
+
+  const nextTestimonial = () => {
+    setActiveTestimonial((prev) => (prev + 1) % testimonials.length);
+  };
+
+  const prevTestimonial = () => {
+    setActiveTestimonial((prev) => (prev - 1 + testimonials.length) % testimonials.length);
   };
 
   // Contact Form State
@@ -165,21 +193,22 @@ const LandingPage = () => {
       <header className="nav-header">
         <Link to="/" className="logo">
           <div className="logo-icon">
-            <Building2 size={20} color="#000" />
+            <Building2 size={18} color="#000" />
           </div>
-          <span>FALCON <span className="gold-accent">DEVELOPERS</span></span>
+          <span>DATA WALEY <span className="gold-accent">CEMENT</span></span>
         </Link>
 
         <nav className="nav-links">
           <a href="#home">Home</a>
           <a href="#products">Products</a>
           <a href="#services">Services</a>
-          <a href="#portfolio">Portfolio</a>
+          <a href="#locations">Locations</a>
+          <a href="#portfolio">Supply History</a>
           <a href="#contact">Contact</a>
         </nav>
 
         <a href="#contact" className="btn-nav-outline">
-          Get in Touch
+          Request a Quote
         </a>
       </header>
 
@@ -188,19 +217,19 @@ const LandingPage = () => {
         <div className="hero-content">
           <span className="hero-tag">ESTABLISHED 1978</span>
           <h1>
-            BUILDING A<br />
-            STRONGER<br />
-            <span className="gold-accent">PAKISTAN</span>
+            BUILDING<br />
+            LAHORE<br />
+            <span className="gold-accent">SINCE 1978</span>
           </h1>
           <div className="hero-divider"></div>
           <p className="hero-desc">
-            We are Pakistan's premier construction and materials partner, delivering high-grade steel, cement, and engineering solutions to build a modern nation.
+            Your trusted partner for premium construction materials. Supplying high-grade cement, steel sariya, bricks, and aggregates to Punjab's landmark developments for over 46 years.
           </p>
           <div className="hero-ctas">
-            <a href="#products" className="btn-gold">
-              Explore Products <ArrowRight size={18} />
+            <a href="#contact" className="btn-gold">
+              Request a Quote <ArrowRight size={18} />
             </a>
-            <a href="#about" className="btn-outline">Learn More</a>
+            <a href="#products" className="btn-outline">Explore Products</a>
           </div>
         </div>
       </section>
@@ -210,27 +239,27 @@ const LandingPage = () => {
         <ScrollReveal stagger className="stats-grid">
           <div className="stat-card glass-card reveal-item">
             <div className="stat-num">
-              <AnimatedCounter target={46} suffix="+" />
+              <AnimatedCounter target={50000} suffix="+" />
             </div>
-            <div className="stat-label">Years of Experience</div>
+            <div className="stat-label">Customers Served</div>
           </div>
           <div className="stat-card glass-card reveal-item">
             <div className="stat-num">
               <AnimatedCounter target={250} suffix="+" />
             </div>
-            <div className="stat-label">Completed Projects</div>
+            <div className="stat-label">Retail Partners</div>
           </div>
           <div className="stat-card glass-card reveal-item">
             <div className="stat-num">
-              <AnimatedCounter target={50000} suffix="+" />
+              <AnimatedCounter target={46} suffix="+" />
             </div>
-            <div className="stat-label">Tons of Steel Delivered</div>
+            <div className="stat-label">Years of Legacy</div>
           </div>
           <div className="stat-card glass-card reveal-item">
             <div className="stat-num">
-              <AnimatedCounter target={4.8} suffix="" />
+              <AnimatedCounter target={2} suffix="" />
             </div>
-            <div className="stat-label">Customer Rating</div>
+            <div className="stat-label">Retail Depots</div>
           </div>
         </ScrollReveal>
       </section>
@@ -255,8 +284,8 @@ const LandingPage = () => {
       {/* 5. Products Section */}
       <section id="products" className="products-section section-padding">
         <ScrollReveal className="section-header">
-          <h2>PREMIUM <span className="gold-accent">MATERIALS</span></h2>
-          <p>Every product we supply meets the highest standards of quality and durability.</p>
+          <h2>PREMIUM <span className="gold-accent">CONSTRUCTION MATERIALS</span></h2>
+          <p>We source and distribute only the highest-rated building materials from trusted national brands.</p>
         </ScrollReveal>
 
         <ScrollReveal stagger className="products-grid">
@@ -269,10 +298,10 @@ const LandingPage = () => {
             <div className="product-info">
               <div className="product-icon-title">
                 <Award size={24} color="#b89047" />
-                <h3>High-Grade Cement</h3>
+                <h3>Premium Cement</h3>
               </div>
               <p>
-                Our premium cement ensures maximum bonding strength and longevity, ideal for structural foundations and high-rise developments.
+                Providing high-strength OPC and SRC cements suitable for heavy foundations, slabs, and all general construction work. Engineered for durability.
               </p>
               <div className="brand-badges">
                 <span className="badge">DG Khan Cement</span>
@@ -293,10 +322,10 @@ const LandingPage = () => {
             <div className="product-info">
               <div className="product-icon-title">
                 <Award size={24} color="#b89047" />
-                <h3>Deformed Steel Bars</h3>
+                <h3>Grade-60 Steel Sariya</h3>
               </div>
               <p>
-                Engineered for high tensile strength and seismic resistance, our grade 60 steel rebars provide unmatched durability.
+                Deformed steel rebars featuring high yield strength, outstanding bendability, and excellent bond strength with concrete. Ideal for seismic areas.
               </p>
               <div className="brand-badges">
                 <span className="badge">Mughal Steel</span>
@@ -316,10 +345,10 @@ const LandingPage = () => {
             <div className="product-info">
               <div className="product-icon-title">
                 <Award size={24} color="#b89047" />
-                <h3>Premium Clay Bricks</h3>
+                <h3>Kailash Clay Bricks</h3>
               </div>
               <p>
-                Thoroughly baked clay bricks featuring precise rectangular dimensions and high compressive strength for premium masonry.
+                Premium clay bricks, thoroughly baked in traditional kilns. Offers rich red color, precise rectangular dimensions, and high compressive strength.
               </p>
               <div className="brand-badges">
                 <span className="badge">Awwal (1st Class) Bricks</span>
@@ -338,10 +367,10 @@ const LandingPage = () => {
             <div className="product-info">
               <div className="product-icon-title">
                 <Award size={24} color="#b89047" />
-                <h3>Sand & Aggregates</h3>
+                <h3>Aggregates & Sand</h3>
               </div>
               <p>
-                Clean, graded sand and bajri sourced from premium quarries, perfect for concrete, plastering, and foundational work.
+                Sourced from Margalla and Sargodha hills. Clean river sand and washed bajri screened to ensure concrete strength and superior plaster finishes.
               </p>
               <div className="brand-badges">
                 <span className="badge">Margalla Crush (A-Grade)</span>
@@ -354,11 +383,11 @@ const LandingPage = () => {
         </ScrollReveal>
       </section>
 
-      {/* 6. Latest Projects Section (Portfolio) */}
+      {/* 6. Supply History Section (Portfolio) */}
       <section id="portfolio" className="projects-section section-padding">
         <ScrollReveal className="section-header">
-          <h2>OUR LATEST <span className="gold-accent">PROJECTS</span></h2>
-          <p>Explore some of our landmark structural achievements across Pakistan.</p>
+          <h2>OUR SUPPLY <span className="gold-accent">HISTORY</span></h2>
+          <p>Explore some of the major projects supplied by Data Waley across Punjab.</p>
         </ScrollReveal>
 
         <ScrollReveal className="slider-wrapper">
@@ -375,7 +404,7 @@ const LandingPage = () => {
                 <p>{projects[activeProject].description}</p>
                 <div className="project-slide-footer">
                   <a href="#contact" className="project-link">
-                    Explore Project <ArrowRight size={16} />
+                    Explore Details <ArrowRight size={16} />
                   </a>
                   <div className="slider-controls">
                     <button onClick={prevProject} className="btn-slider-arrow">
@@ -404,60 +433,139 @@ const LandingPage = () => {
       {/* 7. Services Section */}
       <section id="services" className="services-section section-padding">
         <ScrollReveal className="section-header">
-          <h2>OUR COMPREHENSIVE <span className="gold-accent">SERVICES</span></h2>
-          <p>We deliver exceptional craftsmanship and structural guidance across all construction lifecycle stages.</p>
+          <h2>ERP POWERED <span className="gold-accent">LOGISTICS SERVICES</span></h2>
+          <p>We leverage modern digital logistics technology to manage and deliver building materials seamlessly.</p>
         </ScrollReveal>
         <ScrollReveal stagger className="services-grid">
           <div className="service-card glass-card reveal-item">
             <div className="service-icon">
               <Building2 size={28} color="#b89047" />
             </div>
-            <h3>General Contracting</h3>
-            <p>From groundbreaking to final handover, we manage all phases of construction with expert execution and strict quality control.</p>
+            <h3>Real-time Inventory</h3>
+            <p>Our digital system ensures products marked in-stock are ready for immediate dispatch, avoiding project delays.</p>
           </div>
           <div className="service-card glass-card reveal-item">
             <div className="service-icon">
               <Warehouse size={28} color="#b89047" />
             </div>
-            <h3>Architectural Design</h3>
-            <p>Our design team creates innovative, functional, and aesthetically stunning spaces tailored to modern lifestyle and business needs.</p>
+            <h3>Automated Dispatch</h3>
+            <p>Integrated fleet tracking ensures trucks are routed optimally to reach your building site on schedule within 24 hours.</p>
           </div>
           <div className="service-card glass-card reveal-item">
             <div className="service-icon">
               <Database size={28} color="#b89047" />
             </div>
-            <h3>Civil Engineering</h3>
-            <p>Delivering robust engineering solutions, site analysis, and structural designs that stand the test of time and environmental factors.</p>
+            <h3>Digital Billing</h3>
+            <p>Clear, error-free automated invoices, account statements, and loading receipts accessible instantly for absolute transparency.</p>
           </div>
         </ScrollReveal>
       </section>
 
-      {/* 8. Testimonials Section */}
+      {/* 8. Depot Locations Section */}
+      <section id="locations" className="locations-section section-padding">
+        <ScrollReveal className="section-header">
+          <h2>TWO DEPOTS. <span className="gold-accent">ONE HIGHEST STANDARD.</span></h2>
+          <p>Visit our physical locations for order booking, stock inspection, or expert consultation.</p>
+        </ScrollReveal>
+        <ScrollReveal stagger className="locations-grid">
+          {/* Main Location */}
+          <div className="location-card glass-card reveal-item">
+            <div className="loc-header">
+              <MapPin size={28} color="#b89047" />
+              <h3>Main Depot (Kot Abdul Malik)</h3>
+            </div>
+            <div className="loc-details">
+              <div className="detail-item">
+                <span className="info-label">Address:</span>
+                <span>Kot Abdul Malik, Near Motorway Interchange, Lahore, Punjab.</span>
+              </div>
+              <div className="detail-item">
+                <Phone size={18} color="#b89047" style={{ marginTop: '3px' }} />
+                <span><span className="info-label">Phone:</span> 0334-4294300</span>
+              </div>
+              <div className="detail-item">
+                <Clock size={18} color="#b89047" style={{ marginTop: '3px' }} />
+                <span><span className="info-label">Hours:</span> Mon - Sat: 8:00 AM - 8:00 PM</span>
+              </div>
+            </div>
+            <a
+              href="https://maps.google.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn-outline btn-map"
+            >
+              Get Directions <ChevronRight size={16} />
+            </a>
+          </div>
+
+          {/* Branch Location */}
+          <div className="location-card glass-card reveal-item">
+            <div className="loc-header">
+              <MapPin size={28} color="#b89047" />
+              <h3>Sharaqpur Branch</h3>
+            </div>
+            <div className="loc-details">
+              <div className="detail-item">
+                <span className="info-label">Address:</span>
+                <span>Adda Tredewali, Main Jaranwala Road, Near Sharaqpur, Punjab.</span>
+              </div>
+              <div className="detail-item">
+                <Phone size={18} color="#b89047" style={{ marginTop: '3px' }} />
+                <span><span className="info-label">Phone:</span> 0311-4105840</span>
+              </div>
+              <div className="detail-item">
+                <Clock size={18} color="#b89047" style={{ marginTop: '3px' }} />
+                <span><span className="info-label">Hours:</span> Mon - Sat: 8:00 AM - 8:00 PM</span>
+              </div>
+            </div>
+            <a
+              href="https://maps.google.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn-outline btn-map"
+            >
+              Get Directions <ChevronRight size={16} />
+            </a>
+          </div>
+        </ScrollReveal>
+      </section>
+
+      {/* 9. Testimonials Section */}
       <section className="testimonials-section section-padding">
         <ScrollReveal className="test-header">
           <h2>WHAT OUR CLIENTS <span className="gold-accent">SAY</span></h2>
         </ScrollReveal>
-        <ScrollReveal className="testimonials-container">
-          <div className="test-card glass-card single-testimonial">
-            <div className="stars">
-              {[...Array(5)].map((_, i) => <Star key={i} size={18} fill="#b89047" color="#b89047" />)}
-            </div>
-            <p className="quote">
-              "Working with Falcon Developers was a seamless experience. Their attention to detail, quality of construction materials, and adherence to timelines surpassed our expectations."
-            </p>
-            <div className="client-info">
-              <h4>M. ARSHAD KHAN</h4>
-              <p className="gold-accent">CEO, Al-Habib Enterprises</p>
+        <ScrollReveal className="slider-wrapper">
+          <div className="slider-container">
+            <div className="test-card glass-card single-testimonial">
+              <div className="stars">
+                {[...Array(5)].map((_, i) => <Star key={i} size={18} fill="#b89047" color="#b89047" />)}
+              </div>
+              <p className="quote">
+                "{testimonials[activeTestimonial].quote}"
+              </p>
+              <div className="client-info">
+                <h4>{testimonials[activeTestimonial].author}</h4>
+                <p className="gold-accent">{testimonials[activeTestimonial].designation}</p>
+              </div>
+              <div className="slider-controls" style={{ marginTop: '20px' }}>
+                <button onClick={prevTestimonial} className="btn-slider-arrow">
+                  <ChevronLeft size={20} />
+                </button>
+                <button onClick={nextTestimonial} className="btn-slider-arrow">
+                  <ChevronRight size={20} />
+                </button>
+              </div>
             </div>
           </div>
         </ScrollReveal>
       </section>
 
-      {/* 9. Contact & Form Section */}
+      {/* 10. Contact & Form Section */}
       <section id="contact" className="contact-section section-padding">
         <ScrollReveal className="section-header">
           <h2>GET IN <span className="gold-accent">TOUCH</span></h2>
-          <p>Have an upcoming project? Let's build it together with strength and distinction.</p>
+          <p>Contact our sales desk today for bulk rates, booking queries, or custom material delivery schedules.</p>
         </ScrollReveal>
         <div className="contact-container">
           <ScrollReveal className="contact-info-col reveal-item">
@@ -468,29 +576,29 @@ const LandingPage = () => {
               <div className="info-item">
                 <MapPin size={24} color="#b89047" />
                 <div className="item-details">
-                  <h4>Our Address</h4>
-                  <p>Plot 14, Mauve Area, G-8/1, Islamabad, Pakistan</p>
+                  <h4>Our Depot Location</h4>
+                  <p>Kot Abdul Malik, Near Motorway Interchange, Lahore, Punjab</p>
                 </div>
               </div>
               <div className="info-item">
                 <Phone size={24} color="#b89047" />
                 <div className="item-details">
                   <h4>Call Us</h4>
-                  <p>+92 (51) 111-FALCON</p>
+                  <p>0333-4746064 (Main Office)</p>
                 </div>
               </div>
               <div className="info-item">
                 <Mail size={24} color="#b89047" />
                 <div className="item-details">
                   <h4>Email Support</h4>
-                  <p>info@falcondevelopers.com</p>
+                  <p>datawaleycement@gmail.com</p>
                 </div>
               </div>
               <div className="info-item">
                 <Clock size={24} color="#b89047" />
                 <div className="item-details">
                   <h4>Business Hours</h4>
-                  <p>Mon - Sat: 9:00 AM - 6:00 PM</p>
+                  <p>Mon - Sat: 8:00 AM - 8:00 PM</p>
                 </div>
               </div>
             </div>
@@ -506,7 +614,7 @@ const LandingPage = () => {
                   value={formData.name}
                   onChange={handleInputChange}
                   required
-                  placeholder="e.g. Arshad Khan"
+                  placeholder="e.g. Mian Aslam"
                 />
               </div>
               <div className="form-group">
@@ -517,7 +625,7 @@ const LandingPage = () => {
                   value={formData.email}
                   onChange={handleInputChange}
                   required
-                  placeholder="e.g. arshad@gmail.com"
+                  placeholder="e.g. aslam@gmail.com"
                 />
               </div>
               <div className="form-group">
@@ -539,7 +647,7 @@ const LandingPage = () => {
                   onChange={handleInputChange}
                   required
                   rows={4}
-                  placeholder="Tell us about your requirements..."
+                  placeholder="Tell us about your structural material requirements..."
                 ></textarea>
               </div>
               <button type="submit" className="btn-gold btn-submit">
@@ -550,7 +658,7 @@ const LandingPage = () => {
         </div>
       </section>
 
-      {/* 10. Footer Section */}
+      {/* 11. Footer Section */}
       <footer className="footer-section section-padding">
         <div className="footer-grid">
           <div className="footer-col">
@@ -558,10 +666,10 @@ const LandingPage = () => {
               <div className="logo-icon">
                 <Building2 size={16} color="#000" />
               </div>
-              <span>FALCON <span className="gold-accent">DEVELOPERS</span></span>
+              <span>DATA WALEY <span className="gold-accent">CEMENT</span></span>
             </Link>
             <p>
-              Pakistan's premier construction raw material distributor and civil contracting firm. Building a stronger nation since 1978.
+              Premium construction raw material distributor supplying cement, grade-60 steel rebars, kiln-baked clay bricks, and quality aggregates across Punjab since 1978.
             </p>
           </div>
 
@@ -571,23 +679,23 @@ const LandingPage = () => {
               <li><a href="#home">Home</a></li>
               <li><a href="#products">Products</a></li>
               <li><a href="#services">Services</a></li>
-              <li><a href="#portfolio">Our Portfolio</a></li>
+              <li><a href="#locations">Locations</a></li>
             </ul>
           </div>
 
           <div className="footer-col">
             <h4>Premium Materials</h4>
             <ul>
-              <li><span>High-Grade Cement</span></li>
-              <li><span>Deformed Steel Bars</span></li>
-              <li><span>Premium Clay Bricks</span></li>
-              <li><span>Sand & Aggregates</span></li>
+              <li><span>OPC & SRC Cement</span></li>
+              <li><span>Grade-60 Steel Rebars</span></li>
+              <li><span>Kailash Baked Clay Bricks</span></li>
+              <li><span>Aggregates & Sand</span></li>
             </ul>
           </div>
 
           <div className="footer-col">
             <h4>Newsletter</h4>
-            <p>Subscribe to receive our latest project news and updates.</p>
+            <p>Subscribe to receive our latest product price sheets and supply updates.</p>
             <form className="newsletter-form" onSubmit={(e) => e.preventDefault()}>
               <input type="email" placeholder="Your Email Address" required />
               <button type="submit">Subscribe</button>
@@ -596,7 +704,7 @@ const LandingPage = () => {
         </div>
 
         <div className="footer-bottom">
-          <p>© 2026 Falcon Developers. All rights reserved. Established 1978.</p>
+          <p>© 2026 Data Waley Cement Depot. All rights reserved. Established 1978.</p>
           <div className="social-icons">
             <a href="https://facebook.com" target="_blank" rel="noopener noreferrer">FB</a>
             <a href="https://instagram.com" target="_blank" rel="noopener noreferrer">IG</a>
