@@ -311,19 +311,15 @@ const LandingPage = () => {
               style={{ backgroundImage: `url('/cement.jpg')` }}
             ></div>
             <div className="product-info">
-              <div className="product-icon-title">
-                <Award size={24} color="#b89047" />
-                <h3>Premium Cement</h3>
-              </div>
+              <h3>Cement</h3>
               <p>
-                Providing high-strength OPC and SRC cements suitable for heavy foundations, slabs, and all general construction work. Engineered for durability.
+                Premium Portland cement from Pakistan's leading manufacturers. Consistent strength, superior bonding, and reliable performance for all construction needs.
               </p>
               <div className="brand-badges">
                 <span className="badge">DG Khan Cement</span>
                 <span className="badge">Pioneer Cement</span>
                 <span className="badge">Flying Cement</span>
                 <span className="badge">Kohat Cement</span>
-                <span className="badge">Maple Leaf</span>
               </div>
             </div>
           </div>
@@ -335,18 +331,14 @@ const LandingPage = () => {
               style={{ backgroundImage: `url('/steel.jpg')` }}
             ></div>
             <div className="product-info">
-              <div className="product-icon-title">
-                <Award size={24} color="#b89047" />
-                <h3>Grade-60 Steel Sariya</h3>
-              </div>
+              <h3>Steel Sariya</h3>
               <p>
-                Deformed steel rebars featuring high yield strength, outstanding bendability, and excellent bond strength with concrete. Ideal for seismic areas.
+                High-grade steel reinforcement bars (rebar) that exceed national standards. Corrosion-resistant, properly tempered for maximum tensile strength.
               </p>
               <div className="brand-badges">
-                <span className="badge">Mughal Steel</span>
                 <span className="badge">Ravi Steel</span>
+                <span className="badge">Mughal Steel</span>
                 <span className="badge">Islamabad Steel</span>
-                <span className="badge">Ittehad Steel</span>
               </div>
             </div>
           </div>
@@ -358,17 +350,13 @@ const LandingPage = () => {
               style={{ backgroundImage: `url('/bricks.jpg')` }}
             ></div>
             <div className="product-info">
-              <div className="product-icon-title">
-                <Award size={24} color="#b89047" />
-                <h3>Kailash Clay Bricks</h3>
-              </div>
+              <h3>Bricks</h3>
               <p>
-                Premium clay bricks, thoroughly baked in traditional kilns. Offers rich red color, precise rectangular dimensions, and high compressive strength.
+                Locally manufactured clay bricks with superior compressive strength. Uniform dimensions, minimal water absorption, ideal for all masonry work.
               </p>
               <div className="brand-badges">
-                <span className="badge">Awwal (1st Class) Bricks</span>
-                <span className="badge">Doyam (2nd Class) Bricks</span>
-                <span className="badge">Special Selected Bricks</span>
+                <span className="badge">First Class Bricks</span>
+                <span className="badge">Second Class Bricks</span>
               </div>
             </div>
           </div>
@@ -380,18 +368,14 @@ const LandingPage = () => {
               style={{ backgroundImage: `url('/aggregates.jpg')` }}
             ></div>
             <div className="product-info">
-              <div className="product-icon-title">
-                <Award size={24} color="#b89047" />
-                <h3>Aggregates & Sand</h3>
-              </div>
+              <h3>Sand & Aggregates</h3>
               <p>
-                Sourced from Margalla and Sargodha hills. Clean river sand and washed bajri screened to ensure concrete strength and superior plaster finishes.
+                Clean, graded sand and aggregates sourced from premium quarries. Perfect consistency for concrete, plastering, and foundational work.
               </p>
               <div className="brand-badges">
-                <span className="badge">Margalla Crush (A-Grade)</span>
-                <span className="badge">Sargodha Crush</span>
-                <span className="badge">Ravi Chenab Sand</span>
-                <span className="badge">Fine Bajri</span>
+                <span className="badge">Margalla Crush</span>
+                <span className="badge">River Sand</span>
+                <span className="badge">Bajri</span>
               </div>
             </div>
           </div>

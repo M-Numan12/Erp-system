@@ -495,21 +495,19 @@ $font-signature: 'Alex Brush', cursive;
         .product-info {
           padding: 30px;
           flex-grow: 1;
+          display: flex;
+          flex-direction: column;
 
-          .product-icon-title {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            margin-bottom: 15px;
-
-            h3 {
-              font-size: 1.5rem;
-              margin: 0;
-            }
+          h3 {
+            font-size: 2.2rem;
+            font-weight: 800;
+            margin: 0 0 15px 0;
+            color: #ffffff;
+            letter-spacing: -0.02em;
           }
 
           p {
-            color: $text-muted;
+            color: #cbd5e1;
             font-size: 0.95rem;
             line-height: 1.6;
             margin-bottom: 24px;
@@ -523,17 +521,17 @@ $font-signature: 'Alex Brush', cursive;
             .badge {
               font-size: 0.75rem;
               font-weight: 600;
-              background: rgba(255, 255, 255, 0.05);
-              border: 1px solid rgba(255, 255, 255, 0.1);
-              color: $text-light;
-              padding: 4px 10px;
-              border-radius: 6px;
+              background: rgba(255, 255, 255, 0.03);
+              border: 1px solid rgba(255, 255, 255, 0.08);
+              color: $gold-primary;
+              padding: 5px 12px;
+              border-radius: 20px;
               transition: all 0.3s;
 
               &:hover {
-                border-color: rgba($gold-primary, 0.5);
-                color: $gold-primary;
-                background: rgba($gold-primary, 0.05);
+                border-color: rgba($gold-primary, 0.6);
+                background: rgba($gold-primary, 0.08);
+                transform: translateY(-1px);
               }
             }
           }
@@ -940,13 +938,13 @@ $font-signature: 'Alex Brush', cursive;
         width: 380px;
         background: rgba(30, 30, 30, 0.45);
         border: 1px solid rgba(255, 255, 255, 0.05);
-        padding: 35px;
+        padding: 30px;
         border-radius: 20px;
         text-align: left;
         display: flex;
         flex-direction: column;
         justify-content: space-between;
-        height: 250px;
+        height: 290px;
         box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
         transition: transform 0.3s cubic-bezier(0.25, 1, 0.5, 1), border-color 0.3s ease;
 
