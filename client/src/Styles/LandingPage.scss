@@ -47,6 +47,37 @@ $font-signature: 'Alex Brush', cursive;
       right: -100px;
       animation-delay: -5s;
     }
+  }  // Reveal Animations
+  .reveal {
+    opacity: 0;
+    transform: translateY(30px);
+    transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1), transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+    
+    &.active {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .reveal-stagger {
+    .reveal-item {
+      opacity: 0;
+      transform: translateY(35px);
+      transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1), transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    &.active {
+      .reveal-item {
+        opacity: 1;
+        transform: translateY(0);
+
+        @for $i from 1 through 12 {
+          &:nth-child(#{$i}) {
+            transition-delay: #{$i * 0.15}s;
+          }
+        }
+      }
+    }
   }
 
   // Glassmorphism base

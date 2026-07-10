@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import '../../Styles/LandingPage.scss';
 import {
@@ -19,6 +19,89 @@ import {
   Award,
   ChevronRight
 } from 'lucide-react';
+
+const AnimatedCounter = ({ target, duration = 1500, suffix = "" }) => {
+  const [count, setCount] = useState(0);
+  const elementRef = useRef(null);
+  const hasAnimated = useRef(false);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const [entry] = entries;
+        if (entry.isIntersecting && !hasAnimated.current) {
+          hasAnimated.current = true;
+          let startTimestamp = null;
+          const step = (timestamp) => {
+            if (!startTimestamp) startTimestamp = timestamp;
+            const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+            const easeProgress = 1 - Math.pow(1 - progress, 3); // easeOutCubic
+            setCount(Math.floor(easeProgress * target));
+            if (progress < 1) {
+              window.requestAnimationFrame(step);
+            }
+          };
+          window.requestAnimationFrame(step);
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    if (elementRef.current) {
+      observer.observe(elementRef.current);
+    }
+
+    return () => {
+      if (elementRef.current) {
+        observer.unobserve(elementRef.current);
+      }
+    };
+  }, [target, duration]);
+
+  return (
+    <span ref={elementRef}>
+      {count.toLocaleString()}{suffix}
+    </span>
+  );
+};
+
+const ScrollReveal = ({ children, className = "", stagger = false, delay = 0 }) => {
+  const [isActive, setIsActive] = useState(false);
+  const elementRef = useRef(null);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const [entry] = entries;
+        if (entry.isIntersecting) {
+          setIsActive(true);
+          observer.unobserve(entry.target);
+        }
+      },
+      { threshold: 0.05, rootMargin: "0px 0px -80px 0px" }
+    );
+
+    if (elementRef.current) {
+      observer.observe(elementRef.current);
+    }
+
+    return () => {
+      if (elementRef.current) {
+        observer.unobserve(elementRef.current);
+      }
+    };
+  }, []);
+
+  return (
+    <div
+      ref={elementRef}
+      className={`${stagger ? 'reveal-stagger' : 'reveal'} ${isActive ? 'active' : ''} ${className}`}
+      style={delay ? { transitionDelay: `${delay}s` } : {}}
+    >
+      {children}
+    </div>
+  );
+};
 
 const LandingPage = () => {
   return (
@@ -63,50 +146,58 @@ const LandingPage = () => {
 
       {/* 3. Statistics Section */}
       <section className="stats-section section-padding">
-        <div className="stats-grid">
-          <div className="stat-card glass-card">
-            <div className="stat-num">50k+</div>
+        <ScrollReveal stagger className="stats-grid">
+          <div className="stat-card glass-card reveal-item">
+            <div className="stat-num">
+              <AnimatedCounter target={50000} suffix="+" />
+            </div>
             <div className="stat-label">Customers Served</div>
           </div>
-          <div className="stat-card glass-card">
-            <div className="stat-num">250+</div>
+          <div className="stat-card glass-card reveal-item">
+            <div className="stat-num">
+              <AnimatedCounter target={250} suffix="+" />
+            </div>
             <div className="stat-label">Retail Partners</div>
           </div>
-          <div className="stat-card glass-card">
-            <div className="stat-num">46+</div>
-            <div className="stat-label">Years of Legacy</div>
+          <div className="stat-card glass-card reveal-item">
+            <div className="stat-num">
+              <AnimatedCounter target={46} suffix="+" />
+            </div>
+            <div className="stat-label">Years in Business</div>
           </div>
-          <div className="stat-card glass-card">
-            <div className="stat-num">2</div>
-            <div className="stat-label">Retail Depots</div>
+          <div className="stat-card glass-card reveal-item">
+            <div className="stat-num">
+              <AnimatedCounter target={2} />
+            </div>
+            <div className="stat-label">Retail Locations</div>
           </div>
-        </div>
+        </ScrollReveal>
       </section>
 
       {/* 4. Vision Section */}
       <section id="about" className="vision-section section-padding">
-        <div className="vision-content">
-          <h2>BUILDING A STRONGER <span className="gold-accent">PAKISTAN</span></h2>
-          <p>
+        <ScrollReveal stagger className="vision-content">
+          <h2 className="reveal-item">BUILDING A STRONGER <span className="gold-accent">PAKISTAN</span></h2>
+          <p className="reveal-item">
             For more than four decades, Data Waley Cement Depot has stood as a symbol of reliability
             and strength in Punjab's construction sector. We empower builders, developers, and homeowners
             by delivering premium-grade brick, cement, and steel materials that stand the test of time.
             Our commitment is rooted in integrity, ensuring that every grain of sand and bar of steel
             we supply contributes to a safer, stronger, and more prosperous nation.
           </p>
-        </div>
+        </ScrollReveal>
       </section>
 
       {/* 5. Products Section */}
       <section id="products" className="products-section section-padding">
-        <div className="section-header">
+        <ScrollReveal className="section-header">
           <h2>PREMIUM <span className="gold-accent">CONSTRUCTION MATERIALS</span></h2>
           <p>We source and distribute only the highest-rated building materials from trusted national brands.</p>
-        </div>
+        </ScrollReveal>
 
-        <div className="products-grid">
+        <ScrollReveal stagger className="products-grid">
           {/* Cement Card */}
-          <div className="product-card glass-card">
+          <div className="product-card glass-card reveal-item">
             <div
               className="product-image"
               style={{ backgroundImage: `url('https://images.unsplash.com/photo-1589939705384-5185137a7f0f?auto=format&fit=crop&w=600&q=80')` }}
@@ -131,7 +222,7 @@ const LandingPage = () => {
           </div>
 
           {/* Steel Card */}
-          <div className="product-card glass-card">
+          <div className="product-card glass-card reveal-item">
             <div
               className="product-image"
               style={{ backgroundImage: `url('https://images.unsplash.com/photo-1504917595217-d4dc5ebe6122?auto=format&fit=crop&w=600&q=80')` }}
@@ -155,7 +246,7 @@ const LandingPage = () => {
           </div>
 
           {/* Bricks Card */}
-          <div className="product-card glass-card">
+          <div className="product-card glass-card reveal-item">
             <div
               className="product-image"
               style={{ backgroundImage: `url('https://images.unsplash.com/photo-1590069261209-f8e9b8642343?auto=format&fit=crop&w=600&q=80')` }}
@@ -178,7 +269,7 @@ const LandingPage = () => {
           </div>
 
           {/* Aggregates Card */}
-          <div className="product-card glass-card">
+          <div className="product-card glass-card reveal-item">
             <div
               className="product-image"
               style={{ backgroundImage: `url('https://images.unsplash.com/photo-1508459855340-fb63ac591728?auto=format&fit=crop&w=600&q=80')` }}
@@ -200,13 +291,13 @@ const LandingPage = () => {
               </div>
             </div>
           </div>
-        </div>
+        </ScrollReveal>
       </section>
 
       {/* 6. ERP Tech Operations Section */}
       <section className="tech-section section-padding">
-        <div className="tech-container">
-          <div className="tech-content">
+        <ScrollReveal stagger className="tech-container">
+          <div className="tech-content reveal-item">
             <h2>POWERED BY TECHNOLOGY. <br /><span className="gold-accent">DRIVEN BY TRUST.</span></h2>
             <p className="tech-desc">
               We leverage modern enterprise resource planning (ERP) technology to manage our supply chain
@@ -237,56 +328,56 @@ const LandingPage = () => {
               </div>
             </div>
           </div>
-          <div className="tech-visual">
+          <div className="tech-visual reveal-item">
             <img
               src="https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&w=600&q=80"
               alt="Analytics Dashboard"
             />
           </div>
-        </div>
+        </ScrollReveal>
       </section>
 
       {/* 7. Why Choose Us Section */}
       <section className="why-section section-padding">
-        <div className="why-header">
+        <ScrollReveal className="why-header">
           <h2>BUILT ON TRUST. <span className="gold-accent">PROVEN BY TIME.</span></h2>
-        </div>
-        <div className="why-grid">
-          <div className="why-card glass-card">
+        </ScrollReveal>
+        <ScrollReveal stagger className="why-grid">
+          <div className="why-card glass-card reveal-item">
             <div className="why-icon">
               <Calendar size={28} color="#b89047" />
             </div>
             <h3>46 Years Experience</h3>
             <p>Unmatched industry knowledge, providing the right structural materials for Punjab's unique soil and climate conditions.</p>
           </div>
-          <div className="why-card glass-card">
+          <div className="why-card glass-card reveal-item">
             <div className="why-icon">
               <Truck size={28} color="#b89047" />
             </div>
             <h3>Fast Same-Day Dispatch</h3>
             <p>Our dedicated transport fleet ensures prompt delivery within 24 hours of order confirmation across Lahore and suburbs.</p>
           </div>
-          <div className="why-card glass-card">
+          <div className="why-card glass-card reveal-item">
             <div className="why-icon">
               <Warehouse size={28} color="#b89047" />
             </div>
             <h3>Massive Inventory</h3>
             <p>We maintain a constant stock of thousands of cement bags and tons of steel, shielding our clients from market shortages.</p>
           </div>
-          <div className="why-card glass-card">
+          <div className="why-card glass-card reveal-item">
             <div className="why-icon">
               <Database size={28} color="#b89047" />
             </div>
             <h3>ERP Powered Accuracy</h3>
             <p>Zero manual calculation errors in billing or loading, ensuring you receive exactly what you paid for, down to the last rebar.</p>
           </div>
-        </div>
+        </ScrollReveal>
       </section>
 
       {/* 8. Supply & Logistics Section */}
       <section className="supply-section section-padding">
-        <div className="supply-container">
-          <div className="supply-content">
+        <ScrollReveal stagger className="supply-container">
+          <div className="supply-content reveal-item">
             <h2>SUPPLY ACROSS <br /><span className="gold-accent">ALL OF PUNJAB</span></h2>
             <p>
               With a robust distribution network and a dedicated heavy-vehicle transport fleet,
@@ -305,7 +396,7 @@ const LandingPage = () => {
               </div>
             </div>
           </div>
-          <div className="supply-images">
+          <div className="supply-images reveal-item">
             <img
               src="https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?auto=format&fit=crop&w=400&q=80"
               alt="Logistics warehouse"
@@ -320,18 +411,18 @@ const LandingPage = () => {
               alt="Delivery Truck"
             />
           </div>
-        </div>
+        </ScrollReveal>
       </section>
 
       {/* 9. Physical Locations Section */}
       <section id="locations" className="locations-section section-padding">
-        <div className="locations-header">
+        <ScrollReveal className="locations-header">
           <h2>TWO DEPOTS. <span className="gold-accent">ONE HIGHEST STANDARD.</span></h2>
           <p>Visit our physical locations for order booking, stock inspection, or expert consultation.</p>
-        </div>
-        <div className="locations-grid">
+        </ScrollReveal>
+        <ScrollReveal stagger className="locations-grid">
           {/* Main Location */}
-          <div className="location-card glass-card">
+          <div className="location-card glass-card reveal-item">
             <div className="loc-header">
               <MapPin size={28} color="#b89047" />
               <h3>Main Depot (Kot Abdul Malik)</h3>
@@ -361,7 +452,7 @@ const LandingPage = () => {
           </div>
 
           {/* Branch Location */}
-          <div className="location-card glass-card">
+          <div className="location-card glass-card reveal-item">
             <div className="loc-header">
               <MapPin size={28} color="#b89047" />
               <h3>Sharaqpur Branch</h3>
@@ -389,16 +480,16 @@ const LandingPage = () => {
               Get Directions <ChevronRight size={16} />
             </a>
           </div>
-        </div>
+        </ScrollReveal>
       </section>
 
       {/* 10. Testimonials Section */}
       <section className="testimonials-section section-padding">
-        <div className="test-header">
+        <ScrollReveal className="test-header">
           <h2>TRUSTED BY <span className="gold-accent">PUNJAB'S LEADING BUILDERS</span></h2>
-        </div>
-        <div className="testimonials-grid">
-          <div className="test-card glass-card">
+        </ScrollReveal>
+        <ScrollReveal stagger className="testimonials-grid">
+          <div className="test-card glass-card reveal-item">
             <div className="stars">
               {[...Array(5)].map((_, i) => <Star key={i} size={18} fill="#b89047" color="#b89047" />)}
             </div>
@@ -413,7 +504,7 @@ const LandingPage = () => {
             </div>
           </div>
 
-          <div className="test-card glass-card">
+          <div className="test-card glass-card reveal-item">
             <div className="stars">
               {[...Array(5)].map((_, i) => <Star key={i} size={18} fill="#b89047" color="#b89047" />)}
             </div>
@@ -428,7 +519,7 @@ const LandingPage = () => {
             </div>
           </div>
 
-          <div className="test-card glass-card">
+          <div className="test-card glass-card reveal-item">
             <div className="stars">
               {[...Array(5)].map((_, i) => <Star key={i} size={18} fill="#b89047" color="#b89047" />)}
             </div>
@@ -441,19 +532,19 @@ const LandingPage = () => {
               <p>Retail Partner, Sharaqpur</p>
             </div>
           </div>
-        </div>
+        </ScrollReveal>
       </section>
 
       {/* 11. CEO Message Section */}
       <section id="ceo-message" className="ceo-section section-padding">
-        <div className="ceo-container">
-          <div className="ceo-photo">
+        <ScrollReveal stagger className="ceo-container">
+          <div className="ceo-photo reveal-item">
             <img
               src="/ceo.jpg"
               alt="CEO Mian Hassam Ahmad"
             />
           </div>
-          <div className="ceo-content">
+          <div className="ceo-content reveal-item">
             <span className="ceo-tag">A Message From Our CEO</span>
             <h2>BUILDING TRUST. <br /><span className="gold-accent">DELIVERING EXCELLENCE.</span></h2>
             <p>
@@ -470,12 +561,12 @@ const LandingPage = () => {
               <p className="signature">Mian Hassam Ahmad</p>
             </div>
           </div>
-        </div>
+        </ScrollReveal>
       </section>
 
       {/* 12. Footer & Final CTA */}
       <footer id="contact" className="footer-section section-padding">
-        <div className="cta-banner">
+        <ScrollReveal className="cta-banner">
           <h2>READY TO BUILD WITH <span className="gold-accent">ABSOLUTE CONFIDENCE?</span></h2>
           <p>Contact our sales desk today for bulk rates, booking queries, or custom material delivery schedules.</p>
           <div className="cta-buttons">
@@ -484,7 +575,7 @@ const LandingPage = () => {
             </a>
             <a href="#locations" className="btn-outline">Visit Our Depots</a>
           </div>
-        </div>
+        </ScrollReveal>
 
         <div className="footer-grid">
           <div className="footer-col">
