@@ -23,6 +23,10 @@ $font-signature: 'Alex Brush', cursive;
   min-height: 100vh;
   position: relative;
 
+  p {
+    font-weight: 500;
+  }
+
   // Background Aura Spheres
   .bg-aura {
     position: absolute;
