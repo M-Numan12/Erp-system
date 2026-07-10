@@ -1208,7 +1208,7 @@ $font-signature: 'Alex Brush', cursive;
 
     .footer-grid {
       display: grid;
-      grid-template-columns: 2fr repeat(3, 1fr);
+      grid-template-columns: 1.5fr repeat(3, 1fr);
       gap: 40px;
       margin-bottom: 60px;
 
@@ -1225,34 +1225,84 @@ $font-signature: 'Alex Brush', cursive;
         gap: 20px;
 
         h4 {
-          font-size: 1.1rem;
+          font-size: 1.15rem;
           font-weight: 700;
-          text-transform: uppercase;
-          letter-spacing: 0.05em;
-          color: $text-light;
-          border-left: 2px solid $gold-primary;
-          padding-left: 10px;
+          color: #f8fafc;
           margin: 0;
+          letter-spacing: 0.02em;
         }
 
-        p {
-          color: $text-muted;
-          font-size: 0.9rem;
+        .footer-desc {
+          color: #a1a1aa;
+          font-size: 0.95rem;
           line-height: 1.6;
           margin: 0;
+          max-width: 280px;
         }
 
         .footer-logo {
           display: flex;
           align-items: center;
-          gap: 8px;
-          font-weight: 800;
-          font-size: 1.25rem;
-          color: $text-light;
+          gap: 12px;
           text-decoration: none;
+
+          .logo-icon {
+            width: 48px;
+            height: 48px;
+            background-color: $gold-primary;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+          }
+
+          .logo-text {
+            display: flex;
+            flex-direction: column;
+            line-height: 1.2;
+
+            .logo-title {
+              font-size: 1.35rem;
+              font-weight: 800;
+              color: #ffffff;
+            }
+
+            .logo-sub {
+              font-size: 0.82rem;
+              color: #a1a1aa;
+              font-weight: 500;
+            }
+          }
         }
 
-        ul {
+        .social-icons {
+          display: flex;
+          gap: 12px;
+          margin-top: 10px;
+
+          a {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #a1a1aa;
+            transition: all 0.3s ease;
+
+            &:hover {
+              background: $gold-primary;
+              color: #000000;
+              transform: translateY(-3px);
+              box-shadow: 0 4px 12px rgba($gold-primary, 0.25);
+            }
+          }
+        }
+
+        .footer-links {
           list-style: none;
           padding: 0;
           margin: 0;
@@ -1262,19 +1312,75 @@ $font-signature: 'Alex Brush', cursive;
 
           li {
             a {
-              color: $text-muted;
+              color: #a1a1aa;
               text-decoration: none;
-              font-size: 0.9rem;
+              font-size: 0.95rem;
               transition: color 0.3s;
 
               &:hover {
                 color: $gold-primary;
               }
             }
+          }
+        }
 
-            span {
-              font-size: 0.9rem;
-              color: $text-muted;
+        .footer-contact-info {
+          display: flex;
+          flex-direction: column;
+          gap: 20px;
+
+          .contact-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+
+            svg {
+              margin-top: 2px;
+            }
+
+            .contact-text {
+              display: flex;
+              flex-direction: column;
+
+              .contact-val {
+                font-size: 1.05rem;
+                font-weight: 600;
+                color: #ffffff;
+                text-decoration: none;
+                transition: color 0.3s;
+
+                &:hover {
+                  color: $gold-primary;
+                }
+              }
+
+              .contact-lbl {
+                font-size: 0.82rem;
+                color: #71717a;
+              }
+            }
+          }
+        }
+
+        .footer-locations-info {
+          display: flex;
+          flex-direction: column;
+          gap: 20px;
+
+          .location-item {
+            display: flex;
+            flex-direction: column;
+
+            .location-title {
+              font-size: 1.05rem;
+              font-weight: 600;
+              color: #ffffff;
+            }
+
+            .location-desc {
+              font-size: 0.85rem;
+              color: #71717a;
+              margin-top: 2px;
             }
           }
         }
@@ -1285,31 +1391,10 @@ $font-signature: 'Alex Brush', cursive;
       border-top: 1px solid rgba(255, 255, 255, 0.05);
       padding: 30px 0;
       display: flex;
-      justify-content: space-between;
+      justify-content: center;
       align-items: center;
-      color: $text-muted;
+      color: #71717a;
       font-size: 0.85rem;
-
-      @media (max-width: 600px) {
-        flex-direction: column;
-        gap: 15px;
-        text-align: center;
-      }
-
-      .social-icons {
-        display: flex;
-        gap: 15px;
-
-        a {
-          color: $text-muted;
-          font-size: 1.2rem;
-          transition: color 0.3s;
-
-          &:hover {
-            color: $gold-primary;
-          }
-        }
-      }
     }
   }
 

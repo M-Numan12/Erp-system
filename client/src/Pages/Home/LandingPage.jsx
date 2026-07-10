@@ -815,56 +815,92 @@ const LandingPage = () => {
       {/* 11. Footer Section */}
       <footer className="footer-section section-padding">
         <div className="footer-grid">
-          <div className="footer-col">
+          <div className="footer-col brand-col">
             <Link to="/" className="footer-logo">
               <div className="logo-icon">
-                <Building2 size={16} color="#000" />
+                <Building2 size={24} color="#000000" />
               </div>
-              <span>DATA WALEY <span className="gold-accent">CEMENT</span></span>
+              <div className="logo-text">
+                <span className="logo-title">Data Waley</span>
+                <span className="logo-sub">Cement Depot</span>
+              </div>
             </Link>
-            <p>
-              Premium construction raw material distributor supplying cement, grade-60 steel rebars, kiln-baked clay bricks, and quality aggregates across Punjab since 1978.
+            <p className="footer-desc">
+              Building Lahore since 1978. Your trusted partner for premium construction materials.
             </p>
+            <div className="social-icons">
+              <a href="https://facebook.com" target="_blank" rel="noopener noreferrer" aria-label="Facebook">
+                <svg stroke="currentColor" fill="currentColor" strokeWidth="0" viewBox="0 0 320 512" height="16" width="16" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M279.14 288l14.22-92.66h-88.91v-60.13c0-25.35 12.42-50.06 52.24-50.06h40.42V6.26S260.43 0 225.36 0c-73.22 0-121.08 44.38-121.08 124.72v70.62H22.89V288h81.39v224h100.17V288z"></path>
+                </svg>
+              </a>
+              <a href="https://instagram.com" target="_blank" rel="noopener noreferrer" aria-label="Instagram">
+                <svg stroke="currentColor" fill="none" strokeWidth="2" viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round" height="16" width="16" xmlns="http://www.w3.org/2000/svg">
+                  <rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect>
+                  <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path>
+                  <line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line>
+                </svg>
+              </a>
+              <a href="https://linkedin.com" target="_blank" rel="noopener noreferrer" aria-label="LinkedIn">
+                <svg stroke="currentColor" fill="currentColor" strokeWidth="0" viewBox="0 0 448 512" height="16" width="16" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M100.28 448H7.4V148.9h92.88zM53.79 108.1C24.09 108.1 0 83.5 0 53.8a53.79 53.79 0 1 1 107.58 0c0 29.7-24.1 54.3-53.79 54.3zM447.9 448h-92.68V302.4c0-34.7-.7-79.2-48.29-79.2-48.29 0-55.69 37.7-55.69 76.7V448h-92.78V148.9h89.08v40.8h1.3c12.4-23.5 42.69-48.3 87.88-48.3 94 0 111.28 61.9 111.28 142.3V448z"></path>
+                </svg>
+              </a>
+              <a href="https://twitter.com" target="_blank" rel="noopener noreferrer" aria-label="Twitter">
+                <svg stroke="currentColor" fill="currentColor" strokeWidth="0" viewBox="0 0 512 512" height="16" width="16" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M389.2 48h70.6L305.6 224.2 487 464H345L233.7 318.6 106.5 464H35.8L200.7 275.5 26.8 48H172.4L272.9 180.9 389.2 48zM364.4 421.8h39.1L151.1 88h-42L364.4 421.8z"></path>
+                </svg>
+              </a>
+            </div>
           </div>
 
           <div className="footer-col">
-            <h4>Quick Links</h4>
-            <ul>
-              <li><a href="#home">Home</a></li>
-              <li><a href="#products">Products</a></li>
-              <li><a href="#services">Services</a></li>
-              <li><a href="#locations">Locations</a></li>
+            <h4>Products</h4>
+            <ul className="footer-links">
+              <li><a href="#products">Cement</a></li>
+              <li><a href="#products">Steel Sariya</a></li>
+              <li><a href="#products">Bricks</a></li>
+              <li><a href="#products">Sand & Aggregates</a></li>
             </ul>
           </div>
 
           <div className="footer-col">
-            <h4>Premium Materials</h4>
-            <ul>
-              <li><span>OPC & SRC Cement</span></li>
-              <li><span>Grade-60 Steel Rebars</span></li>
-              <li><span>Kailash Baked Clay Bricks</span></li>
-              <li><span>Aggregates & Sand</span></li>
-            </ul>
+            <h4>Contact</h4>
+            <div className="footer-contact-info">
+              <div className="contact-item">
+                <Phone size={18} color="#b89047" />
+                <div className="contact-text">
+                  <a href="tel:0333-4746064" className="contact-val">0333-4746064</a>
+                  <span className="contact-lbl">Main Contact</span>
+                </div>
+              </div>
+              <div className="contact-item">
+                <Mail size={18} color="#b89047" />
+                <div className="contact-text">
+                  <a href="mailto:datawaleycement@gmail.com" className="contact-val">datawaleycement@gmail.com</a>
+                  <span className="contact-lbl">Email us anytime</span>
+                </div>
+              </div>
+            </div>
           </div>
 
           <div className="footer-col">
-            <h4>Newsletter</h4>
-            <p>Subscribe to receive our latest product price sheets and supply updates.</p>
-            <form className="newsletter-form" onSubmit={(e) => e.preventDefault()}>
-              <input type="email" placeholder="Your Email Address" required />
-              <button type="submit">Subscribe</button>
-            </form>
+            <h4>Locations</h4>
+            <div className="footer-locations-info">
+              <div className="location-item">
+                <span className="location-title">Main Location</span>
+                <span className="location-desc">Kot Abdul Malik, Lahore</span>
+              </div>
+              <div className="location-item">
+                <span className="location-title">Branch</span>
+                <span className="location-desc">Adda Tredewali, Near Sharaqpur</span>
+              </div>
+            </div>
           </div>
         </div>
 
         <div className="footer-bottom">
           <p>© 2026 Data Waley Cement Depot. All rights reserved. Established 1978.</p>
-          <div className="social-icons">
-            <a href="https://facebook.com" target="_blank" rel="noopener noreferrer">FB</a>
-            <a href="https://instagram.com" target="_blank" rel="noopener noreferrer">IG</a>
-            <a href="https://linkedin.com" target="_blank" rel="noopener noreferrer">LN</a>
-            <a href="https://twitter.com" target="_blank" rel="noopener noreferrer">TW</a>
-          </div>
         </div>
       </footer>
       <div className="portal-buttons">
