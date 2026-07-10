@@ -54,26 +54,26 @@ $font-signature: 'Alex Brush', cursive;
   }  // Reveal Animations
   .reveal {
     opacity: 0;
-    transform: translateY(30px);
-    transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1), transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+    transform: translateY(60px) scale(0.97);
+    transition: opacity 1.2s cubic-bezier(0.25, 1, 0.5, 1), transform 1.2s cubic-bezier(0.25, 1, 0.5, 1);
     
     &.active {
       opacity: 1;
-      transform: translateY(0);
+      transform: translateY(0) scale(1);
     }
   }
 
   .reveal-stagger {
     .reveal-item {
       opacity: 0;
-      transform: translateY(35px);
-      transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1), transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+      transform: translateY(65px) scale(0.97);
+      transition: opacity 1.2s cubic-bezier(0.25, 1, 0.5, 1), transform 1.2s cubic-bezier(0.25, 1, 0.5, 1);
     }
 
     &.active {
       .reveal-item {
         opacity: 1;
-        transform: translateY(0);
+        transform: translateY(0) scale(1);
 
         @for $i from 1 through 12 {
           &:nth-child(#{$i}) {
@@ -225,10 +225,20 @@ $font-signature: 'Alex Brush', cursive;
     display: flex;
     align-items: center;
     justify-content: center;
-    background: linear-gradient(to bottom, rgba(3, 7, 18, 0.4), rgba(3, 7, 18, 0.95)),
-                url('https://images.unsplash.com/photo-1541888946425-d81bb19240f5?auto=format&fit=crop&w=1920&q=80') center/cover no-repeat;
+    overflow: hidden;
+    background-color: #030712;
     text-align: center;
     padding-top: 80px;
+
+    .hero-bg-image {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(to bottom, rgba(3, 7, 18, 0.4), rgba(3, 7, 18, 0.95)),
+                  url('https://images.unsplash.com/photo-1541888946425-d81bb19240f5?auto=format&fit=crop&w=1920&q=80') center/cover no-repeat;
+      z-index: 1;
+      pointer-events: none;
+      will-change: transform, opacity;
+    }
 
     .hero-content {
       max-width: 900px;

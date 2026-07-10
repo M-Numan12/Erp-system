@@ -106,6 +106,17 @@ const ScrollReveal = ({ children, className = "", stagger = false, delay = 0 }) 
 };
 
 const LandingPage = () => {
+  // Scroll Position Tracking for Parallax Zoom
+  const [scrollY, setScrollY] = useState(0);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setScrollY(window.scrollY);
+    };
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
   // Supply Projects Slider State
   const [activeProject, setActiveProject] = useState(0);
   const projects = [
@@ -214,6 +225,13 @@ const LandingPage = () => {
 
       {/* 2. Hero Section */}
       <section id="home" className="hero-section">
+        <div 
+          className="hero-bg-image"
+          style={{
+            transform: `scale(${1 + scrollY * 0.0006}) translateY(${scrollY * 0.1}px)`,
+            opacity: Math.max(0.15, 1 - scrollY * 0.0018)
+          }}
+        ></div>
         <div className="hero-content">
           <span className="hero-tag">ESTABLISHED 1978</span>
           <h1>
