@@ -20,7 +20,9 @@ import {
   ChevronRight,
   ChevronLeft,
   Send,
-  Package
+  Package,
+  Menu,
+  X
 } from 'lucide-react';
 
 const AnimatedCounter = ({ target, duration = 1500, suffix = "" }) => {
@@ -109,6 +111,7 @@ const ScrollReveal = ({ children, className = "", stagger = false, delay = 0 }) 
 const LandingPage = () => {
   // Scroll Position Tracking for Parallax Zoom
   const [scrollY, setScrollY] = useState(0);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -218,6 +221,26 @@ const LandingPage = () => {
         <a href="#contact" className="btn-nav-outline">
           Request a Quote
         </a>
+
+        <button 
+          className="btn-mobile-menu"
+          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+          aria-label="Toggle menu"
+        >
+          {mobileMenuOpen ? <X size={24} color="#f8fafc" /> : <Menu size={24} color="#f8fafc" />}
+        </button>
+
+        <nav className={`mobile-nav-links ${mobileMenuOpen ? 'active' : ''}`}>
+          <a href="#home" onClick={() => setMobileMenuOpen(false)}>Home</a>
+          <a href="#products" onClick={() => setMobileMenuOpen(false)}>Products</a>
+          <a href="#services" onClick={() => setMobileMenuOpen(false)}>Services</a>
+          <a href="#locations" onClick={() => setMobileMenuOpen(false)}>Locations</a>
+          <a href="#portfolio" onClick={() => setMobileMenuOpen(false)}>Supply History</a>
+          <a href="#contact" onClick={() => setMobileMenuOpen(false)}>Contact</a>
+          <a href="#contact" className="btn-nav-outline" onClick={() => setMobileMenuOpen(false)}>
+            Request a Quote
+          </a>
+        </nav>
       </header>
 
       {/* 2. Hero Section */}
