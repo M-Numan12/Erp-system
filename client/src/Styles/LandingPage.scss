@@ -330,12 +330,12 @@ $font-signature: 'Alex Brush', cursive;
   .vision-section {
     text-align: left;
     position: relative;
-    padding: 120px 8% 120px 8%;
+    padding: 120px 0;
+    width: 100%;
     background-color: #030712;
     background-image: radial-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px);
     background-size: 24px 24px;
     overflow: hidden;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.03);
 
     &::after {
       content: '';
@@ -344,7 +344,7 @@ $font-signature: 'Alex Brush', cursive;
       left: 0;
       right: 0;
       height: 150px;
-      background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 200' preserveAspectRatio='none'><path d='M0 200 V140 H40 V170 H80 V130 H120 V150 H160 V110 H200 V160 H240 V125 H280 V145 H320 V100 H360 V150 H400 V130 H440 V115 H480 V150 H520 V135 H560 V105 H600 V140 H640 V120 H680 V155 H720 V110 H760 V145 H800 V130 H840 V95 H880 V150 H920 V125 H960 V140 H1000 V115 H1040 V150 H1080 V130 H1120 V105 H1160 V140 H1200 V200 Z' fill='rgba(184, 144, 71, 0.025)'/><path d='M0 200 V120 H50 V155 H110 V90 H160 V130 H220 V110 H270 V145 H330 V80 H380 V125 H430 V100 H490 V140 H540 V110 H590 V150 H650 V85 H700 V130 H750 V105 H810 V140 H860 V100 H910 V135 H970 V75 H1020 V125 H1070 V110 H1130 V140 H1180 V120 H1200 V200 Z' fill='rgba(184, 144, 71, 0.05)'/></svg>");
+      background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 200' preserveAspectRatio='none'><path d='M0 200 V150 H15 V110 H18 V70 H22 V110 H25 V150 H45 V130 H85 V155 H125 V120 H175 V140 H215 V95 H265 V135 H305 V150 H365 V110 H415 V130 H465 V90 H515 V145 H565 V120 H615 V155 H675 V115 H725 V135 H775 V100 H825 V145 H875 V125 H925 V150 H985 V105 H1035 V130 H1085 V95 H1135 V145 H1175 V120 H1200 V200 Z' fill='rgba(184, 144, 71, 0.025)'/><path d='M0 200 V160 H20 V125 H23 V85 H27 V125 H30 V160 H60 V140 H110 V165 H150 V135 H200 V150 H240 V110 H290 V145 H340 V160 H390 V120 H440 V140 H490 V105 H540 V155 H590 V130 H640 V160 H700 V125 H750 V145 H800 V115 H850 V150 H900 V135 H950 V160 H1010 V115 H1060 V140 H1110 V105 H1160 V155 H1200 V200 Z' fill='rgba(184, 144, 71, 0.05)'/></svg>");
       background-size: 100% 100%;
       background-repeat: no-repeat;
       pointer-events: none;
@@ -354,40 +354,58 @@ $font-signature: 'Alex Brush', cursive;
     &::before {
       content: '';
       position: absolute;
-      width: 600px;
-      height: 600px;
-      background: radial-gradient(circle, rgba($gold-primary, 0.15) 0%, transparent 70%);
+      width: 900px;
+      height: 450px;
+      background: radial-gradient(ellipse at center, rgba($gold-primary, 0.22) 0%, transparent 70%);
       top: 50%;
       left: -150px;
       transform: translateY(-50%);
       z-index: 1;
       pointer-events: none;
+      filter: blur(40px);
     }
 
     .vision-content {
-      max-width: 900px;
-      margin: 0;
+      max-width: 1300px;
+      margin: 0 auto;
+      padding: 0 5%;
       position: relative;
       z-index: 2;
 
       h2 {
-        font-size: 3.5rem;
-        line-height: 1.15;
+        font-size: 3.8rem;
+        line-height: 1.1;
         font-weight: 800;
-        margin-bottom: 30px;
-        letter-spacing: -0.01em;
+        margin-bottom: 24px;
+        letter-spacing: -0.02em;
         text-transform: uppercase;
         
         @media (max-width: 768px) {
-          font-size: 2.2rem;
+          font-size: 2.5rem;
+        }
+
+        .gold-accent {
+          color: $gold-primary;
+          background: none;
+          -webkit-background-clip: initial;
+          background-clip: initial;
+          -webkit-text-fill-color: initial;
         }
       }
 
+      .vision-divider {
+        width: 80px;
+        height: 2px;
+        background-color: $gold-primary;
+        margin-bottom: 30px;
+        opacity: 0.8;
+      }
+
       p {
-        font-size: 1.1rem;
+        font-size: 1.15rem;
         line-height: 1.8;
-        color: $text-muted;
-        max-width: 650px;
+        color: rgba(255, 255, 255, 0.65);
+        max-width: 700px;
       }
     }
   }

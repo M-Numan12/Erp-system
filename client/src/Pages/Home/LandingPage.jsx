@@ -182,6 +182,7 @@ const LandingPage = () => {
             STRONGER<br />
             <span className="gold-accent">PAKISTAN</span>
           </h2>
+          <div className="vision-divider reveal-item"></div>
           <p className="reveal-item">
             Our vision extends beyond materials. We're committed to becoming Punjab's most trusted construction partner, 
             empowering builders, contractors, and retailers with uncompromising quality and unwavering reliability. 
