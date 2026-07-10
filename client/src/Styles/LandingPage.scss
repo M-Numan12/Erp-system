@@ -181,46 +181,6 @@ $font-signature: 'Alex Brush', cursive;
         }
       }
     }
-
-    .portal-buttons {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-
-      .btn-portal-user {
-        color: $text-light;
-        text-decoration: none;
-        font-size: 0.9rem;
-        font-weight: 600;
-        padding: 10px 18px;
-        border-radius: 8px;
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        transition: all 0.3s;
-
-        &:hover {
-          border-color: $gold-primary;
-          color: $gold-primary;
-          background: rgba($gold-primary, 0.05);
-        }
-      }
-
-      .btn-portal-admin {
-        color: #000;
-        text-decoration: none;
-        font-size: 0.9rem;
-        font-weight: 600;
-        padding: 10px 18px;
-        border-radius: 8px;
-        background: $gold-primary;
-        transition: all 0.3s;
-        box-shadow: 0 4px 10px rgba($gold-primary, 0.2);
-
-        &:hover {
-          box-shadow: 0 6px 15px rgba($gold-primary, 0.4);
-          filter: brightness(1.1);
-        }
-      }
-    }
   }
 
   // 2. Hero Section
@@ -1079,6 +1039,36 @@ $font-signature: 'Alex Brush', cursive;
             color: $gold-primary;
           }
         }
+      }
+    }
+  }
+
+  // Bottom Portal Buttons
+  .portal-buttons {
+    display: flex;
+    justify-content: center;
+    padding: 40px 0;
+    background-color: #010409;
+    border-top: 1px solid rgba(255, 255, 255, 0.03);
+    position: relative;
+    z-index: 10;
+
+    .btn-portal-user {
+      color: $text-muted;
+      text-decoration: none;
+      font-size: 0.9rem;
+      font-weight: 600;
+      padding: 10px 24px;
+      border-radius: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      transition: all 0.3s ease;
+
+      &:hover {
+        border-color: $gold-primary;
+        color: $gold-primary;
+        background: rgba($gold-primary, 0.05);
+        box-shadow: 0 4px 15px rgba($gold-primary, 0.15);
+        transform: translateY(-2px);
       }
     }
   }

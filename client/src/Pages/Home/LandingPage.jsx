@@ -41,10 +41,6 @@ const LandingPage = () => {
           <a href="#ceo-message">CEO Message</a>
           <a href="#contact">Contact</a>
         </nav>
-
-        <div className="portal-buttons">
-          <Link to="/login" className="btn-portal-user">Staff Portal</Link>
-        </div>
       </header>
 
       {/* 2. Hero Section */}
@@ -543,6 +539,9 @@ const LandingPage = () => {
           </div>
         </div>
       </footer>
+      <div className="portal-buttons">
+        <Link to="/login" className="btn-portal-user">Staff Portal</Link>
+      </div>
     </div>
   );
 };
