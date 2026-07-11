@@ -907,12 +907,10 @@ const LandingPage = () => {
         </div>
 
         <div className="footer-bottom">
+          <Link to="/login" className="btn-portal-light">Staff Portal</Link>
           <p>© 2026 Data Waley Cement Depot. All rights reserved. Established 1978.</p>
         </div>
       </footer>
-      <div className="portal-buttons">
-        <Link to="/login" className="btn-portal-user">Staff Portal</Link>
-      </div>
     </div>
   );
 };

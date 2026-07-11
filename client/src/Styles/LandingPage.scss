@@ -1478,10 +1478,38 @@ $font-signature: 'Alex Brush', cursive;
       border-top: 1px solid rgba(255, 255, 255, 0.05);
       padding: 30px 0;
       display: flex;
-      justify-content: center;
+      justify-content: space-between;
       align-items: center;
       color: #71717a;
       font-size: 0.85rem;
+
+      @media (max-width: 768px) {
+        flex-direction: column;
+        gap: 15px;
+        text-align: center;
+      }
+
+      .btn-portal-light {
+        color: #52525b;
+        text-decoration: none;
+        font-weight: 500;
+        font-size: 0.82rem;
+        padding: 6px 14px;
+        border-radius: 6px;
+        border: 1px solid rgba(255, 255, 255, 0.03);
+        background: rgba(255, 255, 255, 0.01);
+        transition: all 0.3s ease;
+
+        &:hover {
+          color: $gold-primary;
+          border-color: rgba($gold-primary, 0.25);
+          background: rgba($gold-primary, 0.04);
+        }
+      }
+
+      p {
+        margin: 0;
+      }
     }
   }
 
@@ -1941,35 +1969,6 @@ $font-signature: 'Alex Brush', cursive;
     }
   }
 
-  // Bottom Portal Buttons
-  .portal-buttons {
-    display: flex;
-    justify-content: center;
-    padding: 40px 0;
-    background-color: #010409;
-    border-top: 1px solid rgba(255, 255, 255, 0.03);
-    position: relative;
-    z-index: 10;
-
-    .btn-portal-user {
-      color: $text-muted;
-      text-decoration: none;
-      font-size: 0.9rem;
-      font-weight: 600;
-      padding: 10px 24px;
-      border-radius: 8px;
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      transition: all 0.3s ease;
-
-      &:hover {
-        border-color: $gold-primary;
-        color: $gold-primary;
-        background: rgba($gold-primary, 0.05);
-        box-shadow: 0 4px 15px rgba($gold-primary, 0.15);
-        transform: translateY(-2px);
-      }
-    }
-  }
 }
 
 // Fade In Animation Keyframes
