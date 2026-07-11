@@ -3,15 +3,14 @@
   align-items: center;
   justify-content: center;
   min-height: 100vh;
-  background: linear-gradient(135deg, #121212, #000000);
+  background: linear-gradient(135deg, #1e293b, #0f172a);
   font-family: 'Inter', sans-serif;
 
   .login-box {
-    background: rgba(26, 26, 26, 0.85);
-    border: 1px solid rgba(255, 255, 255, 0.05);
+    background: rgba(255, 255, 255, 0.95);
     padding: 40px;
     border-radius: 24px;
-    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
     width: 100%;
     max-width: 400px;
     backdrop-filter: blur(10px);
@@ -21,8 +20,7 @@
       margin-bottom: 30px;
 
       .logo-icon {
-        background: rgba(255, 255, 255, 0.03);
-        border: 1px solid rgba(255, 255, 255, 0.05);
+        background: #eff6ff;
         width: 80px;
         height: 80px;
         border-radius: 50%;
@@ -34,13 +32,13 @@
 
       h2 {
         margin: 0 0 10px 0;
-        color: #f8fafc;
+        color: #1e293b;
         font-size: 1.75rem;
       }
 
       p {
         margin: 0;
-        color: #94a3b8;
+        color: #64748b;
         font-size: 0.95rem;
       }
     }
@@ -63,7 +61,7 @@
         label {
           display: block;
           margin-bottom: 8px;
-          color: #cbd5e1;
+          color: #334155;
           font-weight: 500;
           font-size: 0.9rem;
         }
@@ -71,9 +69,7 @@
         input {
           width: 100%;
           padding: 12px 15px;
-          border: 1px solid #334155;
-          background: rgba(30, 41, 59, 0.5);
-          color: #f8fafc;
+          border: 1px solid #cbd5e1;
           border-radius: 10px;
           font-size: 1rem;
           outline: none;
@@ -98,11 +94,11 @@
           display: flex;
           align-items: center;
           gap: 8px;
-          color: #94a3b8;
+          color: #475569;
         }
 
         .forgot-link {
-          color: #3b82f6;
+          color: #2563eb;
           text-decoration: none;
           font-weight: 500;
 
