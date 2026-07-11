@@ -182,6 +182,12 @@ export default function Billing({ type }) {
   const [delivery, setDelivery] = useState("");
   const [paidAmount, setPaidAmount] = useState("");
 
+  const [showRegModal, setShowRegModal] = useState(false);
+  const [regModalName, setRegModalName] = useState('');
+  const [regModalPhone, setRegModalPhone] = useState('');
+  const [regModalAddress, setRegModalAddress] = useState('');
+  const [regModalLoading, setRegModalLoading] = useState(false);
+
   const [paymentType, setPaymentType] = useState("Cash");
   const [selectedBank, setSelectedBank] = useState('');
   const [showReturnModal, setShowReturnModal] = useState(false);
@@ -634,30 +640,7 @@ export default function Billing({ type }) {
     }
   };
 
-  const handleCheckout = async () => {
-    if (cart.length === 0) return alert("Cart is empty!");
-
-    // Master Inventory Lockdown Check
-    let exceedsLimit = false;
-    let brokenItemName = "";
-    cart.forEach(item => {
-      const stock = getEffectiveStock(item.id);
-      if (parseFloat(item.qty || 0) > stock) {
-        exceedsLimit = true;
-        brokenItemName = item.name;
-      }
-    });
-
-    if (exceedsLimit) {
-      alert(`ERROR: Cannot complete sale. ${brokenItemName} quantity exceeds available stock limit! Please fix the cart first.`);
-      return;
-    }
-
-    if (parseFloat(paidAmount || 0) > netTotal) {
-      alert("Invalid Payment: Paid amount cannot be more than the total bill amount!");
-      return;
-    }
-
+  const proceedWithCheckout = async (custObj, custName, custPhone, custAddress) => {
     let finalPaymentType = paymentType;
     if (paymentType === 'Bank') {
       if (!selectedBank) return alert('Please select a Bank');
@@ -667,9 +650,9 @@ export default function Billing({ type }) {
     setLoading(true);
     try {
       const saleData = {
-        customer_name: customerName || "Walk-in Customer",
-        customer_phone: customerPhone,
-        customer_address: customerAddress,
+        customer_name: custName || "Walk-in Customer",
+        customer_phone: custPhone,
+        customer_address: custAddress,
         vehicle_type: transportType,
         vehicle_id: selectedVehicleIds[0] || null,
         vehicle_id2: selectedVehicleIds[1] || null,
@@ -718,17 +701,17 @@ export default function Billing({ type }) {
               body: JSON.stringify({
                 group_name: selectedLabourGroup,
                 bill_id: result.saleId,
-                description: `Loading cement for Bill #${result.saleId} (${customerName || "Walk-in"})`,
+                description: `Loading cement for Bill #${result.saleId} (${custName || "Walk-in"})`,
                 amount: 0
               })
             });
           } catch (e) { console.error("Labour logging failed:", e); }
         }
 
-        const isWalkIn = !selectedCustomer && (!customerName || customerName.trim().toLowerCase() === 'walk-in customer');
+        const isWalkIn = !custObj && (!custName || custName.trim().toLowerCase() === 'walk-in customer');
         const finalBal = isWalkIn 
           ? balance 
-          : (result.customer_balance !== undefined ? parseFloat(result.customer_balance) : (selectedCustomer ? parseFloat(selectedCustomer.balance) + balance : balance));
+          : (result.customer_balance !== undefined ? parseFloat(result.customer_balance) : (custObj ? parseFloat(custObj.balance) + balance : balance));
         const prevBal = isWalkIn ? 0 : finalBal - balance;
 
         const selectedVehList = vehicles.filter(v => v && selectedVehicleIds.includes(v.id));
@@ -778,11 +761,126 @@ export default function Billing({ type }) {
         setSelectedLabourGroup('');
         setLabourWages('');
         fetchData();
+      } else {
+        const errorData = await res.json();
+        alert(errorData.error || "Failed to process sale");
       }
     } catch (err) {
       console.error(err);
+      alert("Error processing sale");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleCheckout = async () => {
+    if (cart.length === 0) return alert("Cart is empty!");
+
+    // Master Inventory Lockdown Check
+    let exceedsLimit = false;
+    let brokenItemName = "";
+    cart.forEach(item => {
+      const stock = getEffectiveStock(item.id);
+      if (parseFloat(item.qty || 0) > stock) {
+        exceedsLimit = true;
+        brokenItemName = item.name;
+      }
+    });
+
+    if (exceedsLimit) {
+      alert(`ERROR: Cannot complete sale. ${brokenItemName} quantity exceeds available stock limit! Please fix the cart first.`);
+      return;
+    }
+
+    if (parseFloat(paidAmount || 0) > netTotal) {
+      alert("Invalid Payment: Paid amount cannot be more than the total bill amount!");
+      return;
+    }
+
+    // Walking customer credit validation
+    const isWalkInName = !customerName || 
+                         customerName.trim().toLowerCase() === 'walk-in customer' || 
+                         customerName.trim().toLowerCase() === 'walking customer' || 
+                         customerName.trim().toLowerCase() === 'walk-in' ||
+                         customerName.trim().toLowerCase() === 'walking' ||
+                         customerName.trim() === '';
+
+    const isWalkIn = !selectedCustomer && isWalkInName;
+    const hasPendingBalance = (netTotal - parseFloat(paidAmount || 0)) > 0.01;
+
+    if (isWalkIn && hasPendingBalance) {
+      setRegModalName('');
+      setRegModalPhone(customerPhone || '');
+      setRegModalAddress(customerAddress || '');
+      setShowRegModal(true);
+      return;
+    }
+
+    await proceedWithCheckout(selectedCustomer, customerName, customerPhone, customerAddress);
+  };
+
+  const handleRegisterAndCheckout = async () => {
+    if (!regModalName || regModalName.trim() === '') {
+      return alert("Customer Name is required!");
+    }
+    const cleanName = regModalName.trim().toLowerCase();
+    if (cleanName === 'walk-in customer' || cleanName === 'walking customer' || cleanName === 'walk-in' || cleanName === 'walking') {
+      return alert("Please enter a valid customer name, not 'Walk-in'!");
+    }
+    if (!regModalPhone || regModalPhone.trim() === '') {
+      return alert("Phone number is required!");
+    }
+
+    setRegModalLoading(true);
+    try {
+      const cleanPhone = regModalPhone.trim();
+      let matchedCust = customers.find(c => 
+        (c.name || '').toLowerCase() === regModalName.trim().toLowerCase() ||
+        (c.phone || '') === cleanPhone
+      );
+
+      if (!matchedCust) {
+        // Create new customer via API
+        const res = await fetch(CUSTOMERS_API, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${localStorage.getItem('token')}`
+          },
+          body: JSON.stringify({
+            name: regModalName.trim(),
+            phone: cleanPhone,
+            address: regModalAddress.trim(),
+            balance: "0",
+            module_type: activeTab
+          }),
+        });
+
+        if (!res.ok) {
+          const errorData = await res.json();
+          throw new Error(errorData.error || "Failed to register customer.");
+        }
+
+        matchedCust = await res.json();
+        // Update local list
+        setCustomers(prev => [...prev, matchedCust]);
+      }
+
+      // Update POS states
+      setSelectedCustomer(matchedCust);
+      setCustomerName(matchedCust.name);
+      setCustomerPhone(matchedCust.phone || '');
+      setCustomerAddress(matchedCust.address || '');
+
+      setShowRegModal(false);
+
+      // Proceed to checkout with the registered customer
+      await proceedWithCheckout(matchedCust, matchedCust.name, matchedCust.phone || '', matchedCust.address || '');
+    } catch (err) {
+      console.error(err);
+      alert(err.message || "Failed to register customer.");
+    } finally {
+      setRegModalLoading(false);
     }
   };
 
@@ -2329,6 +2427,63 @@ export default function Billing({ type }) {
           </div>
         </div>
       )}
+
+      {/* Walking Customer Credit Restriction / Registration Modal */}
+      <Dialog
+        header="⚠️ Credit Restriction - Register Customer"
+        visible={showRegModal}
+        onHide={() => setShowRegModal(false)}
+        style={{ width: '450px' }}
+        className="p-dialog-custom"
+        footer={(
+          <div className="flex justify-content-end gap-2">
+            <Button label="Cancel" onClick={() => setShowRegModal(false)} className="p-button-text" />
+            <Button label="Register & Complete Checkout" icon="pi pi-check" onClick={handleRegisterAndCheckout} loading={regModalLoading} className="p-button-primary" />
+          </div>
+        )}
+      >
+        <div className="p-fluid">
+          <p style={{ margin: '0 0 15px 0', fontSize: '0.9rem', color: '#64748b', lineHeight: '1.4' }}>
+            A **Walking/Walk-in Customer** cannot have a pending balance (credit). To complete this credit sale, you must register this customer with their name and phone number.
+          </p>
+          <div className="field mb-3">
+            <label htmlFor="reg-name" style={{ fontWeight: 600, display: 'block', marginBottom: '6px' }}>Customer Name *</label>
+            <InputText 
+              id="reg-name" 
+              placeholder="e.g. Muhammad Ahmad" 
+              value={regModalName} 
+              onChange={(e) => setRegModalName(e.target.value)} 
+            />
+          </div>
+          <div className="field mb-3">
+            <label htmlFor="reg-phone" style={{ fontWeight: 600, display: 'block', marginBottom: '6px' }}>Phone Number *</label>
+            <div className="p-inputgroup">
+              <span className="p-inputgroup-addon">+92</span>
+              <InputText 
+                id="reg-phone" 
+                placeholder="e.g. 3334746064" 
+                value={regModalPhone} 
+                onChange={(e) => {
+                  let val = e.target.value;
+                  if (val.startsWith('0')) {
+                    val = val.substring(1);
+                  }
+                  setRegModalPhone(val);
+                }} 
+              />
+            </div>
+          </div>
+          <div className="field mb-3">
+            <label htmlFor="reg-address" style={{ fontWeight: 600, display: 'block', marginBottom: '6px' }}>Address (Optional)</label>
+            <InputText 
+              id="reg-address" 
+              placeholder="e.g. Kot Abdul Malik, Lahore" 
+              value={regModalAddress} 
+              onChange={(e) => setRegModalAddress(e.target.value)} 
+            />
+          </div>
+        </div>
+      </Dialog>
     </div>
   );
 }
