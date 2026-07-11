@@ -3,10 +3,7 @@ import { Link } from 'react-router-dom';
 import '../../Styles/LandingPage.scss';
 import {
   Building2,
-  ShieldCheck,
   Truck,
-  Users,
-  Calendar,
   MapPin,
   Phone,
   Mail,
@@ -16,7 +13,6 @@ import {
   CheckCircle2,
   Database,
   Warehouse,
-  Award,
   ChevronRight,
   ChevronLeft,
   Send,
