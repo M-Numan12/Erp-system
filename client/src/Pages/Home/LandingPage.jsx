@@ -199,10 +199,7 @@ const LandingPage = () => {
       {/* 1. Navigation Header */}
       <header className="nav-header">
         <Link to="/" className="logo">
-          <div className="logo-icon">
-            <Building2 size={18} color="#000" />
-          </div>
-          <span>DATA WALEY <span className="gold-accent">CEMENT</span></span>
+          <img src="/logo.png" alt="Data Waley Cement Logo" className="navbar-logo-img" />
         </Link>
 
         <nav className="nav-links">
@@ -820,13 +817,7 @@ const LandingPage = () => {
         <div className="footer-grid">
           <div className="footer-col brand-col">
             <Link to="/" className="footer-logo">
-              <div className="logo-icon">
-                <Building2 size={24} color="#000000" />
-              </div>
-              <div className="logo-text">
-                <span className="logo-title">Data Waley</span>
-                <span className="logo-sub">Cement Depot</span>
-              </div>
+              <img src="/logo.png" alt="Data Waley Cement Logo" className="footer-logo-img" />
             </Link>
             <p className="footer-desc">
               Building Lahore since 1978. Your trusted partner for premium construction materials.
