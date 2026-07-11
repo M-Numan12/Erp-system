@@ -797,19 +797,18 @@ export default function Billing({ type }) {
       return;
     }
 
-    // Walking customer credit validation
-    const isWalkInName = !customerName || 
-                         customerName.trim().toLowerCase() === 'walk-in customer' || 
-                         customerName.trim().toLowerCase() === 'walking customer' || 
-                         customerName.trim().toLowerCase() === 'walk-in' ||
-                         customerName.trim().toLowerCase() === 'walking' ||
-                         customerName.trim() === '';
-
-    const isWalkIn = !selectedCustomer && isWalkInName;
+    // Unregistered customer credit validation
     const hasPendingBalance = (netTotal - parseFloat(paidAmount || 0)) > 0.01;
 
-    if (isWalkIn && hasPendingBalance) {
-      setRegModalName('');
+    if (!selectedCustomer && hasPendingBalance) {
+      const isGenericWalkIn = !customerName || 
+                              customerName.trim().toLowerCase() === 'walk-in customer' || 
+                              customerName.trim().toLowerCase() === 'walking customer' || 
+                              customerName.trim().toLowerCase() === 'walk-in' ||
+                              customerName.trim().toLowerCase() === 'walking' ||
+                              customerName.trim() === '';
+
+      setRegModalName(isGenericWalkIn ? '' : customerName.trim());
       setRegModalPhone(customerPhone || '');
       setRegModalAddress(customerAddress || '');
       setShowRegModal(true);
