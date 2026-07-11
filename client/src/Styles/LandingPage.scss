@@ -188,6 +188,7 @@ $font-signature: 'Alex Brush', cursive;
     .logo {
       display: flex;
       align-items: center;
+      gap: 12px;
       text-decoration: none;
 
       .navbar-logo-img {
@@ -198,6 +199,28 @@ $font-signature: 'Alex Brush', cursive;
 
         &:hover {
           transform: scale(1.03);
+        }
+      }
+
+      .logo-text-wrapper {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        line-height: 1.1;
+
+        .logo-text-main {
+          color: #ffffff;
+          font-weight: 800;
+          font-size: 1.25rem;
+          letter-spacing: 0.5px;
+        }
+
+        .logo-text-sub {
+          color: #f97316;
+          font-weight: 700;
+          font-size: 0.7rem;
+          letter-spacing: 1.5px;
+          margin-top: 2px;
         }
       }
     }
@@ -1337,6 +1360,7 @@ $font-signature: 'Alex Brush', cursive;
         .footer-logo {
           display: flex;
           align-items: center;
+          gap: 12px;
           text-decoration: none;
           margin-bottom: 20px;
 
@@ -1348,6 +1372,28 @@ $font-signature: 'Alex Brush', cursive;
 
             &:hover {
               transform: scale(1.03);
+            }
+          }
+
+          .logo-text-wrapper {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            line-height: 1.1;
+
+            .logo-text-main {
+              color: #ffffff;
+              font-weight: 800;
+              font-size: 1.35rem;
+              letter-spacing: 0.5px;
+            }
+
+            .logo-text-sub {
+              color: #f97316;
+              font-weight: 700;
+              font-size: 0.8rem;
+              letter-spacing: 1.5px;
+              margin-top: 2px;
             }
           }
         }
