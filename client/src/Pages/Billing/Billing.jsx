@@ -560,8 +560,8 @@ export default function Billing({ type }) {
   const removeFromCart = (id) => setCart(cart.filter(item => item.id !== id));
 
   const subtotal = cart.reduce((sum, item) => sum + item.subtotal, 0);
-  const netTotal = subtotal - parseFloat(discount || 0) + parseFloat(delivery || 0);
-  const balance = netTotal - parseFloat(paidAmount || 0);
+  const netTotal = Math.round((subtotal - parseFloat(discount || 0) + parseFloat(delivery || 0)) * 100) / 100;
+  const balance = Math.round((netTotal - parseFloat(paidAmount || 0)) * 100) / 100;
 
   const fetchSaleForReturn = async () => {
     if (!returnBillNo) return;
@@ -792,13 +792,16 @@ export default function Billing({ type }) {
       return;
     }
 
-    if (parseFloat(paidAmount || 0) > netTotal) {
+    const roundedPaid = Math.round(parseFloat(paidAmount || 0) * 100) / 100;
+    const roundedNet = Math.round(netTotal * 100) / 100;
+
+    if (roundedPaid > roundedNet) {
       alert("Invalid Payment: Paid amount cannot be more than the total bill amount!");
       return;
     }
 
     // Unregistered customer credit validation
-    const hasPendingBalance = (netTotal - parseFloat(paidAmount || 0)) > 0.01;
+    const hasPendingBalance = (roundedNet - roundedPaid) > 0.01;
 
     if (!selectedCustomer && hasPendingBalance) {
       const isGenericWalkIn = !customerName || 
@@ -1331,7 +1334,7 @@ export default function Billing({ type }) {
                     <div className="flex flex-column gap-2 mt-2">
                       <div className="flex gap-2">
                         <div className="flex flex-1 gap-1">
-                          <InputText type="number" min="0" placeholder="Paid Amount" value={paidAmount} onChange={(e) => setPaidAmount(e.target.value)}
+                          <InputText type="number" step="any" min="0" placeholder="Paid Amount" value={paidAmount} onChange={(e) => setPaidAmount(e.target.value)}
                             className="flex-1 font-bold" style={{ fontSize: String(paidAmount || '').length > 8 ? '0.75rem' : String(paidAmount || '').length > 5 ? '0.85rem' : '1rem', transition: 'font-size 0.2s' }} />
                           <Button icon="pi pi-pause" onClick={holdBill} tooltip="Hold Bill" className="hold-bill-btn" />
                         </div>
