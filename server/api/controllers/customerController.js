@@ -33,7 +33,7 @@ exports.addCustomer = async (req, res) => {
   try {
     const { name, phone, email, address, balance, module_type } = req.body;
     const finalModule = isAdmin(req) ? (module_type || 'Wholesale') : (req.user.module_type || 'Retail 1');
-    const parsedBalance = parseFloat(balance);
+    const parsedBalance = isAdmin(req) ? parseFloat(balance) : 0;
     const finalBalance = isNaN(parsedBalance) ? 0 : parsedBalance;
     
     const result = await pool.query(
@@ -51,13 +51,20 @@ exports.addCustomer = async (req, res) => {
 exports.updateCustomer = async (req, res) => {
   try {
     const { name, phone, email, address, balance } = req.body;
-    const parsedBalance = parseFloat(balance);
-    const finalBalance = isNaN(parsedBalance) ? 0 : parsedBalance;
+    let query;
+    let params;
+    
+    if (isAdmin(req)) {
+      const parsedBalance = parseFloat(balance);
+      const finalBalance = isNaN(parsedBalance) ? 0 : parsedBalance;
+      query = 'UPDATE customers SET name=$1,phone=$2,email=$3,address=$4,balance=$5 WHERE id=$6 AND (module_type=$7 OR $8) RETURNING *';
+      params = [name, phone, email, address, finalBalance, req.params.id, req.user.module_type || 'Retail 1', true];
+    } else {
+      query = 'UPDATE customers SET name=$1,phone=$2,email=$3,address=$4 WHERE id=$5 AND (module_type=$6 OR $7) RETURNING *';
+      params = [name, phone, email, address, req.params.id, req.user.module_type || 'Retail 1', false];
+    }
 
-    const result = await pool.query(
-      'UPDATE customers SET name=$1,phone=$2,email=$3,address=$4,balance=$5 WHERE id=$6 AND (module_type=$7 OR $8) RETURNING *',
-      [name, phone, email, address, finalBalance, req.params.id, req.user.module_type || 'Retail 1', isAdmin(req)]
-    );
+    const result = await pool.query(query, params);
     res.json(result.rows[0]);
   } catch (err) { 
     console.error('Customer Controller Error:', err);

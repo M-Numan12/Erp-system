@@ -622,18 +622,22 @@ export default function Customers({ type }) {
                 </div>
               </div>
 
-              <div className="section-label">Financial Ledger</div>
-              <div className="form-grid">
-                <div className="form-group full-width">
-                  <label>Opening Balance (Rs.)</label>
-                  <div className="input-wrapper">
-                    <Banknote size={18} />
-                    <input type="number" value={form.balance}
-                      onChange={(e) => setForm({ ...form, balance: e.target.value })}
-                      placeholder="Positive: Receivable | Negative: Payable" />
+              {user?.role === 'admin' && (
+                <>
+                  <div className="section-label">Financial Ledger</div>
+                  <div className="form-grid">
+                    <div className="form-group full-width">
+                      <label>Opening Balance (Rs.)</label>
+                      <div className="input-wrapper">
+                        <Banknote size={18} />
+                        <input type="number" value={form.balance}
+                          onChange={(e) => setForm({ ...form, balance: e.target.value })}
+                          placeholder="Positive: Receivable | Negative: Payable" />
+                      </div>
+                    </div>
                   </div>
-                </div>
-              </div>
+                </>
+              )}
 
               <div className="form-actions">
                 <button type="button" className="btn-secondary" onClick={() => setShowModal(false)}>Cancel</button>
