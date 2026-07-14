@@ -181,6 +181,7 @@ export default function Billing({ type }) {
   const [discount, setDiscount] = useState("");
   const [delivery, setDelivery] = useState("");
   const [paidAmount, setPaidAmount] = useState("");
+  const [steelLabour, setSteelLabour] = useState("");
 
   const [showRegModal, setShowRegModal] = useState(false);
   const [regModalName, setRegModalName] = useState('');
@@ -515,6 +516,7 @@ export default function Billing({ type }) {
       customerAddress,
       discount,
       delivery,
+      steelLabour,
       paidAmount,
       paymentType,
       selectedBank,
@@ -532,6 +534,7 @@ export default function Billing({ type }) {
     setCustomerAddress('');
     setDiscount(0);
     setDelivery(0);
+    setSteelLabour(0);
     setPaidAmount(0);
     setTransportType('');
     setSelectedVehicleIds([]);
@@ -546,6 +549,7 @@ export default function Billing({ type }) {
     setCustomerAddress(held.customerAddress);
     setDiscount(held.discount);
     setDelivery(held.delivery);
+    setSteelLabour(held.steelLabour || 0);
     setPaidAmount(held.paidAmount);
     setPaymentType(held.paymentType);
     setSelectedBank(held.selectedBank);
@@ -560,7 +564,9 @@ export default function Billing({ type }) {
   const removeFromCart = (id) => setCart(cart.filter(item => item.id !== id));
 
   const subtotal = cart.reduce((sum, item) => sum + item.subtotal, 0);
-  const netTotal = Math.round((subtotal - parseFloat(discount || 0) + parseFloat(delivery || 0)) * 100) / 100;
+  const isRetail = activeTab === 'Retail 1' || activeTab === 'Retail 2';
+  const steelLabourVal = isRetail ? parseFloat(steelLabour || 0) : 0;
+  const netTotal = Math.round((subtotal - parseFloat(discount || 0) + parseFloat(delivery || 0) + steelLabourVal) * 100) / 100;
   const balance = Math.round((netTotal - parseFloat(paidAmount || 0)) * 100) / 100;
 
   const fetchSaleForReturn = async () => {
@@ -661,6 +667,7 @@ export default function Billing({ type }) {
         total_amount: subtotal,
         discount: parseFloat(discount || 0),
         delivery_charges: parseFloat(delivery || 0),
+        steel_labour: isRetail ? parseFloat(steelLabour || 0) : 0,
         net_amount: netTotal,
         paid_amount: parseFloat(paidAmount || 0),
         balance_amount: balance,
@@ -735,6 +742,7 @@ export default function Billing({ type }) {
           subtotal: subtotal,
           discount: parseFloat(discount || 0),
           delivery: parseFloat(delivery || 0),
+          steelLabour: isRetail ? parseFloat(steelLabour || 0) : 0,
           totalAmount: netTotal,
           paidAmount: saleData.paid_amount,
           previousBalance: prevBal,
@@ -749,6 +757,7 @@ export default function Billing({ type }) {
         setOriginalItems({});
         setDiscount(0);
         setDelivery(0);
+        setSteelLabour(0);
         setPaidAmount(0);
         setCustomerName('');
         setCustomerPhone('');
@@ -1074,6 +1083,7 @@ export default function Billing({ type }) {
               setCustomerAddress('');
               setDiscount(0);
               setDelivery(0);
+              setSteelLabour(0);
               setPaidAmount(0);
             }}><X size={18} /> Cancel Edit</button>
           )}
@@ -1317,6 +1327,26 @@ export default function Billing({ type }) {
                           style={{ fontSize: String(discount || '').length > 8 ? '0.65rem' : String(discount || '').length > 5 ? '0.75rem' : '0.85rem', transition: 'font-size 0.2s' }} />
                       </div>
                     </div>
+                    {isRetail && (
+                      <div className="calc-row">
+                        <span>Steel Labour</span>
+                        <div className="p-inputgroup p-inputgroup-sm" style={{ width: String(steelLabour || '').length > 5 ? '140px' : '110px', transition: 'width 0.2s' }}>
+                          <span className="p-inputgroup-addon font-bold" style={{ color: '#10b981', fontSize: '0.75rem', padding: '0 4px' }}>Rs</span>
+                          <InputText type="text" inputMode="decimal"
+                            value={steelLabour}
+                            onChange={(e) => {
+                              let val = e.target.value.replace(/[^0-9.]/g, "");
+                              const parts = val.split('.');
+                              if (parts.length > 2) {
+                                val = parts[0] + '.' + parts.slice(1).join('');
+                              }
+                              setSteelLabour(val);
+                            }}
+                            className="font-bold text-center"
+                            style={{ fontSize: String(steelLabour || '').length > 8 ? '0.65rem' : String(steelLabour || '').length > 5 ? '0.75rem' : '0.85rem', transition: 'font-size 0.2s' }} />
+                        </div>
+                      </div>
+                    )}
                     <div className="calc-row">
                       <span>Delivery</span>
                       <div className="p-inputgroup p-inputgroup-sm" style={{ width: String(delivery || '').length > 5 ? '140px' : '110px', transition: 'width 0.2s' }}>
@@ -1368,20 +1398,22 @@ export default function Billing({ type }) {
                   </div>
 
                   {/* Assign Labour Loading Group */}
-                  <div className="input-box mt-2" style={{ borderTop: '1px solid #e2e8f0', paddingTop: '8px', paddingBottom: '4px' }}>
-                    <label style={{ fontSize: '0.85rem', fontWeight: 600, color: '#475569', display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px' }}>
-                      <Users size={14} /> Assign Labour Loading Group
-                    </label>
-                    <div className="flex gap-2">
-                      <Dropdown
-                        value={selectedLabourGroup}
-                        options={labourGroups.map(g => ({ label: g, value: g }))}
-                        onChange={(e) => setSelectedLabourGroup(e.value)}
-                        placeholder="Select Group"
-                        className="w-full"
-                      />
+                  {!isRetail && (
+                    <div className="input-box mt-2" style={{ borderTop: '1px solid #e2e8f0', paddingTop: '8px', paddingBottom: '4px' }}>
+                      <label style={{ fontSize: '0.85rem', fontWeight: 600, color: '#475569', display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px' }}>
+                        <Users size={14} /> Assign Labour Loading Group
+                      </label>
+                      <div className="flex gap-2">
+                        <Dropdown
+                          value={selectedLabourGroup}
+                          options={labourGroups.map(g => ({ label: g, value: g }))}
+                          onChange={(e) => setSelectedLabourGroup(e.value)}
+                          placeholder="Select Group"
+                          className="w-full"
+                        />
+                      </div>
                     </div>
-                  </div>
+                  )}
 
                   <Button label={loading ? "Processing..." : "Complete Sale"} icon="pi pi-check" onClick={handleCheckout}
                     disabled={loading || cart.length === 0 || cart.some(item => parseFloat(item.qty || 0) > getEffectiveStock(item.id))} className="w-full mt-3 p-button-lg shadow-2" />
@@ -1555,6 +1587,7 @@ export default function Billing({ type }) {
                   setCustomerAddress(s.customer_address || '');
                   setDiscount(s.discount);
                   setDelivery(s.delivery_charges);
+                  setSteelLabour(s.steel_labour || 0);
                   setPaidAmount(s.paid_amount);
                   setPaymentType((s.payment_type || '').includes('Bank') ? 'Bank' : (s.payment_type || 'Cash'));
                   if ((s.payment_type || '').includes('Bank')) {
@@ -1612,6 +1645,7 @@ export default function Billing({ type }) {
                         subtotal: s.total_amount,
                         discount: s.discount,
                         delivery: s.delivery_charges,
+                        steelLabour: s.steel_labour || 0,
                         totalAmount: s.net_amount,
                         paidAmount: s.paid_amount,
                         previousBalance: (() => {
@@ -1755,6 +1789,12 @@ export default function Billing({ type }) {
               <span>Rs. {receiptData.discount.toLocaleString()}/-</span>
             </div>
           )}
+          {receiptData.steelLabour > 0 && (
+            <div className="total-row" style={{ fontSize: '11px' }}>
+              <span>STEEL LABOUR</span>
+              <span>Rs. {receiptData.steelLabour.toLocaleString()}/-</span>
+            </div>
+          )}
           {receiptData.delivery > 0 && (
             <div className="total-row" style={{ fontSize: '11px' }}>
               <span>DELIVERY</span>
@@ -1875,6 +1915,9 @@ export default function Billing({ type }) {
                               items = typeof row.items === 'string' ? JSON.parse(row.items) : (row.items || []);
                             } catch (e) { items = []; }
                             let details = items.map(i => `${formatItemName(i.brand, i.name)} (${i.qty} x Rs.${i.rate})`).join(', ');
+                            if (parseFloat(row.steel_labour || 0) > 0) {
+                              details += ` + Steel Labour (Rs. ${parseFloat(row.steel_labour).toLocaleString()})`;
+                            }
                             if (parseFloat(row.delivery_charges || 0) > 0) {
                               details += ` + Delivery (Rs. ${parseFloat(row.delivery_charges).toLocaleString()})`;
                             }
@@ -2020,6 +2063,15 @@ export default function Billing({ type }) {
                                           </span>
                                         </div>
                                       ))}
+                                      {parseFloat(row.steel_labour || 0) > 0 && (
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: '#f0fdf4', padding: '4px 8px', borderRadius: '4px', border: '1px solid #bbf7d0' }}>
+                                          <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#166534', flex: 1 }}>Steel Labour</span>
+                                          <span style={{ fontSize: '0.8rem', color: '#64748b' }}>—</span>
+                                          <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#16a34a', minWidth: '60px', textAlign: 'right' }}>
+                                            Rs. {parseFloat(row.steel_labour).toLocaleString()}
+                                          </span>
+                                        </div>
+                                      )}
                                       {parseFloat(row.delivery_charges || 0) > 0 && (
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: '#eff6ff', padding: '4px 8px', borderRadius: '4px', border: '1px solid #bfdbfe' }}>
                                           <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#1e3a8a', flex: 1 }}>Delivery</span>

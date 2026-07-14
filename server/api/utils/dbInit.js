@@ -95,6 +95,7 @@ async function syncDatabaseSchema() {
     `ALTER TABLE sales ADD COLUMN IF NOT EXISTS user_id INTEGER;`,
     `ALTER TABLE sales ADD COLUMN IF NOT EXISTS sale_type VARCHAR(50) DEFAULT 'Retail';`,
     `ALTER TABLE sales ADD COLUMN IF NOT EXISTS vehicle_type VARCHAR(50);`,
+    `ALTER TABLE sales ADD COLUMN IF NOT EXISTS steel_labour DECIMAL(15, 2) DEFAULT 0;`,
 
     // --- 8. LABOURS ---
     `ALTER TABLE labours ADD COLUMN IF NOT EXISTS module_type VARCHAR(100) DEFAULT 'Wholesale';`,

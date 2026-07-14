@@ -955,7 +955,12 @@ export default function Accounts() {
             ...s,
             isExpense: true,
             isIncome: false,
-            customer_name: `Sent Admin Payment`
+            customer_name: (() => {
+              const notes = s.notes || '';
+              const match = notes.match(/^(?:Recipient|Admin) Bank: [^)]+\)\.\s*(.*)$/is);
+              const customNote = match ? match[1].trim() : notes.trim();
+              return customNote || `Sent Admin Payment`;
+            })()
           };
         }
         const isGallaCloseout = s.expense_type === 'Galla Closeout' || s.customer_name?.includes('Galla Closeout') || s.title?.includes('Galla Closeout') || s.notes?.includes('Recipient Bank');
@@ -964,7 +969,12 @@ export default function Accounts() {
             ...s,
             isExpense: false,
             isIncome: true,
-            customer_name: `Received Galla Handover`
+            customer_name: (() => {
+              const notes = s.notes || '';
+              const match = notes.match(/^(?:Recipient|Admin) Bank: [^)]+\)\.\s*(.*)$/is);
+              const customNote = match ? match[1].trim() : notes.trim();
+              return customNote || `Received Galla Handover`;
+            })()
           };
         }
       }
@@ -973,7 +983,9 @@ export default function Accounts() {
       if (!selectedLedgerAccount) return false;
 
       if (selectedLedgerAccount.module_type === 'Admin Recipient') {
-        return (s.customer_name === 'Received Galla Handover' || s.customer_name === 'Sent Admin Payment') && s.notes?.includes(selectedLedgerAccount.bank_name) && s.notes?.includes(selectedLedgerAccount.account_number);
+        const isAdminPayment = s.expense_type === 'Admin Payment' || s.title?.includes('Admin Payment') || s.customer_name?.includes('Admin Payment');
+        const isGallaCloseout = s.expense_type === 'Galla Closeout' || s.customer_name?.includes('Galla Closeout') || s.title?.includes('Galla Closeout') || s.notes?.includes('Recipient Bank');
+        return (isAdminPayment || isGallaCloseout) && s.notes?.includes(selectedLedgerAccount.bank_name) && s.notes?.includes(selectedLedgerAccount.account_number);
       }
 
       const accountMatch = checkAccountMatch(s.payment_type || 'Cash', selectedLedgerAccount);
@@ -1114,7 +1126,12 @@ export default function Accounts() {
             ...s,
             isExpense: false,
             isIncome: true,
-            customer_name: `Received Galla Handover`
+            customer_name: (() => {
+              const notes = s.notes || '';
+              const match = notes.match(/^(?:Recipient|Admin) Bank: [^)]+\)\.\s*(.*)$/is);
+              const customNote = match ? match[1].trim() : notes.trim();
+              return customNote || `Received Galla Handover`;
+            })()
           };
         }
         const isAdminPayment = s.expense_type === 'Admin Payment';
@@ -1123,14 +1140,21 @@ export default function Accounts() {
             ...s,
             isExpense: true,
             isIncome: false,
-            customer_name: `Sent Admin Payment`
+            customer_name: (() => {
+              const notes = s.notes || '';
+              const match = notes.match(/^(?:Recipient|Admin) Bank: [^)]+\)\.\s*(.*)$/is);
+              const customNote = match ? match[1].trim() : notes.trim();
+              return customNote || `Sent Admin Payment`;
+            })()
           };
         }
       }
       return s;
     }).filter(s => {
       if (acc.module_type === 'Admin Recipient') {
-        return (s.customer_name === 'Received Galla Handover' || s.customer_name === 'Sent Admin Payment') && s.notes?.includes(acc.bank_name) && s.notes?.includes(acc.account_number);
+        const isGallaCloseout = s.expense_type === 'Galla Closeout' || s.customer_name?.includes('Galla Closeout') || s.title?.includes('Galla Closeout') || s.notes?.includes('Recipient Bank');
+        const isAdminPayment = s.expense_type === 'Admin Payment';
+        return (isGallaCloseout || isAdminPayment) && s.notes?.includes(acc.bank_name) && s.notes?.includes(acc.account_number);
       }
       return checkAccountMatch(s.payment_type || 'Cash', acc);
     }).sort((a, b) => new Date(b.created_at || b.purchase_date || b.date) - new Date(a.created_at || a.purchase_date || a.date));
