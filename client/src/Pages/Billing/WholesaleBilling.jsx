@@ -140,6 +140,8 @@ export default function WholesaleBilling({ type }) {
     }
   };
 
+  const activeTab = "Wholesale";
+  const setActiveTab = () => {};
   const [view, setView] = useState("POS");
   const [products, setProducts] = useState([]);
   const [customers, setCustomers] = useState([]);
