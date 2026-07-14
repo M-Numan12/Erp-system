@@ -131,12 +131,12 @@ exports.getVehicleLedger = async (req, res) => {
        WHERE p.vehicle_id = $1`, [vId]
     );
 
-    // 3. Payments/Expenses made to Vehicle
+    // 3. Payments/Expenses made to Vehicle (exclude pending expenses as they are not paid/deducted yet)
     const payments = await pool.query(
       `SELECT id, description as party_name, amount, expense_date as date, 
               CASE WHEN category = 'Fare Payment' THEN 'Payment' ELSE 'Expense (Deduction)' END as trip_type, 
               payment_type
-       FROM expenses WHERE vehicle_id = $1`, [vId]
+       FROM expenses WHERE vehicle_id = $1 AND (payment_type IS NULL OR payment_type != 'Pending')`, [vId]
     );
 
     const combined = [...formattedSalesTrips, ...purchaseTrips.rows, ...payments.rows].sort((a, b) => new Date(b.date) - new Date(a.date));

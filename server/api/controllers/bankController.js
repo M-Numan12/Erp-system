@@ -80,7 +80,7 @@ async function updateBankAccountsCurrentBalances(poolOrClient) {
       const findKey = (methodName, accounts) => {
         if (!methodName) return 'Cash';
         const cl = methodName.replace(/^bank\s*-\s*/i, '').toLowerCase().trim();
-        if (cl === '' || cl.startsWith('cash') || cl.startsWith('credit') || cl === 'cash account') return 'Cash';
+        if (cl === '' || cl.startsWith('cash') || cl.startsWith('credit') || cl === 'cash account' || cl === 'paid') return 'Cash';
         const match = accounts.find(a => checkAccountMatch(methodName, a));
         return match ? match.id : 'GHOST';
       };

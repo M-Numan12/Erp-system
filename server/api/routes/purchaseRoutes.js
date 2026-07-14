@@ -141,13 +141,12 @@ router.post('/', auth, async (req, res) => {
 
     // 4. Update Vehicle Earnings (if vehicle provided)
     if ((vId || vehicle_number) && fare > 0 && fare_status !== 'Free') {
-      if (vId) {
+      if (vId && fare_status === 'Pending') {
         await client.query(
           `UPDATE vehicles SET total_earnings = total_earnings + $1 WHERE id = $2`,
           [fare, vId]
         );
       }
-
       // Determine the correct expense_type based on vehicle ownership_type
       let expenseType = 'Supplier Vehicle';
 
@@ -320,10 +319,12 @@ router.post('/ledger/undo', auth, async (req, res) => {
 
     // 4. Revert Vehicle earnings and delete transport expense if applicable
     if (purchase.vehicle_id && parseFloat(purchase.delivery_charges) > 0) {
-      await client.query(
-        'UPDATE vehicles SET total_earnings = total_earnings - $1 WHERE id = $2',
-        [parseFloat(purchase.delivery_charges), purchase.vehicle_id]
-      );
+      if (purchase.fare_payment_type === 'Pending') {
+        await client.query(
+          'UPDATE vehicles SET total_earnings = total_earnings - $1 WHERE id = $2',
+          [parseFloat(purchase.delivery_charges), purchase.vehicle_id]
+        );
+      }
       await client.query(
         "DELETE FROM expenses WHERE vehicle_id = $1 AND amount = $2 AND category = 'Transport'",
         [purchase.vehicle_id, parseFloat(purchase.delivery_charges)]
@@ -439,7 +440,7 @@ router.post('/return', auth, async (req, res) => {
     );
 
     if ((vId || vehicle_number) && fare > 0 && fare_status !== 'Free') {
-      if (vId) {
+      if (vId && fare_status === 'Pending') {
         await client.query(
           `UPDATE vehicles SET total_earnings = total_earnings + $1 WHERE id = $2`,
           [fare, vId]
