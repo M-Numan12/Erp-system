@@ -1310,21 +1310,21 @@ export default function Billing({ type }) {
                       <span>Rs. {subtotal.toLocaleString()}</span>
                     </div>
                     <div className="calc-row">
-                      <span>Discount</span>
-                      <div className="p-inputgroup p-inputgroup-sm" style={{ width: String(discount || '').length > 5 ? '140px' : '110px', transition: 'width 0.2s' }}>
-                        <span className="p-inputgroup-addon font-bold" style={{ color: '#ef4444', fontSize: '0.75rem', padding: '0 4px' }}>Rs</span>
+                      <span>Delivery</span>
+                      <div className="p-inputgroup p-inputgroup-sm" style={{ width: String(delivery || '').length > 5 ? '140px' : '110px', transition: 'width 0.2s' }}>
+                        <span className="p-inputgroup-addon font-bold" style={{ color: '#3b82f6', fontSize: '0.75rem', padding: '0 4px' }}>Rs</span>
                         <InputText type="text" inputMode="decimal"
-                          value={discount}
+                          value={delivery}
                           onChange={(e) => {
                             let val = e.target.value.replace(/[^0-9.]/g, "");
                             const parts = val.split('.');
                             if (parts.length > 2) {
                               val = parts[0] + '.' + parts.slice(1).join('');
                             }
-                            setDiscount(val);
+                            setDelivery(val);
                           }}
                           className="font-bold text-center"
-                          style={{ fontSize: String(discount || '').length > 8 ? '0.65rem' : String(discount || '').length > 5 ? '0.75rem' : '0.85rem', transition: 'font-size 0.2s' }} />
+                          style={{ fontSize: String(delivery || '').length > 8 ? '0.65rem' : String(delivery || '').length > 5 ? '0.75rem' : '0.85rem', transition: 'font-size 0.2s' }} />
                       </div>
                     </div>
                     {isRetail && (
@@ -1348,21 +1348,21 @@ export default function Billing({ type }) {
                       </div>
                     )}
                     <div className="calc-row">
-                      <span>Delivery</span>
-                      <div className="p-inputgroup p-inputgroup-sm" style={{ width: String(delivery || '').length > 5 ? '140px' : '110px', transition: 'width 0.2s' }}>
-                        <span className="p-inputgroup-addon font-bold" style={{ color: '#3b82f6', fontSize: '0.75rem', padding: '0 4px' }}>Rs</span>
+                      <span>Discount</span>
+                      <div className="p-inputgroup p-inputgroup-sm" style={{ width: String(discount || '').length > 5 ? '140px' : '110px', transition: 'width 0.2s' }}>
+                        <span className="p-inputgroup-addon font-bold" style={{ color: '#ef4444', fontSize: '0.75rem', padding: '0 4px' }}>Rs</span>
                         <InputText type="text" inputMode="decimal"
-                          value={delivery}
+                          value={discount}
                           onChange={(e) => {
                             let val = e.target.value.replace(/[^0-9.]/g, "");
                             const parts = val.split('.');
                             if (parts.length > 2) {
                               val = parts[0] + '.' + parts.slice(1).join('');
                             }
-                            setDelivery(val);
+                            setDiscount(val);
                           }}
                           className="font-bold text-center"
-                          style={{ fontSize: String(delivery || '').length > 8 ? '0.65rem' : String(delivery || '').length > 5 ? '0.75rem' : '0.85rem', transition: 'font-size 0.2s' }} />
+                          style={{ fontSize: String(discount || '').length > 8 ? '0.65rem' : String(discount || '').length > 5 ? '0.75rem' : '0.85rem', transition: 'font-size 0.2s' }} />
                       </div>
                     </div>
                     <div className="grand-total">
