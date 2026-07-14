@@ -477,99 +477,154 @@ export default function Customers({ type }) {
 
   return (
     <div className="module-page">
-      <div className="module-header">
-        <div className="module-title">
-          <button className="btn-icon back-btn" onClick={() => window.history.back()} style={{ marginRight: '15px', background: '#f1f5f9', border: '1px solid #e2e8f0', borderRadius: '50%', width: '36px', height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#475569', transition: 'all 0.2s' }}>
-            <ChevronLeft size={20} />
-          </button>
-          <div className="module-icon investment-icon" style={{ background: '#eff6ff', color: '#3b82f6' }}><UsersIcon size={28} /></div>
-          <div>
-            <h1>{activeTab} CRM</h1>
-            <p>Manage customer directory and ledger balances</p>
-          </div>
-        </div>
-
-        {user?.role === 'admin' && (!user?.module_type || user?.module_type === 'admin') && !type && (
-          <div className="counter-switcher">
-            <button className={activeTab === 'Wholesale' ? 'active' : ''} onClick={() => setActiveTab('Wholesale')}>Wholesale</button>
-            <button className={activeTab === 'Retail 1' ? 'active' : ''} onClick={() => setActiveTab('Retail 1')}>Retail 1</button>
-            <button className={activeTab === 'Retail 2' ? 'active' : ''} onClick={() => setActiveTab('Retail 2')}>Retail 2</button>
-          </div>
-        )}
-
-        <button className="btn-primary" onClick={openAdd}>
-          <Plus size={18} /> Add New Customer
-        </button>
-      </div>
-
-      <div className="stats-grid-pos">
-        <div className="pos-stat-card">
-          <div className="icon blue"><UsersIcon size={24} /></div>
-          <div className="info">
-            <span className="label">Total Customers</span>
-            <span className="value">{filtered.length} Users</span>
-          </div>
-        </div>
-        <div className="pos-stat-card">
-          <div className="icon green"><CreditCard size={24} /></div>
-          <div className="info">
-            <span className="label">Receivables</span>
-            <span className="value">Rs. {totalReceivable.toLocaleString()}</span>
-          </div>
-        </div>
-        <div className="pos-stat-card">
-          <div className="icon red"><Banknote size={24} /></div>
-          <div className="info">
-            <span className="label">Payables</span>
-            <span className="value">Rs. {totalPayable.toLocaleString()}</span>
-          </div>
-        </div>
-      </div>
-
-      <div className="pos-table-actions">
-        <div className="search-bar">
-          <Search size={18} />
-          <input type="text" placeholder="Search by name or phone..." value={search} onChange={(e) => setSearch(e.target.value)} />
-        </div>
-      </div>
-
-      <div className="module-table-container" style={{ padding: '20px', background: 'white', borderRadius: '16px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
-        <DataTable value={filtered} paginator rows={10} rowsPerPageOptions={[5, 10, 25, 50]}
-          emptyMessage="No customers found." className="p-datatable-sm" stripedRows>
-          <Column field="id" header="ID" body={(rec) => <span style={{ fontWeight: 600, color: '#64748b' }}>#{rec.id}</span>} sortable style={{ width: '80px' }} />
-
-          <Column field="name" header="Customer Name" body={(rec) => (
-            <span style={{ fontWeight: 700, fontSize: '1rem', color: '#1e293b' }}>{rec.name}</span>
-          )} sortable />
-
-          <Column header="Contact Details" body={(rec) => (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.85rem', fontWeight: '600', color: '#334155' }}><Phone size={12} /> {rec.phone || "—"}</div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem', color: '#64748b' }}><Mail size={12} /> {rec.email || "—"}</div>
+      <div className="no-print">
+        <div className="module-header">
+          <div className="module-title">
+            <button className="btn-icon back-btn" onClick={() => window.history.back()} style={{ marginRight: '15px', background: '#f1f5f9', border: '1px solid #e2e8f0', borderRadius: '50%', width: '36px', height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#475569', transition: 'all 0.2s' }}>
+              <ChevronLeft size={20} />
+            </button>
+            <div className="module-icon investment-icon" style={{ background: '#eff6ff', color: '#3b82f6' }}><UsersIcon size={28} /></div>
+            <div>
+              <h1>{activeTab} CRM</h1>
+              <p>Manage customer directory and ledger balances</p>
             </div>
-          )} />
+          </div>
 
-          <Column header="Location" body={(rec) => (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.85rem', color: '#475569' }}><MapPin size={12} /> {rec.address || "—"}</div>
-          )} />
+          {user?.role === 'admin' && (!user?.module_type || user?.module_type === 'admin') && !type && (
+            <div className="counter-switcher">
+              <button className={activeTab === 'Wholesale' ? 'active' : ''} onClick={() => setActiveTab('Wholesale')}>Wholesale</button>
+              <button className={activeTab === 'Retail 1' ? 'active' : ''} onClick={() => setActiveTab('Retail 1')}>Retail 1</button>
+              <button className={activeTab === 'Retail 2' ? 'active' : ''} onClick={() => setActiveTab('Retail 2')}>Retail 2</button>
+            </div>
+          )}
 
-          <Column field="balance" header="Ledger Balance" body={(rec) => (
-            <span style={{ fontWeight: 800, fontSize: '1rem', color: parseFloat(rec.balance) > 0 ? '#16a34a' : parseFloat(rec.balance) < 0 ? '#e11d48' : '#64748b' }}>
-              Rs. {parseFloat(rec.balance).toLocaleString()}
-            </span>
-          )} sortable />
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <button className="btn-secondary" onClick={() => window.print()} style={{ background: '#f8fafc', color: '#0f172a', border: '1px solid #cbd5e1', borderRadius: '10px', display: 'flex', alignItems: 'center', gap: '8px', padding: '0 16px', height: '42px', fontWeight: 600, cursor: 'pointer' }}>
+              <Printer size={18} /> Print List
+            </button>
+            <button className="btn-primary" onClick={openAdd}>
+              <Plus size={18} /> Add New Customer
+            </button>
+          </div>
+        </div>
 
-          <Column header="" body={(rec) => (
-            <ActionMenu
-              onEdit={() => openEdit(rec)}
-              onDelete={() => handleDelete(rec.id)}
-              extraItems={[
-                { label: 'View Ledger', icon: 'pi pi-book', command: () => openLedger(rec) },
-                { label: 'Receive Payment', icon: 'pi pi-money-bill', command: () => openPayment(rec) }
-              ]}
-            />
-          )} style={{ textAlign: 'center', width: '80px' }} />
-        </DataTable>
+        <div className="stats-grid-pos">
+          <div className="pos-stat-card">
+            <div className="icon blue"><UsersIcon size={24} /></div>
+            <div className="info">
+              <span className="label">Total Customers</span>
+              <span className="value">{filtered.length} Users</span>
+            </div>
+          </div>
+          <div className="pos-stat-card">
+            <div className="icon green"><CreditCard size={24} /></div>
+            <div className="info">
+              <span className="label">Receivables</span>
+              <span className="value">Rs. {totalReceivable.toLocaleString()}</span>
+            </div>
+          </div>
+          <div className="pos-stat-card">
+            <div className="icon red"><Banknote size={24} /></div>
+            <div className="info">
+              <span className="label">Payables</span>
+              <span className="value">Rs. {totalPayable.toLocaleString()}</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="pos-table-actions">
+          <div className="search-bar">
+            <Search size={18} />
+            <input type="text" placeholder="Search by name or phone..." value={search} onChange={(e) => setSearch(e.target.value)} />
+          </div>
+        </div>
+
+        <div className="module-table-container" style={{ padding: '20px', background: 'white', borderRadius: '16px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
+          <DataTable value={filtered} paginator rows={10} rowsPerPageOptions={[5, 10, 25, 50]}
+            emptyMessage="No customers found." className="p-datatable-sm" stripedRows>
+            <Column field="id" header="ID" body={(rec) => <span style={{ fontWeight: 600, color: '#64748b' }}>#{rec.id}</span>} sortable style={{ width: '80px' }} />
+
+            <Column field="name" header="Customer Name" body={(rec) => (
+              <span style={{ fontWeight: 700, fontSize: '1rem', color: '#1e293b' }}>{rec.name}</span>
+            )} sortable />
+
+            <Column header="Contact Details" body={(rec) => (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.85rem', fontWeight: '600', color: '#334155' }}><Phone size={12} /> {rec.phone || "—"}</div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem', color: '#64748b' }}><Mail size={12} /> {rec.email || "—"}</div>
+              </div>
+            )} />
+
+            <Column header="Location" body={(rec) => (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.85rem', color: '#475569' }}><MapPin size={12} /> {rec.address || "—"}</div>
+            )} />
+
+            <Column field="balance" header="Ledger Balance" body={(rec) => (
+              <span style={{ fontWeight: 800, fontSize: '1rem', color: parseFloat(rec.balance) > 0 ? '#16a34a' : parseFloat(rec.balance) < 0 ? '#e11d48' : '#64748b' }}>
+                Rs. {parseFloat(rec.balance).toLocaleString()}
+              </span>
+            )} sortable />
+
+            <Column header="" body={(rec) => (
+              <ActionMenu
+                onEdit={() => openEdit(rec)}
+                onDelete={() => handleDelete(rec.id)}
+                extraItems={[
+                  { label: 'View Ledger', icon: 'pi pi-book', command: () => openLedger(rec) },
+                  { label: 'Receive Payment', icon: 'pi pi-money-bill', command: () => openPayment(rec) }
+                ]}
+              />
+            )} style={{ textAlign: 'center', width: '80px' }} />
+          </DataTable>
+        </div>
+      </div>
+
+      {/* Print Only Layout */}
+      <div className="print-only" style={{ padding: '20px', fontFamily: 'Inter, sans-serif' }}>
+        <div style={{ textAlign: 'center', marginBottom: '20px', borderBottom: '2px solid #1e293b', paddingBottom: '10px' }}>
+          <h2 style={{ margin: '0 0 5px 0', fontSize: '1.6rem', color: '#1e293b' }}>DATA WALEY CEMENT ERP</h2>
+          <h3 style={{ margin: '0', fontSize: '1.25rem', color: '#475569', textTransform: 'uppercase' }}>{activeTab} CUSTOMER LIST REPORT</h3>
+          <p style={{ margin: '5px 0 0 0', fontSize: '0.85rem', color: '#64748b' }}>Date Generated: {new Date().toLocaleString()}</p>
+        </div>
+        
+        <div style={{ display: 'flex', gap: '20px', marginBottom: '20px', fontSize: '0.9rem' }}>
+          <div><strong>Total Customers:</strong> {filtered.length}</div>
+          <div><strong>Total Receivables:</strong> Rs. {totalReceivable.toLocaleString()}/-</div>
+          <div><strong>Total Payables:</strong> Rs. {totalPayable.toLocaleString()}/-</div>
+        </div>
+
+        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
+          <thead>
+            <tr style={{ background: '#f1f5f9', borderBottom: '2px solid #cbd5e1' }}>
+              <th style={{ padding: '8px', textAlign: 'left', border: '1px solid #cbd5e1', fontWeight: 'bold' }}>ID</th>
+              <th style={{ padding: '8px', textAlign: 'left', border: '1px solid #cbd5e1', fontWeight: 'bold' }}>Customer Name</th>
+              <th style={{ padding: '8px', textAlign: 'left', border: '1px solid #cbd5e1', fontWeight: 'bold' }}>Phone</th>
+              <th style={{ padding: '8px', textAlign: 'left', border: '1px solid #cbd5e1', fontWeight: 'bold' }}>Location</th>
+              <th style={{ padding: '8px', textAlign: 'right', border: '1px solid #cbd5e1', fontWeight: 'bold' }}>Balance</th>
+            </tr>
+          </thead>
+          <tbody>
+            {filtered.map(rec => {
+              const bal = parseFloat(rec.balance || 0);
+              let balStr = `Rs. ${Math.abs(bal).toLocaleString()}/-`;
+              if (bal > 0) balStr += " (Due)";
+              else if (bal < 0) balStr += " (Advance)";
+              else balStr = "Rs. 0/-";
+
+              return (
+                <tr key={rec.id} style={{ borderBottom: '1px solid #e2e8f0' }}>
+                  <td style={{ padding: '8px', border: '1px solid #cbd5e1' }}>#{rec.id}</td>
+                  <td style={{ padding: '8px', border: '1px solid #cbd5e1', fontWeight: 'bold' }}>{rec.name}</td>
+                  <td style={{ padding: '8px', border: '1px solid #cbd5e1' }}>{rec.phone || '—'}</td>
+                  <td style={{ padding: '8px', border: '1px solid #cbd5e1' }}>{rec.address || '—'}</td>
+                  <td style={{ padding: '8px', border: '1px solid #cbd5e1', textAlign: 'right', fontWeight: 'bold', color: bal > 0 ? '#b91c1c' : bal < 0 ? '#15803d' : '#64748b' }}>
+                    {balStr}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
       </div>
 
       {showModal && (
