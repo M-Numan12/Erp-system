@@ -151,6 +151,8 @@ export default function Customers({ type }) {
   // Loading state for undo payment action (admin only)
   const [undoLoading, setUndoLoading] = useState(false);
   const [adjForm, setAdjForm] = useState({ type: "Debit", amount: "", notes: "" });
+  const [balanceFilter, setBalanceFilter] = useState("all");
+  const [activityFilter, setActivityFilter] = useState("all");
 
 
 
@@ -467,10 +469,41 @@ export default function Customers({ type }) {
     fetchRecords();
   };
 
-  const filtered = records.filter((r) =>
-    r.name.toLowerCase().includes(search.toLowerCase()) ||
-    (r.phone || "").includes(search)
-  );
+  const filtered = records.filter((r) => {
+    // 1. Search Query Match
+    const matchesSearch = r.name.toLowerCase().includes(search.toLowerCase()) || (r.phone || "").includes(search);
+    if (!matchesSearch) return false;
+
+    // 2. Balance Filter (1 Lack/50k/Debtors/Creditors/Zero)
+    const bal = parseFloat(r.balance || 0);
+    if (balanceFilter === "gt100k" && bal <= 100000) return false;
+    if (balanceFilter === "gt50k" && bal <= 50000) return false;
+    if (balanceFilter === "debtors" && bal <= 0) return false;
+    if (balanceFilter === "creditors" && bal >= 0) return false;
+    if (balanceFilter === "zero" && bal !== 0) return false;
+
+    // 3. Last Transaction Activity Date Filter (Today / Yesterday / Older)
+    if (activityFilter !== "all") {
+      if (r.last_transaction_date) {
+        const txDate = new Date(r.last_transaction_date);
+        const today = new Date();
+        const yesterday = new Date();
+        yesterday.setDate(today.getDate() - 1);
+
+        const isToday = txDate.toLocaleDateString() === today.toLocaleDateString();
+        const isYesterday = txDate.toLocaleDateString() === yesterday.toLocaleDateString();
+
+        if (activityFilter === "today" && !isToday) return false;
+        if (activityFilter === "yesterday" && !isYesterday) return false;
+        if (activityFilter === "older" && (isToday || isYesterday)) return false;
+      } else {
+        // If customer has never had a sale/transaction, they only match "older"
+        if (activityFilter !== "older") return false;
+      }
+    }
+
+    return true;
+  });
 
   const totalReceivable = filtered.filter(r => parseFloat(r.balance) > 0).reduce((sum, r) => sum + parseFloat(r.balance), 0);
   const totalPayable = filtered.filter(r => parseFloat(r.balance) < 0).reduce((sum, r) => sum + Math.abs(parseFloat(r.balance)), 0);
@@ -532,10 +565,44 @@ export default function Customers({ type }) {
           </div>
         </div>
 
-        <div className="pos-table-actions">
-          <div className="search-bar">
+        <div className="pos-table-actions" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '15px', flexWrap: 'wrap', marginBottom: '20px' }}>
+          <div className="search-bar" style={{ flex: '1', minWidth: '250px' }}>
             <Search size={18} />
             <input type="text" placeholder="Search by name or phone..." value={search} onChange={(e) => setSearch(e.target.value)} />
+          </div>
+          
+          <div style={{ display: 'flex', gap: '15px', flexWrap: 'wrap', alignItems: 'center' }}>
+            {/* Balance Filter Dropdown */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#475569' }}>Balance:</span>
+              <select 
+                value={balanceFilter} 
+                onChange={(e) => setBalanceFilter(e.target.value)}
+                style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', outline: 'none', background: 'white', fontSize: '0.85rem', fontWeight: 500, color: '#334155', cursor: 'pointer' }}
+              >
+                <option value="all">All Balances</option>
+                <option value="gt100k">Receivable &gt; 1 Lakh</option>
+                <option value="gt50k">Receivable &gt; 50k</option>
+                <option value="debtors">Total Debtors (Balance &gt; 0)</option>
+                <option value="creditors">Total Advances (Balance &lt; 0)</option>
+                <option value="zero">Zero Balance</option>
+              </select>
+            </div>
+
+            {/* Activity/Transaction Filter Dropdown */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#475569' }}>Activity:</span>
+              <select 
+                value={activityFilter} 
+                onChange={(e) => setActivityFilter(e.target.value)}
+                style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', outline: 'none', background: 'white', fontSize: '0.85rem', fontWeight: 500, color: '#334155', cursor: 'pointer' }}
+              >
+                <option value="all">All Activity</option>
+                <option value="today">Active Today</option>
+                <option value="yesterday">Active Yesterday</option>
+                <option value="older">Older / Inactive</option>
+              </select>
+            </div>
           </div>
         </div>
 

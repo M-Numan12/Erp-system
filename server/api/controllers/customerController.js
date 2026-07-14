@@ -6,20 +6,24 @@ const isAdmin = (req) => req.user.role === 'admin';
 exports.getCustomers = async (req, res) => {
   try {
     const { type } = req.query;
-    let query = 'SELECT * FROM customers';
+    let query = `
+      SELECT c.*,
+      (SELECT MAX(created_at) FROM sales WHERE customer_id = c.id) as last_transaction_date
+      FROM customers c
+    `;
     let params = [];
 
     if (isAdmin(req)) {
       if (type) {
-        query += ' WHERE module_type = $1';
+        query += ' WHERE c.module_type = $1';
         params.push(type);
       }
     } else {
-      query += ' WHERE module_type = $1';
+      query += ' WHERE c.module_type = $1';
       params.push(req.user.module_type || 'Retail 1');
     }
 
-    query += ' ORDER BY name ASC';
+    query += ' ORDER BY c.name ASC';
     const result = await pool.query(query, params);
     res.json(result.rows);
   } catch (err) { 
