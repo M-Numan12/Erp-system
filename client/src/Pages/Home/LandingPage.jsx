@@ -219,7 +219,7 @@ const LandingPage = () => {
           Request a Quote
         </a>
 
-        <button 
+        <button
           className="btn-mobile-menu"
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
           aria-label="Toggle menu"
@@ -242,7 +242,7 @@ const LandingPage = () => {
 
       {/* 2. Hero Section */}
       <section id="home" className="hero-section">
-        <div 
+        <div
           className="hero-bg-image"
           style={{
             transform: `scale(${1 + scrollY * 0.0006}) translateY(${scrollY * 0.1}px)`,
@@ -309,8 +309,8 @@ const LandingPage = () => {
           </h2>
           <div className="vision-divider reveal-item"></div>
           <p className="reveal-item">
-            Our vision extends beyond materials. We're committed to becoming Punjab's most trusted construction partner, 
-            empowering builders, contractors, and retailers with uncompromising quality and unwavering reliability. 
+            Our vision extends beyond materials. We're committed to becoming Punjab's most trusted construction partner,
+            empowering builders, contractors, and retailers with uncompromising quality and unwavering reliability.
             Every brick, every bag of cement, every steel rod carries our 46-year legacy of excellence.
           </p>
         </ScrollReveal>
@@ -603,7 +603,7 @@ const LandingPage = () => {
             ALL OF <span className="gold-accent">PUNJAB</span>
           </h2>
         </ScrollReveal>
-        
+
         <ScrollReveal className="supply-images-container">
           <div className="supply-img-wrapper">
             <img src="/truck1.jpg" alt="Truck driving in Punjab" className="supply-img" />
@@ -621,7 +621,7 @@ const LandingPage = () => {
             <h3>Fleet Logistics</h3>
             <p>Modern fleet ensuring timely deliveries across Punjab</p>
           </div>
-          
+
           <div className="supply-card glass-card reveal-item">
             <div className="supply-icon">
               <Package size={28} color="#b89047" />
@@ -629,7 +629,7 @@ const LandingPage = () => {
             <h3>Bulk Orders</h3>
             <p>Competitive pricing for large-scale wholesale orders</p>
           </div>
-          
+
           <div className="supply-card glass-card reveal-item">
             <div className="supply-icon">
               <Building2 size={28} color="#b89047" />
@@ -648,7 +648,7 @@ const LandingPage = () => {
             ACROSS <span className="gold-accent">LAHORE</span>
           </h2>
         </ScrollReveal>
-        
+
         <div className="marquee-wrapper">
           <div className="marquee-track">
             {[...testimonials, ...testimonials].map((t, idx) => (
@@ -687,14 +687,14 @@ const LandingPage = () => {
               </div>
             </div>
           </div>
-          
+
           <div className="ceo-content">
             <span className="ceo-tag">From The CEO</span>
             <h2>
               BUILDING TRUST.<br />
               <span className="gold-accent">DELIVERING EXCELLENCE.</span>
             </h2>
-            
+
             <p>
               Since 1978, Data Waley Cement Depot has been built on a simple promise: provide quality materials, honest service, and dependable support to every customer we serve.
             </p>
@@ -707,7 +707,7 @@ const LandingPage = () => {
             <p>
               Thank you for placing your trust in us. We look forward to serving the next generation of builders with the same dedication that has defined us for more than four decades.
             </p>
-            
+
             <div className="ceo-signature-block">
               <p className="signature">Mian Hassam Ahmad</p>
               <div className="ceo-meta">
@@ -729,7 +729,7 @@ const LandingPage = () => {
           <ScrollReveal className="contact-info-col reveal-item">
             <h3>Contact Details</h3>
             <p>Reach out directly to our customer sales desk or visit us for detailed project discussions.</p>
-            
+
             <div className="info-list">
               <div className="info-item">
                 <MapPin size={24} color="#b89047" />
@@ -749,7 +749,7 @@ const LandingPage = () => {
                 <Mail size={24} color="#b89047" />
                 <div className="item-details">
                   <h4>Email Support</h4>
-                  <p>datawaleycement@gmail.com</p>
+                  <p>datawaleycement.support@gmail.com</p>
                 </div>
               </div>
               <div className="info-item">
