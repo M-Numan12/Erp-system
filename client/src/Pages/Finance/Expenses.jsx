@@ -26,7 +26,7 @@ const emptyForm = {
 
 const CATEGORIES = {
   Office: ["Rent", "Electricity", "Staff Tea", "Stationery", "Internet", "Maintenance", "Other"],
-  House: ["MAIN HOUSE", "BEGUM KOT HOUSE", "KHOHKAR ROAD HOUSE", "FEE SABEELALLAH", "Grocery", "Personal Withdrawal", "Utility Bills", "Education", "Travel", "Other"]
+  House: ["MIAN HOUSE", "BEGUM KOT HOUSE", "KHOHKAR ROAD HOUSE", "FEE SABEELALLAH", "Grocery", "Personal Withdrawal", "Utility Bills", "Education", "Travel", "Other"]
 };
 
 export default function Expenses({ type }) {
@@ -244,10 +244,10 @@ export default function Expenses({ type }) {
         matchType = true;
       } else if (filterType === "Pending Only") {
         matchType = r.payment_type === 'Pending';
-      } else if (["MAIN HOUSE", "BEGUM KOT HOUSE", "KHOHKAR ROAD HOUSE", "FEE SABEELALLAH"].includes(filterType)) {
+      } else if (["MIAN HOUSE", "BEGUM KOT HOUSE", "KHOHKAR ROAD HOUSE", "FEE SABEELALLAH"].includes(filterType)) {
         const cat = (r.category || "").toUpperCase().trim();
-        if (filterType === "MAIN HOUSE") {
-          matchType = r.expense_type === "House" && (cat === "MAIN HOUSE" || cat === "MIAN HOUSE");
+        if (filterType === "MIAN HOUSE") {
+          matchType = r.expense_type === "House" && (cat === "MIAN HOUSE" || cat === "MAIN HOUSE");
         } else if (filterType === "BEGUM KOT HOUSE") {
           matchType = r.expense_type === "House" && (cat === "BEGUM KOT HOUSE" || cat === "KAM HOUSE");
         } else if (filterType === "KHOHKAR ROAD HOUSE") {
@@ -325,7 +325,7 @@ export default function Expenses({ type }) {
       } else if (r.expense_type === "House" && !isPending) {
         houseTotal += amount;
         const catUpper = (r.category || "").toUpperCase().trim();
-        if (catUpper === "MAIN HOUSE" || catUpper === "MIAN HOUSE") {
+        if (catUpper === "MIAN HOUSE" || catUpper === "MAIN HOUSE") {
           mainHouseTotal += amount;
         } else if (catUpper === "BEGUM KOT HOUSE" || catUpper === "KAM HOUSE") {
           begumKotHouseTotal += amount;
@@ -408,7 +408,7 @@ export default function Expenses({ type }) {
         <div className="pos-stat-card">
           <div className="icon orange" style={{ background: '#fffbeb', color: '#d97706' }}><Home size={24} /></div>
           <div className="info">
-            <span className="label">Main House</span>
+            <span className="label">Mian House</span>
             <span className="value">Rs. {stats.mainHouseTotal.toLocaleString()}</span>
           </div>
         </div>
@@ -513,7 +513,7 @@ export default function Expenses({ type }) {
         </div>
         
         <div className="filter-group">
-           {["All", "Pending Only", "Supplier Vehicle", "Personal Vehicle", "Office", "House", "MAIN HOUSE", "BEGUM KOT HOUSE", "KHOHKAR ROAD HOUSE", "FEE SABEELALLAH", "Galla Closeout", "Admin Payment"].map(t => (
+           {["All", "Pending Only", "Supplier Vehicle", "Personal Vehicle", "Office", "House", "MIAN HOUSE", "BEGUM KOT HOUSE", "KHOHKAR ROAD HOUSE", "FEE SABEELALLAH", "Galla Closeout", "Admin Payment"].map(t => (
              <button key={t} className={`tab-btn ${filterType === t ? 'active' : ''}`} onClick={() => setFilterType(t)}>{t}</button>
            ))}
         </div>
