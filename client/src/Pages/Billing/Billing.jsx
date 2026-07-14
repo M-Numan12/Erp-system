@@ -283,6 +283,8 @@ export default function Billing({ type }) {
   const [heldBills, setHeldBills] = useState(() => JSON.parse(localStorage.getItem('heldBills') || '[]'));
   const [showHoldModal, setShowHoldModal] = useState(false);
   const [salesDateFilter, setSalesDateFilter] = useState("Today");
+  const [salesCustomStart, setSalesCustomStart] = useState("");
+  const [salesCustomEnd, setSalesCustomEnd] = useState("");
   const [salesSearch, setSalesSearch] = useState("");
   const [selectedSales, setSelectedSales] = useState([]);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
@@ -316,6 +318,10 @@ export default function Billing({ type }) {
       }
       if (salesDateFilter === "Yesterday") {
         return saleDateStr === yesterdayStr;
+      }
+      if (salesDateFilter === "Custom") {
+        if (!salesCustomStart || !salesCustomEnd) return true;
+        return saleDateStr >= salesCustomStart && saleDateStr <= salesCustomEnd;
       }
       return true; // "All Time" or "Last 30 Days"
     });
@@ -352,7 +358,7 @@ export default function Billing({ type }) {
         status.includes(term) ||
         itemsMatches;
     });
-  }, [sales, salesDateFilter, salesSearch]);
+  }, [sales, salesDateFilter, salesSearch, salesCustomStart, salesCustomEnd]);
 
 
   useEffect(() => {
@@ -1477,7 +1483,7 @@ export default function Billing({ type }) {
                 />
               </div>
               <div style={{ display: 'flex', gap: '8px', background: '#f1f5f9', padding: '4px', borderRadius: '12px' }}>
-                {(user?.role === 'admin' ? ["Today", "Yesterday", "All Time"] : ["Today", "Yesterday", "Last 30 Days"]).map(d => (
+                {(user?.role === 'admin' ? ["Today", "Yesterday", "Custom", "All Time"] : ["Today", "Yesterday", "Custom", "Last 30 Days"]).map(d => (
                   <button
                     type="button"
                     key={d}
@@ -1499,6 +1505,23 @@ export default function Billing({ type }) {
                   </button>
                 ))}
               </div>
+              {salesDateFilter === "Custom" && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <input
+                    type="date"
+                    value={salesCustomStart}
+                    onChange={(e) => setSalesCustomStart(e.target.value)}
+                    style={{ padding: '6px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.85rem', outline: 'none', color: '#334155' }}
+                  />
+                  <span style={{ fontSize: '0.85rem', color: '#64748b' }}>to</span>
+                  <input
+                    type="date"
+                    value={salesCustomEnd}
+                    onChange={(e) => setSalesCustomEnd(e.target.value)}
+                    style={{ padding: '6px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.85rem', outline: 'none', color: '#334155' }}
+                  />
+                </div>
+              )}
             </div>
           </div>
 

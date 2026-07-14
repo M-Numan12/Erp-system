@@ -65,6 +65,8 @@ export default function Expenses({ type }) {
   const [liveBalances, setLiveBalances] = useState({});
   const [personalVehicles, setPersonalVehicles] = useState([]);
   const [dateFilter, setDateFilter] = useState("All Time");
+  const [customStart, setCustomStart] = useState("");
+  const [customEnd, setCustomEnd] = useState("");
 
   // Pagination State
   const [currentPage, setCurrentPage] = useState(0);
@@ -73,7 +75,7 @@ export default function Expenses({ type }) {
   // Reset pagination on search / filter changes
   useEffect(() => {
     setCurrentPage(0);
-  }, [search, filterType, dateFilter]);
+  }, [search, filterType, dateFilter, customStart, customEnd]);
 
   useEffect(() => {
     if (showModal || showPayModal) {
@@ -266,12 +268,16 @@ export default function Expenses({ type }) {
           matchDate = recDateStr === todayStr;
         } else if (dateFilter === "Yesterday") {
           matchDate = recDateStr === yesterdayStr;
+        } else if (dateFilter === "Custom") {
+          if (customStart && customEnd) {
+            matchDate = recDateStr >= customStart && recDateStr <= customEnd;
+          }
         }
       }
       
       return matchType && matchSearch && matchDate;
     });
-  }, [records, filterType, search, dateFilter]);
+  }, [records, filterType, search, dateFilter, customStart, customEnd]);
 
   const sortedFiltered = useMemo(() => {
     return [...filtered].sort((a, b) => {
@@ -465,7 +471,7 @@ export default function Expenses({ type }) {
           </div>
           
           <div className="filter-group" style={{ display: 'flex', gap: '8px', background: '#f1f5f9', padding: '4px', borderRadius: '12px' }}>
-             {["Today", "Yesterday", "All Time"].map(d => (
+             {["Today", "Yesterday", "Custom", "All Time"].map(d => (
                <button 
                  type="button"
                  key={d} 
@@ -487,6 +493,23 @@ export default function Expenses({ type }) {
                </button>
              ))}
           </div>
+          {dateFilter === "Custom" && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <input
+                type="date"
+                value={customStart}
+                onChange={(e) => setCustomStart(e.target.value)}
+                style={{ padding: '6px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.85rem', outline: 'none', color: '#334155' }}
+              />
+              <span style={{ fontSize: '0.85rem', color: '#64748b' }}>to</span>
+              <input
+                type="date"
+                value={customEnd}
+                onChange={(e) => setCustomEnd(e.target.value)}
+                style={{ padding: '6px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.85rem', outline: 'none', color: '#334155' }}
+              />
+            </div>
+          )}
         </div>
         
         <div className="filter-group">
