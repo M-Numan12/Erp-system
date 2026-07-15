@@ -1128,9 +1128,10 @@ export default function Customers({ type }) {
                             return (
                               <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                                 {items.map((item, idx) => (
-                                  <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '4px', height: '36px' }}>
+                                  <div key={`${row.id}-${item.id || idx}`} style={{ display: 'flex', alignItems: 'center', gap: '4px', height: '36px' }}>
                                     {user?.role === 'admin' ? (
                                       <input
+                                        key={`qty-${row.id}-${item.id || idx}-${item.qty}`}
                                         type="number"
                                         defaultValue={item.qty}
                                         style={{ width: '45px', padding: '2px 4px', fontSize: '0.8rem', border: '1px solid #cbd5e1', borderRadius: '4px' }}
@@ -1167,9 +1168,10 @@ export default function Customers({ type }) {
                             return (
                               <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                                 {items.map((item, idx) => (
-                                  <div key={idx} style={{ height: '36px', display: 'flex', alignItems: 'center' }}>
+                                  <div key={`${row.id}-${item.id || idx}`} style={{ height: '36px', display: 'flex', alignItems: 'center' }}>
                                     {user?.role === 'admin' ? (
                                       <input
+                                        key={`rate-${row.id}-${item.id || idx}-${item.rate}`}
                                         type="number"
                                         defaultValue={item.rate}
                                         style={{ width: '55px', padding: '2px 4px', fontSize: '0.8rem', border: '1px solid #cbd5e1', borderRadius: '4px' }}
