@@ -383,7 +383,7 @@ export default function Expenses({ type }) {
             <button className={activeTab === 'Wholesale' ? 'active' : ''} onClick={() => setActiveTab('Wholesale')}>Wholesale</button>
             <button className={activeTab === 'Retail 1' ? 'active' : ''} onClick={() => setActiveTab('Retail 1')}>Retail 1</button>
             <button className={activeTab === 'Retail 2' ? 'active' : ''} onClick={() => setActiveTab('Retail 2')}>Retail 2</button>
-            <button className={activeTab === 'Retail 3' ? 'active' : ''} onClick={() => setActiveTab('Retail 3')}>Retail 3</button>
+            {/* <button className={activeTab === 'Retail 3' ? 'active' : ''} onClick={() => setActiveTab('Retail 3')}>Retail 3</button> */}
           </div>
         )}
 

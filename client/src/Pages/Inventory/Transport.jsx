@@ -390,11 +390,11 @@ export default function Transport({ type }) {
             <h3>Retail 2</h3>
             <span>Small Loader</span>
           </div>
-          <div className="selection-card retail3" onClick={() => setActiveCounter('Retail 3')}>
+          {/* <div className="selection-card retail3" onClick={() => setActiveCounter('Retail 3')}>
             <div className="icon-box">🛺</div>
             <h3>Retail 3</h3>
             <span>Counter C Logistics</span>
-          </div>
+          </div> */}
         </div>
       </div>
     );
@@ -416,7 +416,7 @@ export default function Transport({ type }) {
             <button className={activeCounter === 'Wholesale' ? 'active' : ''} onClick={() => setActiveCounter('Wholesale')}>Wholesale</button>
             <button className={activeCounter === 'Retail 1' ? 'active' : ''} onClick={() => setActiveCounter('Retail 1')}>Retail 1</button>
             <button className={activeCounter === 'Retail 2' ? 'active' : ''} onClick={() => setActiveCounter('Retail 2')}>Retail 2</button>
-            <button className={activeCounter === 'Retail 3' ? 'active' : ''} onClick={() => setActiveCounter('Retail 3')}>Retail 3</button>
+            {/* <button className={activeCounter === 'Retail 3' ? 'active' : ''} onClick={() => setActiveCounter('Retail 3')}>Retail 3</button> */}
           </div>
         )}
 

@@ -60,7 +60,7 @@ export default function Billing({ type }) {
           borderBottom: '1px solid #e2e8f0'
         }}>
           <div className="counter-switcher">
-            {["Wholesale", "Retail 1", "Retail 2", "Retail 3"].map((tab) => (
+            {["Wholesale", "Retail 1", "Retail 2"].map((tab) => (
               <button
                 key={tab}
                 className={adminActiveTab === tab ? 'active' : ''}

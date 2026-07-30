@@ -210,11 +210,11 @@ export default function Suppliers({ type }) {
             <h3>Retail 2</h3>
             <span>Counter B</span>
           </div>
-          <div className="selection-card retail3" onClick={() => setActiveTab('Retail 3')}>
+          {/* <div className="selection-card retail3" onClick={() => setActiveTab('Retail 3')}>
             <div className="icon-box">🏭</div>
             <h3>Retail 3</h3>
             <span>Counter C</span>
-          </div>
+          </div> */}
         </div>
       </div>
     );

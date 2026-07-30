@@ -171,11 +171,11 @@ export default function Stock({ type }) {
             <h3>Retail 2</h3>
             <span>Counter B</span>
           </div>
-          <div className="selection-card retail3" onClick={() => setActiveTab('Retail 3')}>
+          {/* <div className="selection-card retail3" onClick={() => setActiveTab('Retail 3')}>
             <div className="icon-box">🏢</div>
             <h3>Retail 3</h3>
             <span>Counter C</span>
-          </div>
+          </div> */}
         </div>
       </div>
     );
@@ -433,7 +433,7 @@ export default function Stock({ type }) {
             <button className={activeTab === 'Wholesale' ? 'active' : ''} onClick={() => setActiveTab('Wholesale')}>Wholesale</button>
             <button className={activeTab === 'Retail 1' ? 'active' : ''} onClick={() => setActiveTab('Retail 1')}>Retail 1</button>
             <button className={activeTab === 'Retail 2' ? 'active' : ''} onClick={() => setActiveTab('Retail 2')}>Retail 2</button>
-            <button className={activeTab === 'Retail 3' ? 'active' : ''} onClick={() => setActiveTab('Retail 3')}>Retail 3</button>
+            {/* <button className={activeTab === 'Retail 3' ? 'active' : ''} onClick={() => setActiveTab('Retail 3')}>Retail 3</button> */}
           </div>
         )}
 

@@ -121,10 +121,10 @@ export default function Staff({ type }) {
             <div className="icon-box">🏬</div>
             <h3>Retail 2</h3>
           </div>
-          <div className="selection-card retail3" onClick={() => setActiveTab('Retail 3')}>
+          {/* <div className="selection-card retail3" onClick={() => setActiveTab('Retail 3')}>
             <div className="icon-box">🏬</div>
             <h3>Retail 3</h3>
-          </div>
+          </div> */}
         </div>
       </div>
     );
