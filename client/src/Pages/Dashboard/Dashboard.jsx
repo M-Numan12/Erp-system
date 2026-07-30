@@ -191,7 +191,7 @@ export default function Dashboard() {
           </Link>
         )}
 
-        {hasPermission('retail3') && (
+        {/* {hasPermission('retail3') && (
           <Link to="/retail3" className="primary-card retail-card retail3">
             <div className="card-content">
               <Store size={40} className="card-icon" />
@@ -202,7 +202,7 @@ export default function Dashboard() {
               <ArrowRight className="arrow" />
             </div>
           </Link>
-        )}
+        )} */}
       </div>
 
       {/* Module Navigation Grid */}

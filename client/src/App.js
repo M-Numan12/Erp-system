@@ -130,7 +130,7 @@ function App() {
           <Route path="/wholesale" element={<PrivateRoute><MainLayout><Wholesale /></MainLayout></PrivateRoute>} />
           <Route path="/retail1" element={<PrivateRoute><MainLayout><Retail1 /></MainLayout></PrivateRoute>} />
           <Route path="/retail2" element={<PrivateRoute><MainLayout><Retail2 /></MainLayout></PrivateRoute>} />
-          <Route path="/retail3" element={<PrivateRoute><MainLayout><Retail3 /></MainLayout></PrivateRoute>} />
+          {/* <Route path="/retail3" element={<PrivateRoute><MainLayout><Retail3 /></MainLayout></PrivateRoute>} /> */}
           <Route path="/products" element={<PrivateRoute><MainLayout><Products /></MainLayout></PrivateRoute>} />
           <Route path="/stock" element={<PrivateRoute><MainLayout><Stock /></MainLayout></PrivateRoute>} />
           <Route path="/billing" element={<PrivateRoute><MainLayout><Billing /></MainLayout></PrivateRoute>} />
