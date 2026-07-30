@@ -2955,8 +2955,10 @@
   }
 
   .selection-grid {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-wrap: wrap;
     gap: 24px;
     width: 100%;
     max-width: 1100px;
@@ -2966,6 +2968,9 @@
   }
 
   .selection-card {
+    flex: 1 1 220px;
+    max-width: 250px;
+    min-width: 200px;
     background: white;
     padding: 40px 20px;
     border-radius: 24px;
@@ -4281,8 +4286,9 @@ form {
 }
 
 .selection-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
   gap: 16px;
   width: 100%;
 }
