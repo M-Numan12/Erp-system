@@ -125,7 +125,7 @@ export default function Retail2Billing({ type }) {
 
       const data = await res.json();
       if (res.ok && data.success) {
-        const text = encodeURIComponent(`🌟 *DATA WALEY CEMENT ERP* 🌟\n\n🧾 *LEDGER STATEMENT REPORT*\n\nDear Customer, please view/download your ledger PDF statement using this link:\n🔗 ${data.fileUrl}\n\nTHANK YOU FOR YOURS KINDNESS 🙏❤️`);
+        const text = encodeURIComponent(`🌟 *DATA WALEY CEMENT ERP* 🌟\n\n🧾 *LEDGER STATEMENT REPORT*\n\nDear Customer, please view/download your ledger PDF statement using this link:\n🔗 ${data.fileUrl}\n\nTHANK YOU FOR YOURS KINDNESS ❤️`);
         const url = `https://api.whatsapp.com/send?phone=${phone}&text=${text}`;
         window.open(url, '_blank');
         closeWhatsAppModal();
