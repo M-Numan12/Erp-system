@@ -38,6 +38,7 @@ export default function Staff({ type }) {
           if (em.includes('wholesale')) m = 'Wholesale';
           else if (em.includes('retail1') || em.includes('retailsaller1')) m = 'Retail 1';
           else if (em.includes('retail2') || em.includes('retailseller2') || em.includes('wali2022')) m = 'Retail 2';
+          else if (em.includes('retail3') || em.includes('retailseller3')) m = 'Retail 3';
         }
         return m || "Wholesale";
       }
@@ -119,6 +120,10 @@ export default function Staff({ type }) {
           <div className="selection-card retail2" onClick={() => setActiveTab('Retail 2')}>
             <div className="icon-box">🏬</div>
             <h3>Retail 2</h3>
+          </div>
+          <div className="selection-card retail3" onClick={() => setActiveTab('Retail 3')}>
+            <div className="icon-box">🏬</div>
+            <h3>Retail 3</h3>
           </div>
         </div>
       </div>
@@ -477,7 +482,7 @@ export default function Staff({ type }) {
                 <div style={{display: 'flex', justifyContent: 'space-between', marginTop: '15px', fontSize: '14px'}}>
                   <span><strong>Staff Name:</strong> {selectedStaff.name}</span>
                   <span><strong>Phone:</strong> {selectedStaff.phone || '—'}</span>
-                  <span><strong>Print Date:</strong> {new Date().toLocaleDateString()}</span>
+                  <span><strong>Print Date:</strong> {new Date().toLocaleDateString('en-GB')}</span>
                 </div>
               </div>
 
@@ -507,7 +512,7 @@ export default function Staff({ type }) {
                   {ledgerData.map((row, index) => (
                     <tr key={row.id}>
                       <td style={{border: '1px solid #cbd5e1', padding: '8px'}}>{index + 1}</td>
-                      <td style={{border: '1px solid #cbd5e1', padding: '8px'}}>{new Date(row.date).toLocaleDateString()}</td>
+                      <td style={{border: '1px solid #cbd5e1', padding: '8px'}}>{new Date(row.date).toLocaleDateString('en-GB')}</td>
                       <td style={{border: '1px solid #cbd5e1', padding: '8px'}}>{row.description}</td>
                       <td style={{border: '1px solid #cbd5e1', padding: '8px'}}>{row.payment_method}</td>
                       <td style={{border: '1px solid #cbd5e1', padding: '8px', textAlign: 'right', color: 'green'}}>
@@ -574,7 +579,7 @@ export default function Staff({ type }) {
                     stripedRows 
                   >
                     <Column field="id" header="Ref ID" body={(rec) => `#${rec.id}`} />
-                    <Column field="date" header="Date" body={(rec) => new Date(rec.date).toLocaleDateString()} />
+                    <Column field="date" header="Date" body={(rec) => new Date(rec.date).toLocaleDateString('en-GB')} />
                     <Column field="description" header="Description" />
                     <Column field="payment_method" header="Payment Method" />
                     <Column field="debit" header="Advance (+)" body={(rec) => (

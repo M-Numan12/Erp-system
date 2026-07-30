@@ -29,6 +29,13 @@ const users = [
     password: 'shop456',
     role: 'user',
     permissions: JSON.stringify(['retail','products','stock','billing','customers','suppliers','transport','expenses','salary','profit','rent','investment','other-expenses'])
+  },
+  {
+    name: 'Retail Shop 3',
+    email: 'retail3@erp.com',
+    password: 'shop789',
+    role: 'user',
+    permissions: JSON.stringify(['retail','products','stock','billing','customers','suppliers','transport','expenses','salary','profit','rent','investment','other-expenses'])
   }
 ];
 
@@ -54,6 +61,7 @@ async function seed() {
     console.log('  Wholesale    → wholesale@erp.com  / shop123');
     console.log('  Retail 1     → retail1@erp.com    / shop123');
     console.log('  Retail 2     → retail2@erp.com    / shop456');
+    console.log('  Retail 3     → retail3@erp.com    / shop789');
   } catch (err) {
     console.error('❌ Seed failed:', err.message);
   } finally {

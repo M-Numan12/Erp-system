@@ -27,6 +27,7 @@ export default function Labours({ type }) {
           if (em.includes('wholesale')) m = 'Wholesale';
           else if (em.includes('retail1') || em.includes('retailsaller1')) m = 'Retail 1';
           else if (em.includes('retail2') || em.includes('retailseller2') || em.includes('wali2022')) m = 'Retail 2';
+          else if (em.includes('retail3') || em.includes('retailseller3')) m = 'Retail 3';
         }
         return m || "Wholesale";
       }
@@ -417,6 +418,11 @@ export default function Labours({ type }) {
             <h3>Retail 2</h3>
             <span>Counter B</span>
           </div>
+          <div className="selection-card retail3" onClick={() => setActiveTab('Retail 3')}>
+            <div className="icon-box">👷</div>
+            <h3>Retail 3</h3>
+            <span>Counter C</span>
+          </div>
         </div>
       </div>
     );
@@ -647,7 +653,7 @@ export default function Labours({ type }) {
                 <div style={{display: 'flex', justifyContent: 'space-between', marginTop: '15px', fontSize: '14px'}}>
                   <span><strong>Labour Group:</strong> {selectedGroup}</span>
                   <span><strong>Workers:</strong> {selectedGroupDetails?.workersCount || 0}</span>
-                  <span><strong>Date:</strong> {new Date().toLocaleDateString()}</span>
+                  <span><strong>Date:</strong> {new Date().toLocaleDateString('en-GB')}</span>
                 </div>
               </div>
 
@@ -667,7 +673,7 @@ export default function Labours({ type }) {
                   ) : (
                     filteredGroupHistory.map(h => (
                       <tr key={h.id}>
-                        <td style={{border: '1px solid #cbd5e1', padding: '8px'}}>{new Date(h.created_at).toLocaleDateString()}</td>
+                        <td style={{border: '1px solid #cbd5e1', padding: '8px'}}>{new Date(h.created_at).toLocaleDateString('en-GB')}</td>
                         <td style={{border: '1px solid #cbd5e1', padding: '8px', fontWeight: 600}}>{h.description}</td>
                         <td style={{border: '1px solid #cbd5e1', padding: '8px'}}>{h.status}</td>
                         <td style={{border: '1px solid #cbd5e1', padding: '8px', color: '#c5221f', fontWeight: 700}}>{h.status === 'Unpaid' ? `Rs. ${parseFloat(h.amount).toLocaleString()}` : '—'}</td>
@@ -713,7 +719,7 @@ export default function Labours({ type }) {
                 ) : (
                   filteredGroupHistory.map(h => (
                     <tr key={h.id}>
-                      <td>{new Date(h.created_at).toLocaleDateString()}</td>
+                      <td>{new Date(h.created_at).toLocaleDateString('en-GB')}</td>
                       <td style={{fontWeight: 600}}>{h.description}</td>
                       <td>
                         <span style={{background: h.status === 'Paid' ? '#e6f4ea' : '#fce8e6', color: h.status === 'Paid' ? '#137333' : '#c5221f', padding: '4px 10px', borderRadius: '12px', fontSize: '0.8rem', fontWeight: 600}}>

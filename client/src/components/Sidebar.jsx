@@ -31,6 +31,7 @@ const Sidebar = ({ isOpen, onClose }) => {
     { id: 'wholesale', name: 'Wholesale Counter', path: '/wholesale', icon: <Building2 size={20} /> },
     { id: 'retail1', name: 'Retail 1 Counter', path: '/retail1', icon: <Store size={20} /> },
     { id: 'retail2', name: 'Retail 2 Counter', path: '/retail2', icon: <Store size={20} /> },
+    { id: 'retail3', name: 'Retail 3 Counter', path: '/retail3', icon: <Store size={20} /> },
     { id: 'products', name: 'Product Catalog', path: '/products', icon: <Package size={20} /> },
     { id: 'stock', name: 'Stock Inventory', path: '/stock', icon: <Boxes size={20} /> },
     { id: 'billing', name: 'Billing POS', path: '/billing', icon: <ShoppingCart size={20} /> },

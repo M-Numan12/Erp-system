@@ -35,6 +35,7 @@ export default function Transport({ type }) {
           if (em.includes('wholesale')) m = 'Wholesale';
           else if (em.includes('retail1') || em.includes('retailsaller1')) m = 'Retail 1';
           else if (em.includes('retail2') || em.includes('retailseller2') || em.includes('wali2022')) m = 'Retail 2';
+          else if (em.includes('retail3') || em.includes('retailseller3')) m = 'Retail 3';
         }
         return m || "Wholesale";
       }
@@ -389,6 +390,11 @@ export default function Transport({ type }) {
             <h3>Retail 2</h3>
             <span>Small Loader</span>
           </div>
+          <div className="selection-card retail3" onClick={() => setActiveCounter('Retail 3')}>
+            <div className="icon-box">🛺</div>
+            <h3>Retail 3</h3>
+            <span>Counter C Logistics</span>
+          </div>
         </div>
       </div>
     );
@@ -410,6 +416,7 @@ export default function Transport({ type }) {
             <button className={activeCounter === 'Wholesale' ? 'active' : ''} onClick={() => setActiveCounter('Wholesale')}>Wholesale</button>
             <button className={activeCounter === 'Retail 1' ? 'active' : ''} onClick={() => setActiveCounter('Retail 1')}>Retail 1</button>
             <button className={activeCounter === 'Retail 2' ? 'active' : ''} onClick={() => setActiveCounter('Retail 2')}>Retail 2</button>
+            <button className={activeCounter === 'Retail 3' ? 'active' : ''} onClick={() => setActiveCounter('Retail 3')}>Retail 3</button>
           </div>
         )}
 
@@ -644,7 +651,7 @@ export default function Transport({ type }) {
                   <div style={{display: 'flex', justifyContent: 'space-between', marginTop: '15px', fontSize: '14px'}}>
                     <span><strong>Vehicle:</strong> {selectedVehicle.vehicle_number}</span>
                     <span><strong>Driver:</strong> {selectedVehicle.driver_name}</span>
-                    <span><strong>Date:</strong> {new Date().toLocaleDateString()}</span>
+                    <span><strong>Date:</strong> {new Date().toLocaleDateString('en-GB')}</span>
                   </div>
                 </div>
 
@@ -673,7 +680,7 @@ export default function Transport({ type }) {
                     {filteredLedgerData.map((row, index) => (
                       <tr key={index}>
                         <td style={{border: '1px solid #cbd5e1', padding: '8px'}}>{index + 1}</td>
-                        <td style={{border: '1px solid #cbd5e1', padding: '8px'}}>{row.date ? new Date(row.date).toLocaleDateString() : 'N/A'}</td>
+                        <td style={{border: '1px solid #cbd5e1', padding: '8px'}}>{row.date ? new Date(row.date).toLocaleDateString('en-GB') : 'N/A'}</td>
                         <td style={{border: '1px solid #cbd5e1', padding: '8px'}}>
                           {row.party_name || 'N/A'}
                           {row.payment_type && <span style={{fontSize: '11px', color: '#64748b', display: 'block'}}>Method: {row.payment_type}</span>}
@@ -739,7 +746,7 @@ export default function Transport({ type }) {
                         if (row.isOpening) return <span style={{fontStyle:'italic', color:'#64748b'}}>Opening</span>;
                         return (
                           <div>
-                            <div style={{fontWeight:500}}>{new Date(row.date).toLocaleDateString()}</div>
+                            <div style={{fontWeight:500}}>{new Date(row.date).toLocaleDateString('en-GB')}</div>
                             <small style={{color:'#94a3b8'}}>{new Date(row.date).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</small>
                           </div>
                         );

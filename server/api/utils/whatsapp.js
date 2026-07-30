@@ -291,7 +291,7 @@ async function sendWhatsAppBill(sale, items) {
     `💵 *Paid Amount:* Rs. ${parseFloat(sale.paid_amount).toLocaleString()}\n` +
     `💰 *Remaining Bill Balance:* Rs. ${parseFloat(sale.balance_amount).toLocaleString()}\n` +
     `👤 *Total Outstanding Balance:* Rs. ${parseFloat(sale.customer_balance || 0).toLocaleString()}\n\n` +
-    `Thank you for your business! 🙏`;
+    `THANK YOU FOR YOURS KINDNESS 🙏❤️`;
 
   // 4. Build Message Body for Customer
   let customerMessage = '';
@@ -306,7 +306,7 @@ async function sendWhatsAppBill(sale, items) {
       `*Module:* ${sale.sale_type || 'Wholesale'}\n\n` +
       `*Items Ordered:*\n${customerItemsList}\n` +
       `-----------------------------------------\n` +
-      `Thank you for your business! 🙏`;
+      `THANK YOU FOR YOURS KINDNESS 🙏❤️`;
   } else {
     customerMessage = `🌟 *DATA WALEY CEMENT ERP* 🌟\n` +
       `-----------------------------------------\n` +
@@ -325,7 +325,7 @@ async function sendWhatsAppBill(sale, items) {
       `💵 *Paid Amount:* Rs. ${parseFloat(sale.paid_amount).toLocaleString()}\n` +
       `💰 *Remaining Bill Balance:* Rs. ${parseFloat(sale.balance_amount).toLocaleString()}\n` +
       `👤 *Total Outstanding Balance:* Rs. ${parseFloat(sale.customer_balance || 0).toLocaleString()}\n\n` +
-      `Thank you for your business! 🙏`;
+      `THANK YOU FOR YOURS KINDNESS 🙏❤️`;
   }
 
   // 1. Send to Customer if valid phone is provided

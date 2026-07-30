@@ -325,8 +325,9 @@ exports.receivePayment = async (req, res) => {
       `💵 *Amount Received:* Rs. ${parseFloat(amount).toLocaleString()}\n` +
       `🆔 *Reference:* ${payment_reference || 'N/A'}\n` +
       `💳 *Payment Type:* ${payment_type || 'Cash'}\n` +
-      `🗓️ *Date:* ${new Date().toLocaleString()}\n` +
-      `-----------------------------------------`;
+      `🗓️ *Date:* ${new Date().toLocaleDateString('en-GB')} ${new Date().toLocaleTimeString()}\n` +
+      `-----------------------------------------\n\n` +
+      `THANK YOU FOR YOURS KINDNESS 🙏❤️`;
 
     if (custPhone) await sendWhatsAppMessage(custPhone, paymentMessage);
     const adminPhone = process.env.ADMIN_PHONE || '923214294301';
@@ -372,8 +373,9 @@ exports.undoPayment = async (req, res) => {
       `🧾 Customer ID: ${customer_id}\n` +
       `💰 Amount: Rs. ${parseFloat(paid_amount).toLocaleString()}\n` +
       `📄 Reference: ${payment_reference || 'N/A'}\n` +
-      `🕒 Date: ${new Date().toLocaleString()}\n` +
-      `-----------------------------`;
+      `🕒 Date: ${new Date().toLocaleDateString('en-GB')} ${new Date().toLocaleTimeString()}\n` +
+      `-----------------------------\n\n` +
+      `THANK YOU FOR YOURS KINDNESS 🙏❤️`;
 
     if (custPhone) await sendWhatsAppMessage(custPhone, message);
     const adminPhone = process.env.ADMIN_PHONE || '923214294301';

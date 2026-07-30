@@ -210,6 +210,7 @@ async function syncDatabaseSchema() {
     `UPDATE users SET role = 'Wholesale', module_type = 'Wholesale' WHERE email = 'wholesale@erp.com';`,
     `UPDATE users SET role = 'Retail 1', module_type = 'Retail 1' WHERE email = 'retail1@erp.com';`,
     `UPDATE users SET role = 'Retail 2', module_type = 'Retail 2' WHERE email = 'retail2@erp.com';`,
+    `UPDATE users SET role = 'Retail 3', module_type = 'Retail 3' WHERE email = 'retail3@erp.com';`,
     // --- 16. DROP UNUSED LEGACY TABLES ---
     `DROP TABLE IF EXISTS transport CASCADE;`,
     `DROP TABLE IF EXISTS bills CASCADE;`,

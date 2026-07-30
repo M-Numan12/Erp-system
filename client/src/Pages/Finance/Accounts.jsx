@@ -109,6 +109,7 @@ export default function Accounts() {
           if (em.includes('wholesale')) m = 'Wholesale';
           else if (em.includes('retail1') || em.includes('retailsaller1')) m = 'Retail 1';
           else if (em.includes('retail2') || em.includes('retailseller2') || em.includes('wali2022')) m = 'Retail 2';
+          else if (em.includes('retail3') || em.includes('retailseller3')) m = 'Retail 3';
         }
         return m || "Wholesale";
       }
@@ -1565,7 +1566,7 @@ export default function Accounts() {
           {/* Print-only Header */}
           <div className="print-only" style={{ marginBottom: '20px', textAlign: 'center' }}>
             <h2 style={{ margin: 0 }}>Account Statement - {selectedLedgerAccount?.bank_name}</h2>
-            <p style={{ margin: '5px 0' }}>Filter: {dateFilter} | Date: {new Date().toLocaleDateString()}</p>
+            <p style={{ margin: '5px 0' }}>Filter: {dateFilter} | Date: {new Date().toLocaleDateString('en-GB')}</p>
             <hr />
           </div>
 
@@ -1586,7 +1587,7 @@ export default function Accounts() {
                 {s.status === 'Partially Returned' && <span style={{ fontSize: '0.65rem', background: '#fef3c7', color: '#92400e', padding: '2px 6px', borderRadius: '4px', fontWeight: 700, marginTop: '2px' }}>PARTIAL</span>}
               </div>
             )} sortable />
-            <Column field="created_at" header="Date" body={s => new Date(s.created_at || s.purchase_date || s.date).toLocaleDateString()} sortable />
+            <Column field="created_at" header="Date" body={s => new Date(s.created_at || s.purchase_date || s.date).toLocaleDateString('en-GB')} sortable />
             <Column field="customer_name" header="Description" body={s => (
               <div>
                 <div style={{ fontWeight: 700, color: '#1e293b' }}>{s.customer_name}</div>
@@ -1685,7 +1686,7 @@ export default function Accounts() {
 
                 <div style={{ fontSize: '13px', lineHeight: '1.4' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>Bill No</span> <span>: {selectedBill.id}</span></div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>Date</span> <span>: {new Date(selectedBill.created_at || selectedBill.date).toLocaleDateString()}</span></div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>Date</span> <span>: {new Date(selectedBill.created_at || selectedBill.date).toLocaleDateString('en-GB')}</span></div>
                   <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>Customer</span> <span>: {selectedBill.customer_name}</span></div>
                   {selectedBill.customer_phone && <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>Phone</span> <span>: {selectedBill.customer_phone}</span></div>}
                   <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>Payment</span> <span>: {selectedBill.payment_type}</span></div>
@@ -1736,7 +1737,7 @@ export default function Accounts() {
 
                 <div style={{ fontSize: '13px', lineHeight: '1.4' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>Slip No</span> <span>: #{selectedBill?.id || 'N/A'}</span></div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>Date</span> <span>: {new Date(selectedBill?.created_at || selectedBill?.purchase_date || selectedBill?.date).toLocaleDateString()}</span></div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>Date</span> <span>: {new Date(selectedBill?.created_at || selectedBill?.purchase_date || selectedBill?.date).toLocaleDateString('en-GB')}</span></div>
                   <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>Description</span> <span>: {selectedBill?.customer_name || 'N/A'}</span></div>
                   <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>Payment Method</span> <span>: {selectedBill?.payment_type || selectedBill?.payment_method || 'Cash'}</span></div>
                 </div>

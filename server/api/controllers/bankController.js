@@ -58,7 +58,7 @@ async function updateBankAccountsCurrentBalances(poolOrClient) {
     );
     const allAccounts = allAccountsRes.rows;
     
-    const MODULES = ['Wholesale', 'Retail 1', 'Retail 2'];
+    const MODULES = ['Wholesale', 'Retail 1', 'Retail 2', 'Retail 3'];
     const updates = [];
 
     for (const mod of MODULES) {
@@ -209,7 +209,7 @@ exports.getBalances = async (req, res) => {
     await updateBankAccountsCurrentBalances(pool);
     const targetModule = isAdmin(req) ? (req.query.type || req.user.module_type || 'Wholesale') : (req.user.module_type || 'Retail 1');
 
-    const isRetailModule = targetModule === 'Retail 1' || targetModule === 'Retail 2';
+    const isRetailModule = targetModule === 'Retail 1' || targetModule === 'Retail 2' || targetModule === 'Retail 3';
     
     let accountsRes;
     if (isRetailModule) {

@@ -10,6 +10,7 @@ const sanitizeUser = (userData) => {
     if (em.includes('wholesale')) userData.module_type = 'Wholesale';
     else if (em.includes('retail1') || em.includes('retailsaller1')) userData.module_type = 'Retail 1';
     else if (em.includes('retail2') || em.includes('retailseller2') || em.includes('wali2022')) userData.module_type = 'Retail 2';
+    else if (em.includes('retail3') || em.includes('retailseller3')) userData.module_type = 'Retail 3';
   }
   return userData;
 };

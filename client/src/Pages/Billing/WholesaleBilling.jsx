@@ -125,7 +125,7 @@ export default function WholesaleBilling({ type }) {
 
       const data = await res.json();
       if (res.ok && data.success) {
-        const text = encodeURIComponent(`🌟 *DATA WALEY CEMENT ERP* 🌟\n\n🧾 *LEDGER STATEMENT REPORT*\n\nDear Customer, please view/download your ledger PDF statement using this link:\n🔗 ${data.fileUrl}\n\nThank you! 🙏`);
+        const text = encodeURIComponent(`🌟 *DATA WALEY CEMENT ERP* 🌟\n\n🧾 *LEDGER STATEMENT REPORT*\n\nDear Customer, please view/download your ledger PDF statement using this link:\n🔗 ${data.fileUrl}\n\nTHANK YOU FOR YOURS KINDNESS 🙏❤️`);
         const url = `https://api.whatsapp.com/send?phone=${phone}&text=${text}`;
         window.open(url, '_blank');
         closeWhatsAppModal();
@@ -226,7 +226,7 @@ export default function WholesaleBilling({ type }) {
     if (!ledgerSearch.trim()) return calculatedLedgerData;
     const term = ledgerSearch.toLowerCase();
     return calculatedLedgerData.filter(row => {
-      const dateStr = new Date(row.created_at).toLocaleDateString().toLowerCase();
+      const dateStr = new Date(row.created_at).toLocaleDateString('en-GB').toLowerCase();
       const debitStr = String(row.net_amount || 0);
       const creditStr = String(row.paid_amount || 0);
       const balanceStr = String(row.running_balance || 0);
@@ -1529,7 +1529,7 @@ export default function WholesaleBilling({ type }) {
             {user?.role === 'admin' && (
               <Column selectionMode="multiple" headerStyle={{ width: '3rem' }} />
             )}
-            <Column header="Date" body={(s) => new Date(s.created_at).toLocaleDateString()} sortable field="created_at" />
+            <Column header="Date" body={(s) => new Date(s.created_at).toLocaleDateString('en-GB')} sortable field="created_at" />
             <Column header="Bill No" body={(s) => `#SAL-${s.id}`} sortable field="id" />
             <Column header="Customer" field="customer_name" sortable />
             <Column header="Phone" body={(s) => s.customer_phone || "—"} />
@@ -1885,7 +1885,7 @@ export default function WholesaleBilling({ type }) {
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '15px', fontSize: '14px' }}>
                   <span><strong>Customer:</strong> {selectedCustForLedger.name}</span>
                   <span><strong>Period:</strong> {ledgerFilter === 'all' ? 'All Time' : `${ledgerFrom} to ${ledgerTo}`}</span>
-                  <span><strong>Date:</strong> {new Date().toLocaleDateString()}</span>
+                  <span><strong>Date:</strong> {new Date().toLocaleDateString('en-GB')}</span>
                 </div>
               </div>
               <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '10px' }}>
@@ -1903,7 +1903,7 @@ export default function WholesaleBilling({ type }) {
                   {filteredLedgerData.map((row, index) => (
                     <tr key={row.id}>
                       <td style={{ border: '1px solid #cbd5e1', padding: '8px' }}>{index + 1}</td>
-                      <td style={{ border: '1px solid #cbd5e1', padding: '8px' }}>{new Date(row.created_at).toLocaleDateString()}</td>
+                      <td style={{ border: '1px solid #cbd5e1', padding: '8px' }}>{new Date(row.created_at).toLocaleDateString('en-GB')}</td>
                       <td style={{ border: '1px solid #cbd5e1', padding: '8px' }}>
                         {parseFloat(row.net_amount) > 0 ? (
                           (() => {
@@ -2035,7 +2035,7 @@ export default function WholesaleBilling({ type }) {
                       filteredLedgerData.map((row, index) => (
                         <tr key={row.id}>
                           <td style={{ fontWeight: '700', color: '#64748b' }}>{index + 1}</td>
-                          <td>{new Date(row.created_at).toLocaleDateString()}</td>
+                          <td>{new Date(row.created_at).toLocaleDateString('en-GB')}</td>
                           <td>
                             {parseFloat(row.net_amount) > 0 ? (
                               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>

@@ -141,6 +141,7 @@ exports.login = async (req, res) => {
       if (em.includes('wholesale')) return 'Wholesale';
       if (em.includes('retail1') || em.includes('retailsaller1')) return 'Retail 1';
       if (em.includes('retail2') || em.includes('retailseller2') || em.includes('wali2022')) return 'Retail 2';
+      if (em.includes('retail3') || em.includes('retailseller3')) return 'Retail 3';
       return null;
     };
 
@@ -313,6 +314,7 @@ exports.getUser = async (req, res) => {
         if (em.includes('wholesale')) user.module_type = 'Wholesale';
         else if (em.includes('retail1') || em.includes('retailsaller1')) user.module_type = 'Retail 1';
         else if (em.includes('retail2') || em.includes('retailseller2') || em.includes('wali2022')) user.module_type = 'Retail 2';
+        else if (em.includes('retail3') || em.includes('retailseller3')) user.module_type = 'Retail 3';
       }
     }
     res.json(user);
@@ -612,6 +614,7 @@ exports.checkDeviceStatus = async (req, res) => {
         if (em.includes('wholesale')) return 'Wholesale';
         if (em.includes('retail1') || em.includes('retailsaller1')) return 'Retail 1';
         if (em.includes('retail2') || em.includes('retailseller2') || em.includes('wali2022')) return 'Retail 2';
+        if (em.includes('retail3') || em.includes('retailseller3')) return 'Retail 3';
         return null;
       };
 

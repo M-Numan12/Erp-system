@@ -40,6 +40,7 @@ export default function Suppliers({ type }) {
           if (em.includes('wholesale')) m = 'Wholesale';
           else if (em.includes('retail1') || em.includes('retailsaller1')) m = 'Retail 1';
           else if (em.includes('retail2') || em.includes('retailseller2') || em.includes('wali2022')) m = 'Retail 2';
+          else if (em.includes('retail3') || em.includes('retailseller3')) m = 'Retail 3';
         }
         return m || "Wholesale";
       }
@@ -208,6 +209,11 @@ export default function Suppliers({ type }) {
             <div className="icon-box">🏗️</div>
             <h3>Retail 2</h3>
             <span>Counter B</span>
+          </div>
+          <div className="selection-card retail3" onClick={() => setActiveTab('Retail 3')}>
+            <div className="icon-box">🏭</div>
+            <h3>Retail 3</h3>
+            <span>Counter C</span>
           </div>
         </div>
       </div>
@@ -716,7 +722,7 @@ export default function Suppliers({ type }) {
                 <div style={{display: 'flex', justifyContent: 'space-between', marginTop: '15px', fontSize: '14px'}}>
                   <span><strong>Supplier:</strong> {selectedSupplier.name} ({selectedSupplier.company})</span>
                   <span><strong>Period:</strong> {ledgerFilter === 'all' ? 'All Time' : `${ledgerFrom || ''} to ${ledgerTo || ''}`}</span>
-                  <span><strong>Print Date:</strong> {new Date().toLocaleDateString()}</span>
+                  <span><strong>Print Date:</strong> {new Date().toLocaleDateString('en-GB')}</span>
                 </div>
               </div>
 
@@ -727,6 +733,7 @@ export default function Suppliers({ type }) {
                     <th style={{border: '1px solid #cbd5e1', padding: '8px', textAlign: 'left'}}>Date</th>
                     <th style={{border: '1px solid #cbd5e1', padding: '8px', textAlign: 'left'}}>Product / Memo</th>
                     <th style={{border: '1px solid #cbd5e1', padding: '8px', textAlign: 'left'}}>Vehicle</th>
+                    <th style={{border: '1px solid #cbd5e1', padding: '8px', textAlign: 'left'}}>Gatepass</th>
                     <th style={{border: '1px solid #cbd5e1', padding: '8px', textAlign: 'right'}}>Qty</th>
                     <th style={{border: '1px solid #cbd5e1', padding: '8px', textAlign: 'right'}}>Debit</th>
                     <th style={{border: '1px solid #cbd5e1', padding: '8px', textAlign: 'right'}}>Credit</th>
@@ -737,7 +744,7 @@ export default function Suppliers({ type }) {
                   <tr style={{background: '#f8fafc', fontStyle: 'italic'}}>
                     <td style={{border: '1px solid #cbd5e1', padding: '8px'}}>—</td>
                     <td style={{border: '1px solid #cbd5e1', padding: '8px'}}>Opening</td>
-                    <td colSpan="5" style={{border: '1px solid #cbd5e1', padding: '8px'}}>Opening Balance Brought Forward</td>
+                    <td colSpan="6" style={{border: '1px solid #cbd5e1', padding: '8px'}}>Opening Balance Brought Forward</td>
                     <td style={{border: '1px solid #cbd5e1', padding: '8px', textAlign: 'right', fontWeight: 'bold'}}>
                       Rs. {Math.abs(periodOpeningBal).toLocaleString()} {periodOpeningBal > 0 ? 'Dr' : 'Cr'}
                     </td>
@@ -751,11 +758,12 @@ export default function Suppliers({ type }) {
                     return (
                       <tr key={row.id}>
                         <td style={{border: '1px solid #cbd5e1', padding: '8px'}}>{index + 1}</td>
-                        <td style={{border: '1px solid #cbd5e1', padding: '8px'}}>{new Date(row.purchase_date).toLocaleDateString()}</td>
+                        <td style={{border: '1px solid #cbd5e1', padding: '8px'}}>{new Date(row.purchase_date).toLocaleDateString('en-GB')}</td>
                         <td style={{border: '1px solid #cbd5e1', padding: '8px'}}>
                           {row.product_name ? `${row.brand || ''} ${row.product_name}` : (row.vehicle_number || row.payment_type || 'Manual Entry')}
                         </td>
                         <td style={{border: '1px solid #cbd5e1', padding: '8px'}}>{row.product_name ? (row.vehicle_number || '—') : 'N/A'}</td>
+                        <td style={{border: '1px solid #cbd5e1', padding: '8px'}}>{row.gatepass || '—'}</td>
                         <td style={{border: '1px solid #cbd5e1', padding: '8px', textAlign: 'right'}}>
                           {row.product_name ? `${row.quantity} ${row.unit}` : '—'}
                         </td>
@@ -774,7 +782,7 @@ export default function Suppliers({ type }) {
                 </tbody>
                 <tfoot>
                   <tr style={{background: '#f8fafc', fontWeight: 'bold'}}>
-                    <td colSpan="5" style={{border: '1px solid #cbd5e1', padding: '8px', textAlign: 'right'}}>Final Outstanding Balance:</td>
+                    <td colSpan="6" style={{border: '1px solid #cbd5e1', padding: '8px', textAlign: 'right'}}>Final Outstanding Balance:</td>
                     <td style={{border: '1px solid #cbd5e1', padding: '8px', textAlign: 'right', color: 'green'}}>
                       Rs. {sortedLedgerData.reduce((sum, r) => {
                         const tot = parseFloat(r.total_amount) || 0;
@@ -885,7 +893,7 @@ export default function Suppliers({ type }) {
                         if (row.isOpening) return <span style={{fontStyle:'italic', color:'#64748b'}}>Opening</span>;
                         return (
                           <div>
-                            <div style={{fontWeight:500}}>{new Date(row.purchase_date).toLocaleDateString()}</div>
+                            <div style={{fontWeight:500}}>{new Date(row.purchase_date).toLocaleDateString('en-GB')}</div>
                             <small style={{color:'#94a3b8'}}>{new Date(row.purchase_date).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</small>
                           </div>
                         );

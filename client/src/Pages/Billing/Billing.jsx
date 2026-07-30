@@ -3,6 +3,7 @@ import { AuthContext } from '../../context/AuthContext';
 import WholesaleBilling from './WholesaleBilling';
 import Retail1Billing from './Retail1Billing';
 import Retail2Billing from './Retail2Billing';
+import Retail3Billing from './Retail3Billing';
 
 export default function Billing({ type }) {
   const { user } = useContext(AuthContext);
@@ -41,6 +42,9 @@ export default function Billing({ type }) {
     if (moduleType === 'Retail 2') {
       return <Retail2Billing type={moduleType} />;
     }
+    if (moduleType === 'Retail 3') {
+      return <Retail3Billing type={moduleType} />;
+    }
     return <WholesaleBilling type={moduleType} />;
   };
 
@@ -56,7 +60,7 @@ export default function Billing({ type }) {
           borderBottom: '1px solid #e2e8f0'
         }}>
           <div className="counter-switcher">
-            {["Wholesale", "Retail 1", "Retail 2"].map((tab) => (
+            {["Wholesale", "Retail 1", "Retail 2", "Retail 3"].map((tab) => (
               <button
                 key={tab}
                 className={adminActiveTab === tab ? 'active' : ''}

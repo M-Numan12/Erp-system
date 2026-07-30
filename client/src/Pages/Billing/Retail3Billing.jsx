@@ -46,7 +46,7 @@ const formatItemName = (brand, name) => {
   return `${b} ${n}`;
 };
 
-export default function Retail1Billing({ type }) {
+export default function Retail3Billing({ type }) {
   const { user } = useContext(AuthContext);
   const ledgerReportRef = useRef(null);
   const [showWhatsAppModal, setShowWhatsAppModal] = useState(false);
@@ -140,9 +140,8 @@ export default function Retail1Billing({ type }) {
     }
   };
 
-  const activeTab = "Retail 1";
+  const activeTab = "Retail 2";
   const setActiveTab = () => {};
-
   const [view, setView] = useState("POS");
   const [products, setProducts] = useState([]);
   const [customers, setCustomers] = useState([]);

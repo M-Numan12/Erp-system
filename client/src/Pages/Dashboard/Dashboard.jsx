@@ -190,6 +190,19 @@ export default function Dashboard() {
             </div>
           </Link>
         )}
+
+        {hasPermission('retail3') && (
+          <Link to="/retail3" className="primary-card retail-card retail3">
+            <div className="card-content">
+              <Store size={40} className="card-icon" />
+              <div className="text-content">
+                <h3>Retail 3</h3>
+                <p>Quick POS Billing - Counter 3</p>
+              </div>
+              <ArrowRight className="arrow" />
+            </div>
+          </Link>
+        )}
       </div>
 
       {/* Module Navigation Grid */}

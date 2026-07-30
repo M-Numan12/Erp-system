@@ -180,6 +180,7 @@ export default function UsersManager() {
                 else if (nextRole === 'Wholesale') nextModule = 'Wholesale';
                 else if (nextRole === 'Retail 1') nextModule = 'Retail 1';
                 else if (nextRole === 'Retail 2') nextModule = 'Retail 2';
+                else if (nextRole === 'Retail 3') nextModule = 'Retail 3';
                 else nextModule = '';
 
                 setFormData({
@@ -195,6 +196,7 @@ export default function UsersManager() {
               <option value="Wholesale">Wholesale Role</option>
               <option value="Retail 1">Retail 1 Role</option>
               <option value="Retail 2">Retail 2 Role</option>
+              <option value="Retail 3">Retail 3 Role</option>
               <option value="user">User Role</option>
             </select>
             <select 
@@ -206,6 +208,7 @@ export default function UsersManager() {
                 else if (nextModule === 'Wholesale') nextRole = 'Wholesale';
                 else if (nextModule === 'Retail 1') nextRole = 'Retail 1';
                 else if (nextModule === 'Retail 2') nextRole = 'Retail 2';
+                else if (nextModule === 'Retail 3') nextRole = 'Retail 3';
                 else nextRole = 'user';
 
                 setFormData({
@@ -221,6 +224,7 @@ export default function UsersManager() {
               <option value="Wholesale">Wholesale Module</option>
               <option value="Retail 1">Retail 1 Module</option>
               <option value="Retail 2">Retail 2 Module</option>
+              <option value="Retail 3">Retail 3 Module</option>
             </select>
           </div>
 

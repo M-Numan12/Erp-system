@@ -23,6 +23,7 @@ import UsersManager from "./Pages/People/UsersManager.jsx";
 import Wholesale from "./Pages/Billing/Wholesale.jsx";
 import Retail1 from "./Pages/Billing/Retail1.jsx";
 import Retail2 from "./Pages/Billing/Retail2.jsx";
+import Retail3 from "./Pages/Billing/Retail3.jsx";
 import Rent from "./Pages/Finance/Rent.jsx";
 import Investment from "./Pages/Finance/Investment.jsx";
 import Staff from "./Pages/People/Staff.jsx";
@@ -129,6 +130,7 @@ function App() {
           <Route path="/wholesale" element={<PrivateRoute><MainLayout><Wholesale /></MainLayout></PrivateRoute>} />
           <Route path="/retail1" element={<PrivateRoute><MainLayout><Retail1 /></MainLayout></PrivateRoute>} />
           <Route path="/retail2" element={<PrivateRoute><MainLayout><Retail2 /></MainLayout></PrivateRoute>} />
+          <Route path="/retail3" element={<PrivateRoute><MainLayout><Retail3 /></MainLayout></PrivateRoute>} />
           <Route path="/products" element={<PrivateRoute><MainLayout><Products /></MainLayout></PrivateRoute>} />
           <Route path="/stock" element={<PrivateRoute><MainLayout><Stock /></MainLayout></PrivateRoute>} />
           <Route path="/billing" element={<PrivateRoute><MainLayout><Billing /></MainLayout></PrivateRoute>} />

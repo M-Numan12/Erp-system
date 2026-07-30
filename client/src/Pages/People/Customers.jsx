@@ -60,6 +60,7 @@ export default function Customers({ type }) {
           if (em.includes('wholesale')) m = 'Wholesale';
           else if (em.includes('retail1') || em.includes('retailsaller1')) m = 'Retail 1';
           else if (em.includes('retail2') || em.includes('retailseller2') || em.includes('wali2022')) m = 'Retail 2';
+          else if (em.includes('retail3') || em.includes('retailseller3')) m = 'Retail 3';
         }
         return m || "Wholesale";
       }
@@ -211,6 +212,11 @@ export default function Customers({ type }) {
             <div className="icon-box">🏬</div>
             <h3>Retail 2</h3>
             <span>Counter B</span>
+          </div>
+          <div className="selection-card retail3" onClick={() => setActiveTab('Retail 3')}>
+            <div className="icon-box">🛍️</div>
+            <h3>Retail 3</h3>
+            <span>Counter C</span>
           </div>
         </div>
       </div>
@@ -490,8 +496,8 @@ export default function Customers({ type }) {
         const yesterday = new Date();
         yesterday.setDate(today.getDate() - 1);
 
-        const isToday = txDate.toLocaleDateString() === today.toLocaleDateString();
-        const isYesterday = txDate.toLocaleDateString() === yesterday.toLocaleDateString();
+        const isToday = txDate.toLocaleDateString('en-GB') === today.toLocaleDateString('en-GB');
+        const isYesterday = txDate.toLocaleDateString('en-GB') === yesterday.toLocaleDateString('en-GB');
 
         if (activityFilter === "today" && !isToday) return false;
         if (activityFilter === "yesterday" && !isYesterday) return false;
@@ -849,7 +855,7 @@ export default function Customers({ type }) {
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '15px', fontSize: '14px' }}>
                     <span><strong>Customer:</strong> {selectedCustomer.name}</span>
                     <span><strong>Period:</strong> {ledgerFilter === 'all' ? 'All Time' : `${ledgerFrom} to ${ledgerTo}`}</span>
-                    <span><strong>Date:</strong> {new Date().toLocaleDateString()}</span>
+                    <span><strong>Date:</strong> {new Date().toLocaleDateString('en-GB')}</span>
                   </div>
                 </div>
 
@@ -885,7 +891,7 @@ export default function Customers({ type }) {
                       return (
                         <tr key={row.id} style={isReturn ? { background: '#f0fdf4' } : {}}>
                           <td style={{ border: '1px solid #cbd5e1', padding: '8px' }}>{index + 1}</td>
-                          <td style={{ border: '1px solid #cbd5e1', padding: '8px' }}>{new Date(row.created_at).toLocaleDateString()}</td>
+                          <td style={{ border: '1px solid #cbd5e1', padding: '8px' }}>{new Date(row.created_at).toLocaleDateString('en-GB')}</td>
                           <td style={{ border: '1px solid #cbd5e1', padding: '8px' }}>#SAL-{row.id}</td>
                           <td style={{ border: '1px solid #cbd5e1', padding: '8px' }}>
                             {isReturn
@@ -1033,7 +1039,7 @@ export default function Customers({ type }) {
                           if (row.isOpening) return <span style={{ fontStyle: 'italic', color: '#64748b' }}>Opening</span>;
                           return (
                             <div>
-                              <div style={{ fontWeight: 500 }}>{new Date(row.created_at).toLocaleDateString()}</div>
+                              <div style={{ fontWeight: 500 }}>{new Date(row.created_at).toLocaleDateString('en-GB')}</div>
                               <small style={{ color: '#94a3b8', display: 'block' }}>{new Date(row.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</small>
                               <span style={{ fontWeight: 600, color: '#0284c7', fontSize: '0.75rem', marginTop: '2px', display: 'block' }}>#SAL-{row.id}</span>
                             </div>
@@ -1450,7 +1456,7 @@ export default function Customers({ type }) {
 
               <div style={{ margin: '10px 0', fontSize: '12px', display: 'flex', flexDirection: 'column', gap: '3px' }}>
                 <div style={{ display: 'flex' }}><span style={{ width: '90px' }}>Receipt No</span> <span>: PYM-{receiptData.id}</span></div>
-                <div style={{ display: 'flex' }}><span style={{ width: '90px' }}>Date</span> <span>: {new Date(receiptData.payment_date).toLocaleDateString()} {new Date(receiptData.payment_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span></div>
+                <div style={{ display: 'flex' }}><span style={{ width: '90px' }}>Date</span> <span>: {new Date(receiptData.payment_date).toLocaleDateString('en-GB')} {new Date(receiptData.payment_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span></div>
                 <div style={{ display: 'flex' }}><span style={{ width: '90px' }}>Name</span> <span>: {receiptData.customer_name}</span></div>
                 {receiptData.customer_phone && <div style={{ display: 'flex' }}><span style={{ width: '90px' }}>Phone</span> <span>: {receiptData.customer_phone}</span></div>}
                 {receiptData.customer_address && <div style={{ display: 'flex' }}><span style={{ width: '90px' }}>Address</span> <span>: {receiptData.customer_address}</span></div>}

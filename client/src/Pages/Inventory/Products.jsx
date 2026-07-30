@@ -56,6 +56,7 @@ export default function Products({ type }) {
           if (em.includes('wholesale')) m = 'Wholesale';
           else if (em.includes('retail1') || em.includes('retailsaller1')) m = 'Retail 1';
           else if (em.includes('retail2') || em.includes('retailseller2') || em.includes('wali2022')) m = 'Retail 2';
+          else if (em.includes('retail3') || em.includes('retailseller3')) m = 'Retail 3';
         }
         return m || "Wholesale";
       }
@@ -123,6 +124,11 @@ export default function Products({ type }) {
             <div className="icon-box">🔲</div>
             <h3>Retail 2</h3>
             <span>Counter B</span>
+          </div>
+          <div className="selection-card retail3" onClick={() => setActiveTab('Retail 3')}>
+            <div className="icon-box">🏬</div>
+            <h3>Retail 3</h3>
+            <span>Counter C</span>
           </div>
         </div>
       </div>
@@ -235,6 +241,7 @@ export default function Products({ type }) {
             <button className={activeTab === 'Wholesale' ? 'active' : ''} onClick={() => setActiveTab('Wholesale')}>Wholesale</button>
             <button className={activeTab === 'Retail 1' ? 'active' : ''} onClick={() => setActiveTab('Retail 1')}>Retail 1</button>
             <button className={activeTab === 'Retail 2' ? 'active' : ''} onClick={() => setActiveTab('Retail 2')}>Retail 2</button>
+            <button className={activeTab === 'Retail 3' ? 'active' : ''} onClick={() => setActiveTab('Retail 3')}>Retail 3</button>
           </div>
         )}
 

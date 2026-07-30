@@ -38,6 +38,7 @@ export default function Salary({ type }) {
           if (em.includes('wholesale')) m = 'Wholesale';
           else if (em.includes('retail1') || em.includes('retailsaller1')) m = 'Retail 1';
           else if (em.includes('retail2') || em.includes('retailseller2') || em.includes('wali2022')) m = 'Retail 2';
+          else if (em.includes('retail3') || em.includes('retailseller3')) m = 'Retail 3';
         }
         return m || "Wholesale";
       }
@@ -576,7 +577,7 @@ export default function Salary({ type }) {
                   <td>
                     <div className="prod-main-info">
                       <span className="name">{r.employee_name}</span>
-                      <span className="v-num"><Calendar size={12}/> Joined: {r.joining_date ? new Date(r.joining_date).toLocaleDateString() : 'N/A'}</span>
+                      <span className="v-num"><Calendar size={12}/> Joined: {r.joining_date ? new Date(r.joining_date).toLocaleDateString('en-GB') : 'N/A'}</span>
                     </div>
                   </td>
                   <td><div className="type-tag office" style={{fontSize:'0.75rem', width:'fit-content'}}>{r.designation || 'Staff'}</div></td>
@@ -911,7 +912,7 @@ export default function Salary({ type }) {
                 <div style={{display: 'flex', justifyContent: 'space-between', marginTop: '15px', fontSize: '14px'}}>
                   <span><strong>Employee:</strong> {selectedStaff.employee_name}</span>
                   <span><strong>Base Salary:</strong> Rs. {parseFloat(selectedStaff.amount).toLocaleString()}</span>
-                  <span><strong>Date:</strong> {new Date().toLocaleDateString()}</span>
+                  <span><strong>Date:</strong> {new Date().toLocaleDateString('en-GB')}</span>
                 </div>
               </div>
 
@@ -930,7 +931,7 @@ export default function Salary({ type }) {
                   {filteredLedgerData.map((row, index) => (
                     <tr key={row.id}>
                       <td style={{border: '1px solid #cbd5e1', padding: '8px', textAlign: 'center', fontWeight: 'bold', color: '#64748b'}}>{index + 1}</td>
-                      <td style={{border: '1px solid #cbd5e1', padding: '8px'}}>{new Date(row.payment_date).toLocaleDateString()}</td>
+                      <td style={{border: '1px solid #cbd5e1', padding: '8px'}}>{new Date(row.payment_date).toLocaleDateString('en-GB')}</td>
                       <td style={{border: '1px solid #cbd5e1', padding: '8px'}}>{row.transaction_type}</td>
                       <td style={{border: '1px solid #cbd5e1', padding: '8px'}}>{row.payment_type}</td>
                       <td style={{border: '1px solid #cbd5e1', padding: '8px'}}>{row.month || '-'}</td>
@@ -1018,7 +1019,7 @@ export default function Salary({ type }) {
                         filteredLedgerData.map((row, index) => (
                             <tr key={row.id}>
                             <td style={{textAlign: 'center', fontWeight: 'bold', color: '#64748b'}}>{index + 1}</td>
-                            <td>{new Date(row.payment_date).toLocaleDateString()}</td>
+                            <td>{new Date(row.payment_date).toLocaleDateString('en-GB')}</td>
                             <td style={{fontWeight:600}}>{row.transaction_type}</td>
                             <td>{row.payment_type}</td>
                             <td>{row.month || '-'}</td>
@@ -1107,7 +1108,7 @@ export default function Salary({ type }) {
                         
                         <div style={{fontSize:'0.9rem', marginBottom:'20px', display:'flex', flexDirection:'column', gap:'6px'}}>
                             <div style={{display:'flex', justifyContent:'space-between'}}><span>Receipt #:</span><strong>SAL-{receiptData.id}</strong></div>
-                            <div style={{display:'flex', justifyContent:'space-between'}}><span>Dated:</span><strong>{new Date(receiptData.payment_date).toLocaleDateString()}</strong></div>
+                            <div style={{display:'flex', justifyContent:'space-between'}}><span>Dated:</span><strong>{new Date(receiptData.payment_date).toLocaleDateString('en-GB')}</strong></div>
                             <div style={{display:'flex', justifyContent:'space-between'}}><span>Method:</span><strong>{receiptData.payment_type}</strong></div>
                         </div>
 

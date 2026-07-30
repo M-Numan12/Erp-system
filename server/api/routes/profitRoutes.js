@@ -38,7 +38,7 @@ const getSum = async (table, amountCol, moduleType, moduleCol, dateCol, fromDate
 
 // Build summary for all counters with date range
 const buildSummary = async (fromDate, toDate) => {
-  const counters = ['Wholesale', 'Retail 1', 'Retail 2'];
+  const counters = ['Wholesale', 'Retail 1', 'Retail 2', 'Retail 3'];
   const summary = {};
 
   const fetchCounterData = async (c) => {

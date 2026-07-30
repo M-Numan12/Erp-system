@@ -2612,6 +2612,11 @@
         background: #7f1d1d;
         color: #f87171;
       }
+
+      &.retail3 {
+        background: #1e3a8a;
+        color: #60a5fa;
+      }
     }
   }
 
@@ -2713,6 +2718,11 @@
       &.retail2 {
         background: #fef2f2;
         color: #ef4444;
+      }
+
+      &.retail3 {
+        background: #eff6ff;
+        color: #3b82f6;
       }
     }
   }
@@ -2896,27 +2906,63 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  min-height: 60vh;
-  padding: 40px;
+  min-height: 100vh;
+  width: 100%;
+  padding: 60px 40px;
   text-align: center;
+  background: linear-gradient(135deg, #f8faff 0%, #f1f5f9 50%, #e8f4fd 100%);
+  position: relative;
+  overflow: hidden;
+
+  // Decorative background blobs
+  &::before {
+    content: '';
+    position: absolute;
+    top: -100px;
+    left: -100px;
+    width: 400px;
+    height: 400px;
+    background: radial-gradient(circle, rgba(99, 102, 241, 0.06) 0%, transparent 70%);
+    border-radius: 50%;
+    pointer-events: none;
+  }
+
+  &::after {
+    content: '';
+    position: absolute;
+    bottom: -100px;
+    right: -100px;
+    width: 500px;
+    height: 500px;
+    background: radial-gradient(circle, rgba(16, 185, 129, 0.05) 0%, transparent 70%);
+    border-radius: 50%;
+    pointer-events: none;
+  }
 
   h2 {
-    font-size: 2rem;
-    color: #1e293b;
-    margin-bottom: 8px;
+    font-size: 2.4rem;
+    font-weight: 800;
+    color: #0f172a;
+    margin-bottom: 12px;
+    letter-spacing: -0.5px;
   }
 
   p {
     color: #64748b;
-    margin-bottom: 40px;
+    font-size: 1rem;
+    margin-bottom: 56px;
+    font-weight: 500;
   }
 
   .selection-grid {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 30px;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 24px;
     width: 100%;
-    max-width: 1000px;
+    max-width: 1100px;
+    margin: 0 auto;
+    position: relative;
+    z-index: 1;
   }
 
   .selection-card {
@@ -2991,6 +3037,19 @@
         border-color: #ef4444;
         transform: translateY(-10px);
         box-shadow: 0 20px 25px -5px rgba(239, 68, 68, 0.1);
+      }
+    }
+
+    &.retail3 {
+      .icon-box {
+        background: #eff6ff;
+        color: #3b82f6;
+      }
+
+      &:hover {
+        border-color: #3b82f6;
+        transform: translateY(-10px);
+        box-shadow: 0 20px 25px -5px rgba(59, 130, 246, 0.1);
       }
     }
   }
@@ -3733,6 +3792,10 @@ form {
 
       &.retail2 {
         --card-color: #f97316;
+      }
+
+      &.retail3 {
+        --card-color: #10b981;
       }
 
       .cc-header {

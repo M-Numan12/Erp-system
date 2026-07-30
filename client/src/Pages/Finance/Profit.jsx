@@ -21,10 +21,11 @@ const COUNTER_COLORS = {
   Wholesale: { bg: '#eff6ff', border: '#3b82f6', icon: '#3b82f6', label: 'Wholesale' },
   'Retail 1': { bg: '#fdf4ff', border: '#a855f7', icon: '#a855f7', label: 'Retail 1' },
   'Retail 2': { bg: '#fff7ed', border: '#f97316', icon: '#f97316', label: 'Retail 2' },
+  'Retail 3': { bg: '#f0fdf4', border: '#10b981', icon: '#10b981', label: 'Retail 3' },
 };
 
 const fmt = (n) => `Rs. ${parseFloat(n || 0).toLocaleString()}`;
-const fmtDate = (d) => d ? new Date(d).toLocaleDateString() : '—';
+const fmtDate = (d) => d ? new Date(d).toLocaleDateString('en-GB') : '—';
 
 const today = () => new Date().toLocaleDateString('en-CA');
 const weekAgo = () => { const d = new Date(); d.setDate(d.getDate()-6); return d.toLocaleDateString('en-CA'); };
@@ -220,7 +221,7 @@ export default function Profit() {
         {Object.entries(summary).map(([name, stats]) => {
           const col = COUNTER_COLORS[name] || COUNTER_COLORS['Wholesale'];
           const margin = stats.sales > 0 ? ((stats.netProfit / stats.sales) * 100).toFixed(1) : '0.0';
-          const cardClass = name === 'Wholesale' ? 'wholesale' : name === 'Retail 1' ? 'retail1' : 'retail2';
+          const cardClass = name === 'Wholesale' ? 'wholesale' : name === 'Retail 1' ? 'retail1' : name === 'Retail 2' ? 'retail2' : 'retail3';
           return (
             <div key={name}
               className={`counter-card ${cardClass}`}
