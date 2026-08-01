@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useContext, useMemo } from "react";
 import { 
   Truck, Plus, X, Search, 
-  User, Hash, Phone, CreditCard, Tag, FileText
+  User, Hash, Phone, CreditCard, Tag, FileText, Maximize2, Minimize2
 } from "lucide-react";
 import { AuthContext } from "../../context/AuthContext";
 import ActionMenu from '../../components/ActionMenu';
@@ -57,6 +57,7 @@ export default function Transport({ type }) {
   const [editId, setEditId] = useState(null);
   const [showModal, setShowModal] = useState(false);
   const [showLedgerModal, setShowLedgerModal] = useState(false);
+  const [isLedgerMaximized, setIsLedgerMaximized] = useState(false);
   const [ledgerData, setLedgerData] = useState([]);
   const [ledgerFilter, setLedgerFilter] = useState("all");
   const [ledgerFrom, setLedgerFrom] = useState("");
@@ -571,18 +572,34 @@ export default function Transport({ type }) {
         ];
 
         return (
-          <div className="modal-overlay" onClick={() => setShowLedgerModal(false)}>
-            <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '1150px', width: '98%' }}>
+          <div className="modal-overlay" onClick={() => { setShowLedgerModal(false); setIsLedgerMaximized(false); }}>
+            <div className="modal" onClick={(e) => e.stopPropagation()} style={{
+              maxWidth: isLedgerMaximized ? '100vw' : '1150px',
+              width: isLedgerMaximized ? '100vw' : '98%',
+              height: isLedgerMaximized ? '100vh' : 'auto',
+              maxHeight: isLedgerMaximized ? '100vh' : '90vh',
+              borderRadius: isLedgerMaximized ? '0' : '20px',
+              margin: isLedgerMaximized ? '0' : 'auto',
+              transition: 'all 0.2s ease-in-out'
+            }}>
               <div className="modal-header no-print">
                 <div className="header-info" style={{display:'flex', alignItems:'center', gap:'12px'}}>
                   <Truck size={24} color="#0369a1" />
                   <h3>Vehicle Ledger: {selectedVehicle.vehicle_number}</h3>
                 </div>
-                <div style={{display:'flex', gap:'10px'}}>
+                <div style={{display:'flex', gap:'10px', alignItems: 'center'}}>
                   <button className="btn-secondary" onClick={() => window.print()} style={{padding: '6px 12px', display:'flex', alignItems:'center', gap:'6px'}}>
                     <FileText size={16} /> Print Report
                   </button>
-                  <button className="modal-close" onClick={() => setShowLedgerModal(false)}><X size={20} /></button>
+                  <button 
+                    className="btn-secondary" 
+                    onClick={() => setIsLedgerMaximized(!isLedgerMaximized)} 
+                    title={isLedgerMaximized ? "Restore Normal Size" : "Maximize / Fullscreen"} 
+                    style={{padding: '6px 10px', display:'flex', alignItems:'center', justifyContent:'center', background: '#f1f5f9', border: '1px solid #cbd5e1', cursor: 'pointer', borderRadius: '8px'}}
+                  >
+                    {isLedgerMaximized ? <Minimize2 size={18} color="#475569" /> : <Maximize2 size={18} color="#475569" />}
+                  </button>
+                  <button className="modal-close" onClick={() => { setShowLedgerModal(false); setIsLedgerMaximized(false); }}><X size={20} /></button>
                 </div>
               </div>
 
@@ -727,7 +744,7 @@ export default function Transport({ type }) {
                   <DataTable 
                     value={datatableRows} 
                     scrollable 
-                    scrollHeight="380px" 
+                    scrollHeight={isLedgerMaximized ? "calc(100vh - 380px)" : "380px"} 
                     className="p-datatable-sm card-table"
                     stripedRows 
                     responsiveLayout="scroll"
