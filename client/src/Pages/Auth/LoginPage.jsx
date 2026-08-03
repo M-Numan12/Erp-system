@@ -142,21 +142,35 @@ const LoginPage = () => {
             </div>
             <div className="form-group">
               <label>Password</label>
-              <div className="password-input-wrapper">
+              <div className="password-input-wrapper" style={{ position: 'relative', display: 'flex', alignItems: 'center', width: '100%' }}>
                 <input
                   type={showPassword ? "text" : "password"}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
                   required
+                  style={{ width: '100%', paddingRight: '40px' }}
                 />
                 <button
                   type="button"
                   className="toggle-password-btn"
                   onClick={() => setShowPassword(!showPassword)}
                   tabIndex="-1"
+                  style={{
+                    position: 'absolute',
+                    right: '10px',
+                    background: 'transparent',
+                    border: 'none',
+                    cursor: 'pointer',
+                    color: showPassword ? '#2563eb' : '#64748b',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justify-content: 'center',
+                    padding: '6px',
+                    zIndex: 10
+                  }}
                 >
-                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  {showPassword ? <EyeOff size={20} color="#2563eb" /> : <Eye size={20} color="#64748b" />}
                 </button>
               </div>
             </div>
