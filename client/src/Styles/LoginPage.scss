@@ -70,6 +70,7 @@
           position: relative;
           display: flex;
           align-items: center;
+          width: 100%;
 
           input {
             width: 100%;
@@ -89,16 +90,17 @@
 
           .toggle-password-btn {
             position: absolute;
-            right: 12px;
-            background: none;
+            right: 10px;
+            background: transparent;
             border: none;
             cursor: pointer;
             color: #64748b;
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: 4px;
+            padding: 6px;
             border-radius: 6px;
+            z-index: 10;
             transition: color 0.2s, background 0.2s;
 
             &:hover {
@@ -201,6 +203,17 @@
         .form-group {
           label {
             color: #cbd5e1;
+          }
+
+          .password-input-wrapper {
+            .toggle-password-btn {
+              color: #94a3b8;
+
+              &:hover {
+                color: #818cf8;
+                background: rgba(255, 255, 255, 0.1);
+              }
+            }
           }
 
           input {
