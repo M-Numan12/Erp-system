@@ -2,11 +2,13 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../../services/api";
 import "../../Styles/ForgotPassword.scss";
-import { KeyRound, Mail, User, Lock, ArrowLeft, CheckCircle2, ShieldCheck } from "lucide-react";
+import { KeyRound, Mail, User, Lock, ArrowLeft, CheckCircle2, ShieldCheck, Eye, EyeOff } from "lucide-react";
 
 export default function ForgotPassword() {
   const navigate = useNavigate();
   const [step, setStep] = useState(1); // 1: request, 2: verify, 3: reset, 4: success
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [formData, setFormData] = useState({
     email: "",
     username: "",
@@ -211,13 +213,21 @@ export default function ForgotPassword() {
                 <div className="input-wrapper">
                   <Lock className="input-icon" size={18} />
                   <input
-                    type="password"
+                    type={showPassword ? "text" : "password"}
                     name="password"
                     value={formData.password}
                     onChange={handleChange}
                     placeholder="••••••••"
                     required
                   />
+                  <button
+                    type="button"
+                    className="toggle-password-btn"
+                    onClick={() => setShowPassword(!showPassword)}
+                    tabIndex="-1"
+                  >
+                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
                 </div>
               </div>
 
@@ -226,13 +236,21 @@ export default function ForgotPassword() {
                 <div className="input-wrapper">
                   <Lock className="input-icon" size={18} />
                   <input
-                    type="password"
+                    type={showConfirmPassword ? "text" : "password"}
                     name="confirmPassword"
                     value={formData.confirmPassword}
                     onChange={handleChange}
                     placeholder="••••••••"
                     required
                   />
+                  <button
+                    type="button"
+                    className="toggle-password-btn"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    tabIndex="-1"
+                  >
+                    {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
                 </div>
               </div>
 

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import api from '../../services/api';
 import '../../Styles/UsersManager.scss';
-import { UserPlus, Save } from 'lucide-react';
+import { UserPlus, Save, Eye, EyeOff } from 'lucide-react';
 import ActionMenu from '../../components/ActionMenu';
 
 const availableModules = [
@@ -28,6 +28,7 @@ export default function UsersManager() {
   const [users, setUsers] = useState([]);
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
+  const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({ name: '', email: '', password: '', role: 'user', module_type: '', permissions: [] });
   const [devices, setDevices] = useState([]);
   const [loadingDevices, setLoadingDevices] = useState(false);
@@ -167,7 +168,36 @@ export default function UsersManager() {
           <div className="form-row">
             <input type="text" placeholder="Full Name" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} required />
             <input type="email" placeholder="Email Address" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} required />
-            <input type="text" placeholder={editingId ? "Edit Password" : "Password"} value={formData.password} onChange={e => setFormData({...formData, password: e.target.value})} required />
+            <div className="password-input-wrapper" style={{ position: 'relative', display: 'flex', alignItems: 'center', flex: 1 }}>
+              <input 
+                type={showPassword ? "text" : "password"} 
+                placeholder={editingId ? "Edit Password" : "Password"} 
+                value={formData.password} 
+                onChange={e => setFormData({...formData, password: e.target.value})} 
+                required 
+                style={{ width: '100%', paddingRight: '38px' }}
+              />
+              <button
+                type="button"
+                className="toggle-password-btn"
+                onClick={() => setShowPassword(!showPassword)}
+                tabIndex="-1"
+                style={{
+                  position: 'absolute',
+                  right: '10px',
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  color: '#64748b',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justify-content: 'center',
+                  padding: '4px'
+                }}
+              >
+                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
+            </div>
           </div>
           
           <div className="form-row">
