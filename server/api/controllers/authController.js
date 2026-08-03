@@ -183,24 +183,11 @@ exports.login = async (req, res) => {
 
     let pendingDeviceId = null;
 
-    if (isUserAdmin) {
-      // Admins are ALWAYS approved automatically
-      isApproved = true;
-
-      // Update or insert device entry for admin seamlessly
-      pool.query(
-        `INSERT INTO user_devices (user_id, ip_address, user_agent, device_name, is_approved, location, latitude, longitude, last_login_at) 
-         VALUES ($1, $2, $3, 'Admin Device', true, 'Local / Approved', $4, $5, CURRENT_TIMESTAMP) 
-         ON CONFLICT (user_id, ip_address, user_agent) 
-         DO UPDATE SET is_approved = true, last_login_at = CURRENT_TIMESTAMP, latitude = EXCLUDED.latitude, longitude = EXCLUDED.longitude`,
-        [user.id, ip, normalizedUA, lat, lon]
-      ).catch(e => {});
-    } else {
-      // 1. Check if there is an approved device with the same user agent or IP
-      const approvedDeviceResult = await pool.query(
-        'SELECT * FROM user_devices WHERE user_id = $1 AND is_approved = true AND (user_agent = $2 OR user_agent = $3 OR ip_address = $4)',
-        [user.id, normalizedUA, userAgent, ip]
-      );
+    // 1. Check if there is an approved device with the same user agent or IP
+    const approvedDeviceResult = await pool.query(
+      'SELECT * FROM user_devices WHERE user_id = $1 AND is_approved = true AND (user_agent = $2 OR user_agent = $3 OR ip_address = $4)',
+      [user.id, normalizedUA, userAgent, ip]
+    );
 
       if (approvedDeviceResult.rows.length > 0) {
         isApproved = true;
@@ -284,7 +271,6 @@ exports.login = async (req, res) => {
           }
         }
       }
-    }
 
     if (!isApproved) {
       // Send device approval request email asynchronously, wrapped safely
@@ -663,9 +649,8 @@ exports.checkDeviceStatus = async (req, res) => {
     const userAgent = req.headers['user-agent'] || '';
     const normalizedUA = normalizeUserAgent(userAgent);
 
-    let isApproved = isUserAdmin;
-    if (!isApproved) {
-      // Flexible matching: check if device is approved by UA, IP, or if user has any approved device
+    let isApproved = false;
+    // Flexible matching: check if device is approved by UA, IP, or if user has any approved device
       const approvedDeviceResult = await pool.query(
         'SELECT * FROM user_devices WHERE user_id = $1 AND is_approved = true AND (user_agent = $2 OR user_agent = $3 OR ip_address = $4) ORDER BY last_login_at DESC',
         [user.id, normalizedUA, userAgent, ip]
@@ -688,7 +673,6 @@ exports.checkDeviceStatus = async (req, res) => {
           ).catch(() => {});
         }
       }
-    }
 
     if (isApproved) {
       const getModuleType = (email, currentType) => {

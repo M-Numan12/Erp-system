@@ -56,21 +56,11 @@ module.exports = async function (req, res, next) {
 
       const normalizedUA = normalizeUserAgent(userAgent);
 
-      if (isUserAdmin) {
-        // Admins are automatically authorized and auto-registered if needed
-        pool.query(
-          `INSERT INTO user_devices (user_id, ip_address, user_agent, device_name, is_approved, location, last_login_at) 
-           VALUES ($1, $2, $3, 'Admin Device', true, 'Local / Approved', CURRENT_TIMESTAMP) 
-           ON CONFLICT (user_id, ip_address, user_agent) 
-           DO UPDATE SET is_approved = true, last_login_at = CURRENT_TIMESTAMP`,
-          [parseInt(req.user.id, 10), ip, normalizedUA]
-        ).catch(err => {});
-      } else {
-        // Non-admin device approval check
-        const deviceResult = await pool.query(
-          'SELECT * FROM user_devices WHERE user_id = $1 AND is_approved = true AND (user_agent = $2 OR user_agent = $3 OR ip_address = $4)',
-          [parseInt(req.user.id, 10), normalizedUA, userAgent, ip]
-        );
+      // Device approval check for all users (including Admin)
+      const deviceResult = await pool.query(
+        'SELECT * FROM user_devices WHERE user_id = $1 AND is_approved = true AND (user_agent = $2 OR user_agent = $3 OR ip_address = $4)',
+        [parseInt(req.user.id, 10), normalizedUA, userAgent, ip]
+      );
 
         let finalDevices = deviceResult.rows;
         if (finalDevices.length === 0) {
@@ -112,7 +102,6 @@ module.exports = async function (req, res, next) {
             }).catch(err => {});
           }
         }
-      }
     }
     next();
   } catch (err) {
