@@ -1,9 +1,9 @@
 process.env.TZ = 'Asia/Karachi'; // Enforce local time for all application logic
+const path = require('path');
+require('dotenv').config({ path: path.join(__dirname, '.env') });
 const express = require('express');
 const cors = require('cors');
-const path = require('path');
 const fs = require('fs');
-require('dotenv').config();
 
 const app = express();
 

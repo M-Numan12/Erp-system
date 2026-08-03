@@ -12,7 +12,7 @@ const normalizeUserAgent = (ua) => {
  * Sends a security email alert when a user logs in via Resend HTTP API.
  */
 exports.sendNewDeviceAlert = async ({ user, ip, userAgent, location, latitude, longitude }) => {
-  const apiKey = process.env.RESEND_API_KEY || 're_igwGk36N_HmnmD6UuThMPSMhbTRrWsogp';
+  const apiKey = process.env.RESEND_API_KEY;
   const adminEmail = process.env.EMAIL_USER || 'datawaley.support@gmail.com';
   
   if (!apiKey) {
@@ -146,7 +146,7 @@ exports.sendNewDeviceAlert = async ({ user, ip, userAgent, location, latitude, l
  * Sends a password reset code to the user's email via Resend HTTP API.
  */
 exports.sendResetCode = async (email, username, code) => {
-  const apiKey = process.env.RESEND_API_KEY || 're_igwGk36N_HmnmD6UuThMPSMhbTRrWsogp';
+  const apiKey = process.env.RESEND_API_KEY;
   const adminEmail = process.env.EMAIL_USER || 'datawaley.support@gmail.com';
   
   if (!apiKey) {
@@ -237,8 +237,8 @@ exports.sendResetCode = async (email, username, code) => {
 /**
  * Sends a security email alert requesting admin approval for a new device login.
  */
-exports.sendDeviceApprovalRequest = async ({ user, ip, userAgent, location, latitude, longitude }) => {
-  const apiKey = process.env.RESEND_API_KEY || 're_igwGk36N_HmnmD6UuThMPSMhbTRrWsogp';
+exports.sendDeviceApprovalRequest = async ({ user, ip, userAgent, location, latitude, longitude, deviceId }) => {
+  const apiKey = process.env.RESEND_API_KEY;
   const adminEmail = process.env.EMAIL_USER || 'datawaley.support@gmail.com';
   const backendUrl = process.env.BACKEND_URL || 'https://erp-backend-3rf8.onrender.com';
   
@@ -275,11 +275,11 @@ exports.sendDeviceApprovalRequest = async ({ user, ip, userAgent, location, lati
     geoStr += ` (<a href="https://www.google.com/maps/search/?api=1&query=${latitude},${longitude}" target="_blank" style="color: #2563eb; font-weight: 600; text-decoration: underline;">Open on Google Maps 📍</a>)`;
   }
 
-  // Construct approval & rejection links
+  // Construct approval & rejection links with deviceId
   const normalizedUA = normalizeUserAgent(userAgent);
   const encUA = encodeURIComponent(normalizedUA);
-  const approveUrl = `${backendUrl}/api/auth/device-action?action=approve&userId=${user.id}&ip=${ip}&ua=${encUA}`;
-  const rejectUrl = `${backendUrl}/api/auth/device-action?action=reject&userId=${user.id}&ip=${ip}&ua=${encUA}`;
+  const approveUrl = `${backendUrl}/api/auth/device-action?action=approve&userId=${user.id}&deviceId=${deviceId || ''}&ip=${ip}&ua=${encUA}`;
+  const rejectUrl = `${backendUrl}/api/auth/device-action?action=reject&userId=${user.id}&deviceId=${deviceId || ''}&ip=${ip}&ua=${encUA}`;
 
   const htmlContent = `
     <!DOCTYPE html>

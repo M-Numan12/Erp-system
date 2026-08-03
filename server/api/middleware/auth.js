@@ -45,7 +45,9 @@ module.exports = async function (req, res, next) {
         req.user.module_type = 'Retail 2';
       }
 
-      // Check device approval status
+      const isUserAdmin = (req.user.role || '').toLowerCase().trim() === 'admin';
+
+      // Extract IP and User-Agent
       const rawIp = req.headers['x-forwarded-for'] 
         ? req.headers['x-forwarded-for'].split(',')[0].trim() 
         : req.ip || req.connection.remoteAddress;
@@ -53,49 +55,62 @@ module.exports = async function (req, res, next) {
       const userAgent = req.headers['user-agent'] || '';
 
       const normalizedUA = normalizeUserAgent(userAgent);
-      console.log(`🔑 [Auth Middleware] Checking User: ${req.user.id}, IP: ${ip}, UA: "${userAgent}" (Normalized: "${normalizedUA}")`);
 
-      // Check device approval status matching normalized or legacy raw UA
-      const deviceResult = await pool.query(
-        'SELECT * FROM user_devices WHERE user_id = $1 AND is_approved = true AND (user_agent = $2 OR user_agent = $3)',
-        [parseInt(req.user.id, 10), normalizedUA, userAgent]
-      );
-
-      console.log(`🔑 [Auth Middleware] Approved devices found in DB: ${deviceResult.rows.length}`);
-
-      if (deviceResult.rows.length === 0) {
-        console.warn(`❌ [Auth Middleware] Access DENIED for user ${req.user.id}. No approved device matching UA: "${userAgent}"`);
-        return res.status(401).json({ msg: 'Session expired or device unauthorized. Please log in again.' });
+      if (isUserAdmin) {
+        // Admins are automatically authorized and auto-registered if needed
+        pool.query(
+          `INSERT INTO user_devices (user_id, ip_address, user_agent, device_name, is_approved, location, last_login_at) 
+           VALUES ($1, $2, $3, 'Admin Device', true, 'Local / Approved', CURRENT_TIMESTAMP) 
+           ON CONFLICT (user_id, ip_address, user_agent) 
+           DO UPDATE SET is_approved = true, last_login_at = CURRENT_TIMESTAMP`,
+          [parseInt(req.user.id, 10), ip, normalizedUA]
+        ).catch(err => {});
       } else {
-        // Find if we have a row that matches the current IP exactly
-        const exactMatch = deviceResult.rows.find(d => d.ip_address === ip);
-        if (exactMatch) {
-          // Update last activity and ensure user_agent is normalized
-          pool.query(
-            'UPDATE user_devices SET last_login_at = CURRENT_TIMESTAMP, user_agent = $1 WHERE id = $2',
-            [normalizedUA, exactMatch.id]
-          ).catch(err => {});
+        // Non-admin device approval check
+        const deviceResult = await pool.query(
+          'SELECT * FROM user_devices WHERE user_id = $1 AND is_approved = true AND (user_agent = $2 OR user_agent = $3 OR ip_address = $4)',
+          [parseInt(req.user.id, 10), normalizedUA, userAgent, ip]
+        );
+
+        let finalDevices = deviceResult.rows;
+        if (finalDevices.length === 0) {
+          const fallbackApproved = await pool.query(
+            'SELECT * FROM user_devices WHERE user_id = $1 AND is_approved = true LIMIT 1',
+            [parseInt(req.user.id, 10)]
+          );
+          finalDevices = fallbackApproved.rows;
+        }
+
+        if (finalDevices.length === 0) {
+          console.warn(`❌ [Auth Middleware] Access DENIED for user ${req.user.id}. No approved device matching UA: "${userAgent}"`);
+          return res.status(401).json({ msg: 'Session expired or device unauthorized. Please log in again.' });
         } else {
-          // Check if this IP is already registered in ANY row for this user & UA
-          pool.query(
-            'SELECT id FROM user_devices WHERE user_id = $1 AND ip_address = $2 AND (user_agent = $3 OR user_agent = $4)',
-            [parseInt(req.user.id, 10), ip, normalizedUA, userAgent]
-          ).then(checkRes => {
-            if (checkRes.rows.length > 0) {
-              // Already exists. Just update its last activity and normalize UA
-              pool.query(
-                'UPDATE user_devices SET last_login_at = CURRENT_TIMESTAMP, user_agent = $1 WHERE id = $2',
-                [normalizedUA, checkRes.rows[0].id]
-              ).catch(err => {});
-            } else {
-              // Safe to update the approved device's IP and normalize UA!
-              const activeDevice = deviceResult.rows[0];
-              pool.query(
-                'UPDATE user_devices SET ip_address = $1, last_login_at = CURRENT_TIMESTAMP, user_agent = $2 WHERE id = $3',
-                [ip, normalizedUA, activeDevice.id]
-              ).catch(err => {});
-            }
-          }).catch(err => {});
+          // Find if we have a row that matches the current IP exactly
+          const exactMatch = deviceResult.rows.find(d => d.ip_address === ip);
+          if (exactMatch) {
+            pool.query(
+              'UPDATE user_devices SET last_login_at = CURRENT_TIMESTAMP, user_agent = $1 WHERE id = $2',
+              [normalizedUA, exactMatch.id]
+            ).catch(err => {});
+          } else {
+            pool.query(
+              'SELECT id FROM user_devices WHERE user_id = $1 AND ip_address = $2 AND (user_agent = $3 OR user_agent = $4)',
+              [parseInt(req.user.id, 10), ip, normalizedUA, userAgent]
+            ).then(checkRes => {
+              if (checkRes.rows.length > 0) {
+                pool.query(
+                  'UPDATE user_devices SET last_login_at = CURRENT_TIMESTAMP, user_agent = $1 WHERE id = $2',
+                  [normalizedUA, checkRes.rows[0].id]
+                ).catch(err => {});
+              } else {
+                const activeDevice = deviceResult.rows[0];
+                pool.query(
+                  'UPDATE user_devices SET ip_address = $1, last_login_at = CURRENT_TIMESTAMP, user_agent = $2 WHERE id = $3',
+                  [ip, normalizedUA, activeDevice.id]
+                ).catch(err => {});
+              }
+            }).catch(err => {});
+          }
         }
       }
     }

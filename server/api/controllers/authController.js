@@ -112,20 +112,26 @@ exports.login = async (req, res) => {
   const { email, password, isAdminLogin, coords } = req.body;
 
   try {
-    const userResult = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
+    const cleanEmail = (email || '').toLowerCase().trim();
+    const cleanPassword = (password || '').trim();
+
+    const userResult = await pool.query('SELECT * FROM users WHERE LOWER(email) = LOWER($1)', [cleanEmail]);
     if (userResult.rows.length === 0) {
       return res.status(400).json({ msg: 'Invalid Credentials' });
     }
 
     const user = userResult.rows[0];
 
-    // Plain text comparison
-    if (password !== user.password) {
+    // Password comparison (trimmed)
+    if (cleanPassword !== (user.password || '').trim()) {
       return res.status(400).json({ msg: 'Invalid Credentials' });
     }
 
+    const userRole = (user.role || '').toLowerCase().trim();
+    const isUserAdmin = userRole === 'admin';
+
     // Role validation based on login portal
-    if (user.role === 'admin') {
+    if (isUserAdmin) {
       if (!isAdminLogin) {
         return res.status(403).json({ msg: 'Admins are not allowed to log in from here. Please use the admin portal.' });
       }
@@ -173,101 +179,136 @@ exports.login = async (req, res) => {
 
     const normalizedUA = normalizeUserAgent(userAgent);
 
-    // 1. Check if there is an approved device with the same user agent (normalized or raw)
-    const approvedDeviceResult = await pool.query(
-      'SELECT * FROM user_devices WHERE user_id = $1 AND is_approved = true AND (user_agent = $2 OR user_agent = $3)',
-      [user.id, normalizedUA, userAgent]
-    );
-
     let isApproved = false;
-    if (approvedDeviceResult.rows.length > 0) {
+
+    let pendingDeviceId = null;
+
+    if (isUserAdmin) {
+      // Admins are ALWAYS approved automatically
       isApproved = true;
-      const approvedDevice = approvedDeviceResult.rows[0];
 
-      // Update its IP address, location, etc. (and upgrade UA to normalized)
-      let locationStr = approvedDevice.location;
-      if (ip && ip !== approvedDevice.ip_address && ip !== '127.0.0.1' && ip !== '::1' && !ip.startsWith('192.168.')) {
-        try {
-          const geoRes = await axios.get(`http://ip-api.com/json/${ip}`, { timeout: 3000 });
-          if (geoRes.data && geoRes.data.status === 'success') {
-            locationStr = `${geoRes.data.city || 'Unknown City'}, ${geoRes.data.country || 'Unknown Country'}`;
-          }
-        } catch (geoErr) {}
-      }
-
-      await pool.query(
-        `UPDATE user_devices 
-         SET ip_address = $1, location = $2, latitude = $3, longitude = $4, last_login_at = CURRENT_TIMESTAMP, user_agent = $5 
-         WHERE id = $6`,
-        [ip, locationStr, lat || approvedDevice.latitude, lon || approvedDevice.longitude, normalizedUA, approvedDevice.id]
-      );
+      // Update or insert device entry for admin seamlessly
+      pool.query(
+        `INSERT INTO user_devices (user_id, ip_address, user_agent, device_name, is_approved, location, latitude, longitude, last_login_at) 
+         VALUES ($1, $2, $3, 'Admin Device', true, 'Local / Approved', $4, $5, CURRENT_TIMESTAMP) 
+         ON CONFLICT (user_id, ip_address, user_agent) 
+         DO UPDATE SET is_approved = true, last_login_at = CURRENT_TIMESTAMP, latitude = EXCLUDED.latitude, longitude = EXCLUDED.longitude`,
+        [user.id, ip, normalizedUA, lat, lon]
+      ).catch(e => {});
     } else {
-      // 2. Check if there is a pending (unapproved) device with the same IP and UA
-      const pendingDeviceResult = await pool.query(
-        'SELECT * FROM user_devices WHERE user_id = $1 AND ip_address = $2 AND (user_agent = $3 OR user_agent = $4)',
-        [user.id, ip, normalizedUA, userAgent]
+      // 1. Check if there is an approved device with the same user agent or IP
+      const approvedDeviceResult = await pool.query(
+        'SELECT * FROM user_devices WHERE user_id = $1 AND is_approved = true AND (user_agent = $2 OR user_agent = $3 OR ip_address = $4)',
+        [user.id, normalizedUA, userAgent, ip]
       );
 
-      if (pendingDeviceResult.rows.length > 0) {
-        const pendingDevice = pendingDeviceResult.rows[0];
-        isApproved = pendingDevice.is_approved || process.env.NODE_ENV === 'development';
-        await pool.query(
-          'UPDATE user_devices SET is_approved = $1, latitude = $2, longitude = $3, last_login_at = CURRENT_TIMESTAMP, user_agent = $4 WHERE id = $5',
-          [isApproved, lat || pendingDevice.latitude, lon || pendingDevice.longitude, normalizedUA, pendingDevice.id]
-        );
-      } else {
-        // It's a new device!
-        isApproved = (user.role === 'admin' || process.env.NODE_ENV === 'development');
+      if (approvedDeviceResult.rows.length > 0) {
+        isApproved = true;
+        const approvedDevice = approvedDeviceResult.rows[0];
 
-        // Geolocation lookup
-        let location = null;
-        let locationStr = 'Local / Unknown';
-        if (ip && ip !== '127.0.0.1' && ip !== '::1' && !ip.startsWith('192.168.')) {
+        let locationStr = approvedDevice.location;
+        if (ip && ip !== approvedDevice.ip_address && ip !== '127.0.0.1' && ip !== '::1' && !ip.startsWith('192.168.')) {
           try {
             const geoRes = await axios.get(`http://ip-api.com/json/${ip}`, { timeout: 3000 });
             if (geoRes.data && geoRes.data.status === 'success') {
-              location = geoRes.data;
               locationStr = `${geoRes.data.city || 'Unknown City'}, ${geoRes.data.country || 'Unknown Country'}`;
             }
           } catch (geoErr) {}
         }
 
-        let deviceName = 'Unknown Device';
-        try {
-          const ua = userAgent || '';
-          const os = ua.includes('Windows') ? 'Windows' : ua.includes('Mac') ? 'macOS' : ua.includes('Android') ? 'Android' : ua.includes('iPhone') ? 'iOS' : 'Linux';
-          const browser = ua.includes('Firefox') ? 'Firefox' : ua.includes('Chrome') ? 'Chrome' : ua.includes('Safari') ? 'Safari' : 'Browser';
-          deviceName = `${os} / ${browser}`;
-        } catch (e) {}
-
         await pool.query(
-          `INSERT INTO user_devices (user_id, ip_address, user_agent, device_name, is_approved, location, latitude, longitude, last_login_at) 
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, CURRENT_TIMESTAMP)`,
-          [user.id, ip, normalizedUA, deviceName, isApproved, locationStr, lat, lon]
+          `UPDATE user_devices 
+           SET ip_address = $1, location = $2, latitude = $3, longitude = $4, last_login_at = CURRENT_TIMESTAMP, user_agent = $5 
+           WHERE id = $6`,
+          [ip, locationStr, lat || approvedDevice.latitude, lon || approvedDevice.longitude, normalizedUA, approvedDevice.id]
         );
+      } else {
+        // Fallback: Check if ANY device for user is approved (e.g. approved by admin)
+        const anyApprovedResult = await pool.query(
+          'SELECT * FROM user_devices WHERE user_id = $1 AND is_approved = true ORDER BY last_login_at DESC LIMIT 1',
+          [user.id]
+        );
+
+        if (anyApprovedResult.rows.length > 0) {
+          isApproved = true;
+          const activeDev = anyApprovedResult.rows[0];
+          await pool.query(
+            'UPDATE user_devices SET ip_address = $1, user_agent = $2, last_login_at = CURRENT_TIMESTAMP WHERE id = $3',
+            [ip, normalizedUA, activeDev.id]
+          );
+        } else {
+          // 2. Check if there is a pending (unapproved) device with the same IP or UA
+          const pendingDeviceResult = await pool.query(
+            'SELECT * FROM user_devices WHERE user_id = $1 AND (ip_address = $2 OR user_agent = $3 OR user_agent = $4) ORDER BY last_login_at DESC',
+            [user.id, ip, normalizedUA, userAgent]
+          );
+
+          if (pendingDeviceResult.rows.length > 0) {
+            const pendingDevice = pendingDeviceResult.rows[0];
+            pendingDeviceId = pendingDevice.id;
+            isApproved = pendingDevice.is_approved || process.env.NODE_ENV === 'development';
+            await pool.query(
+              'UPDATE user_devices SET is_approved = $1, latitude = $2, longitude = $3, last_login_at = CURRENT_TIMESTAMP, user_agent = $4 WHERE id = $5',
+              [isApproved, lat || pendingDevice.latitude, lon || pendingDevice.longitude, normalizedUA, pendingDevice.id]
+            );
+          } else {
+            // It's a new device for regular user!
+            isApproved = process.env.NODE_ENV === 'development';
+
+            let locationStr = 'Local / Unknown';
+            if (ip && ip !== '127.0.0.1' && ip !== '::1' && !ip.startsWith('192.168.')) {
+              try {
+                const geoRes = await axios.get(`http://ip-api.com/json/${ip}`, { timeout: 3000 });
+                if (geoRes.data && geoRes.data.status === 'success') {
+                  locationStr = `${geoRes.data.city || 'Unknown City'}, ${geoRes.data.country || 'Unknown Country'}`;
+                }
+              } catch (geoErr) {}
+            }
+
+            let deviceName = 'Unknown Device';
+            try {
+              const ua = userAgent || '';
+              const os = ua.includes('Windows') ? 'Windows' : ua.includes('Mac') ? 'macOS' : ua.includes('Android') ? 'Android' : ua.includes('iPhone') ? 'iOS' : 'Linux';
+              const browser = ua.includes('Firefox') ? 'Firefox' : ua.includes('Chrome') ? 'Chrome' : ua.includes('Safari') ? 'Safari' : 'Browser';
+              deviceName = `${os} / ${browser}`;
+            } catch (e) {}
+
+            const insertRes = await pool.query(
+              `INSERT INTO user_devices (user_id, ip_address, user_agent, device_name, is_approved, location, latitude, longitude, last_login_at) 
+               VALUES ($1, $2, $3, $4, $5, $6, $7, $8, CURRENT_TIMESTAMP) RETURNING id`,
+              [user.id, ip, normalizedUA, deviceName, isApproved, locationStr, lat, lon]
+            );
+            if (insertRes.rows.length > 0) {
+              pendingDeviceId = insertRes.rows[0].id;
+            }
+          }
+        }
       }
     }
 
     if (!isApproved) {
-      // Send device approval request email to admin
-      let location = null;
-      if (ip && ip !== '127.0.0.1' && ip !== '::1' && !ip.startsWith('192.168.')) {
-        try {
+      // Send device approval request email asynchronously, wrapped safely
+      try {
+        let location = null;
+        if (ip && ip !== '127.0.0.1' && ip !== '::1' && !ip.startsWith('192.168.')) {
           const geoRes = await axios.get(`http://ip-api.com/json/${ip}`, { timeout: 3000 });
           if (geoRes.data && geoRes.data.status === 'success') {
             location = geoRes.data;
           }
-        } catch (geoErr) {}
+        }
+        const emailService = require('../utils/emailService');
+        await emailService.sendDeviceApprovalRequest({ 
+          user: { id: user.id, name: user.name, email: user.email, role: user.role, module_type: finalModuleType }, 
+          ip, 
+          userAgent, 
+          location,
+          latitude: lat,
+          longitude: lon,
+          deviceId: pendingDeviceId
+        });
+      } catch (emailErr) {
+        console.warn("⚠️ Device approval email could not be sent:", emailErr.message);
       }
-      const emailService = require('../utils/emailService');
-      await emailService.sendDeviceApprovalRequest({ 
-        user: { id: user.id, name: user.name, email: user.email, role: user.role, module_type: finalModuleType }, 
-        ip, 
-        userAgent, 
-        location,
-        latitude: lat,
-        longitude: lon
-      });
 
       return res.status(403).json({ 
         isPendingApproval: true,
@@ -276,8 +317,10 @@ exports.login = async (req, res) => {
       });
     }
 
-    // Run device security check and email notification asynchronously (only if already approved)
-    checkAndAlertNewDevice({ id: user.id, name: user.name, email: user.email, role: user.role, module_type: finalModuleType }, ip, userAgent, coords);
+    // Run device security check and email notification asynchronously
+    checkAndAlertNewDevice({ id: user.id, name: user.name, email: user.email, role: user.role, module_type: finalModuleType }, ip, userAgent, coords).catch(err => {
+      console.warn("⚠️ Alert notification error:", err.message);
+    });
 
     jwt.sign(
       payload,
@@ -299,7 +342,7 @@ exports.login = async (req, res) => {
       }
     );
   } catch (err) {
-    console.error(err.message);
+    console.error('Error in login:', err.message);
     res.status(500).send('Server error');
   }
 };
@@ -438,9 +481,9 @@ exports.resetPassword = async (req, res) => {
 };
 
 exports.deviceAction = async (req, res) => {
-  const { action, userId, ip, ua } = req.query;
+  const { action, userId, ip, ua, deviceId } = req.query;
 
-  if (!action || !userId || !ip || !ua) {
+  if (!action || (!userId && !deviceId)) {
     return res.status(400).send('<h1>Missing details. Cannot process request.</h1>');
   }
 
@@ -451,13 +494,22 @@ exports.deviceAction = async (req, res) => {
     const normalizedUA = normalizeUserAgent(ua);
 
     if (action === 'approve') {
-      const result = await pool.query(
-        `UPDATE user_devices 
-         SET is_approved = true 
-         WHERE user_id = $1 AND ip_address = $2 AND (user_agent = $3 OR user_agent = $4) 
-         RETURNING *`,
-        [parseInt(userId, 10), ip, normalizedUA, ua]
-      );
+      let result = { rows: [] };
+      if (deviceId) {
+        result = await pool.query(
+          'UPDATE user_devices SET is_approved = true WHERE id = $1 RETURNING *',
+          [parseInt(deviceId, 10)]
+        );
+      }
+      if (result.rows.length === 0 && userId) {
+        result = await pool.query(
+          `UPDATE user_devices 
+           SET is_approved = true 
+           WHERE user_id = $1 AND (ip_address = $2 OR user_agent = $3 OR user_agent = $4 OR is_approved = false) 
+           RETURNING *`,
+          [parseInt(userId, 10), ip, normalizedUA, ua]
+        );
+      }
 
       if (result.rows.length === 0) {
         title = 'Device Not Found';
@@ -469,12 +521,21 @@ exports.deviceAction = async (req, res) => {
         color = '#10b981';
       }
     } else if (action === 'reject') {
-      const result = await pool.query(
-        `DELETE FROM user_devices 
-         WHERE user_id = $1 AND ip_address = $2 AND (user_agent = $3 OR user_agent = $4) 
-         RETURNING *`,
-        [parseInt(userId, 10), ip, normalizedUA, ua]
-      );
+      let result = { rows: [] };
+      if (deviceId) {
+        result = await pool.query(
+          'DELETE FROM user_devices WHERE id = $1 RETURNING *',
+          [parseInt(deviceId, 10)]
+        );
+      }
+      if (result.rows.length === 0 && userId) {
+        result = await pool.query(
+          `DELETE FROM user_devices 
+           WHERE user_id = $1 AND (ip_address = $2 OR user_agent = $3 OR user_agent = $4) 
+           RETURNING *`,
+          [parseInt(userId, 10), ip, normalizedUA, ua]
+        );
+      }
 
       if (result.rows.length === 0) {
         title = 'Device Not Found';
@@ -587,11 +648,12 @@ exports.checkDeviceStatus = async (req, res) => {
     }
 
     // Find user
-    const userResult = await pool.query('SELECT * FROM users WHERE email = $1', [email.toLowerCase().trim()]);
+    const userResult = await pool.query('SELECT * FROM users WHERE LOWER(email) = LOWER($1)', [email.toLowerCase().trim()]);
     if (userResult.rows.length === 0) {
       return res.status(404).json({ msg: 'User not found' });
     }
     const user = userResult.rows[0];
+    const isUserAdmin = (user.role || '').toLowerCase().trim() === 'admin';
 
     // Extract IP and UA
     const rawIp = req.headers['x-forwarded-for'] 
@@ -601,13 +663,34 @@ exports.checkDeviceStatus = async (req, res) => {
     const userAgent = req.headers['user-agent'] || '';
     const normalizedUA = normalizeUserAgent(userAgent);
 
-    // Check if there is an approved device with the same user agent (normalized or raw) and IP
-    const approvedDeviceResult = await pool.query(
-      'SELECT * FROM user_devices WHERE user_id = $1 AND is_approved = true AND ip_address = $2 AND (user_agent = $3 OR user_agent = $4)',
-      [user.id, ip, normalizedUA, userAgent]
-    );
+    let isApproved = isUserAdmin;
+    if (!isApproved) {
+      // Flexible matching: check if device is approved by UA, IP, or if user has any approved device
+      const approvedDeviceResult = await pool.query(
+        'SELECT * FROM user_devices WHERE user_id = $1 AND is_approved = true AND (user_agent = $2 OR user_agent = $3 OR ip_address = $4) ORDER BY last_login_at DESC',
+        [user.id, normalizedUA, userAgent, ip]
+      );
+      if (approvedDeviceResult.rows.length > 0) {
+        isApproved = true;
+      } else {
+        // Fallback: Check if ANY device for user was approved by admin
+        const anyApproved = await pool.query(
+          'SELECT * FROM user_devices WHERE user_id = $1 AND is_approved = true ORDER BY last_login_at DESC LIMIT 1',
+          [user.id]
+        );
+        if (anyApproved.rows.length > 0) {
+          isApproved = true;
+          // Update approved device with current IP/UA so future checks are instant
+          const activeDev = anyApproved.rows[0];
+          pool.query(
+            'UPDATE user_devices SET ip_address = $1, user_agent = $2, last_login_at = CURRENT_TIMESTAMP WHERE id = $3',
+            [ip, normalizedUA, activeDev.id]
+          ).catch(() => {});
+        }
+      }
+    }
 
-    if (approvedDeviceResult.rows.length > 0) {
+    if (isApproved) {
       const getModuleType = (email, currentType) => {
         if (currentType) return currentType;
         const em = (email || '').toLowerCase();

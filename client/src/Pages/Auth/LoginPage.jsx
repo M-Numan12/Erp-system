@@ -94,7 +94,18 @@ const LoginPage = () => {
           <p>Welcome back! Please enter your details.</p>
         </div>
 
-        {error && <div className="error-message">{error}</div>}
+        {error && (
+          <div className="error-message">
+            {error}
+            {error.includes('admin portal') && (
+              <div style={{ marginTop: '8px' }}>
+                <Link to="/admin-login" style={{ color: '#2563eb', fontWeight: 600, textDecoration: 'underline' }}>
+                  Go to Admin Portal Login →
+                </Link>
+              </div>
+            )}
+          </div>
+        )}
 
         {isPendingApproval ? (
           <div className="pending-approval-box" style={{ textAlign: 'center', padding: '10px 0' }}>
