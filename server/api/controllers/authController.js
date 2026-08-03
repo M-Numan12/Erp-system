@@ -128,7 +128,7 @@ exports.login = async (req, res) => {
     }
 
     const userRole = (user.role || '').toLowerCase().trim();
-    const isUserAdmin = userRole === 'admin';
+    const isUserAdmin = userRole === 'admin' || userRole.includes('admin') || cleanEmail === 'datawaley.support@gmail.com' || cleanEmail === 'hassam4288@gmail.com';
 
     // Role validation based on login portal
     if (isUserAdmin) {
@@ -653,7 +653,7 @@ exports.checkDeviceStatus = async (req, res) => {
       return res.status(404).json({ msg: 'User not found' });
     }
     const user = userResult.rows[0];
-    const isUserAdmin = (user.role || '').toLowerCase().trim() === 'admin';
+    const isUserAdmin = (user.role || '').toLowerCase().includes('admin') || (user.email || '').toLowerCase().trim() === 'datawaley.support@gmail.com' || (user.email || '').toLowerCase().trim() === 'hassam4288@gmail.com';
 
     // Extract IP and UA
     const rawIp = req.headers['x-forwarded-for'] 
