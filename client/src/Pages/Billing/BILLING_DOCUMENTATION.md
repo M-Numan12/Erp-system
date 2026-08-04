@@ -17,8 +17,6 @@ Retail3.jsx  ───┘                            │
                                              ├──► Retail1Billing.jsx    (POS Engine)
                                              ├──► Retail2Billing.jsx    (POS Engine)
                                              └──► Retail3Billing.jsx    (POS Engine)
-
-Retail.jsx ──► Legacy Placeholder (unused)
 ```
 
 ---
