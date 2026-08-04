@@ -147,7 +147,7 @@ const AdminLoginPage = () => {
                     color: showPassword ? '#818cf8' : '#94a3b8',
                     display: 'flex',
                     alignItems: 'center',
-                    justify-content: 'center',
+                    justifyContent: 'center',
                     padding: '6px',
                     zIndex: 10
                   }}

@@ -191,7 +191,7 @@ export default function UsersManager() {
                   color: '#64748b',
                   display: 'flex',
                   alignItems: 'center',
-                  justify-content: 'center',
+                  justifyContent: 'center',
                   padding: '4px'
                 }}
               >

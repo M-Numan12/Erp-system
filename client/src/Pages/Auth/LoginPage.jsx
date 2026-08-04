@@ -165,7 +165,7 @@ const LoginPage = () => {
                     color: showPassword ? '#2563eb' : '#64748b',
                     display: 'flex',
                     alignItems: 'center',
-                    justify-content: 'center',
+                    justifyContent: 'center',
                     padding: '6px',
                     zIndex: 10
                   }}
