@@ -16,9 +16,13 @@ const checkAndAlertNewDevice = async (user, ip, userAgent, coords = null) => {
 
     let lat = null;
     let lon = null;
-    if (coords && coords.latitude && coords.longitude) {
-      lat = parseFloat(coords.latitude);
-      lon = parseFloat(coords.longitude);
+    if (coords && coords.latitude != null && coords.longitude != null) {
+      const pLat = parseFloat(coords.latitude);
+      const pLon = parseFloat(coords.longitude);
+      if (!isNaN(pLat) && !isNaN(pLon)) {
+        lat = pLat;
+        lon = pLon;
+      }
     }
 
     // Geolocation lookup
@@ -44,8 +48,12 @@ const checkAndAlertNewDevice = async (user, ip, userAgent, coords = null) => {
     } catch (e) {}
 
     // Send alert email asynchronously (runs on every login)
-    const emailService = require('../utils/emailService');
-    await emailService.sendNewDeviceAlert({ user, ip, userAgent, location, latitude: lat, longitude: lon });
+    try {
+      const emailService = require('../utils/emailService');
+      await emailService.sendNewDeviceAlert({ user, ip, userAgent, location, latitude: lat, longitude: lon });
+    } catch (emailErr) {
+      console.warn("⚠️ Device alert email error:", emailErr.message);
+    }
 
     const locationStr = location 
       ? `${location.city || 'Unknown City'}, ${location.country || 'Unknown Country'}`
@@ -53,14 +61,23 @@ const checkAndAlertNewDevice = async (user, ip, userAgent, coords = null) => {
 
     const normalizedUA = normalizeUserAgent(userAgent);
 
-    // Register/update device entry
-    await pool.query(
-      `INSERT INTO user_devices (user_id, ip_address, user_agent, device_name, location, latitude, longitude, last_login_at) 
-       VALUES ($1, $2, $3, $4, $5, $6, $7, CURRENT_TIMESTAMP) 
-       ON CONFLICT (user_id, ip_address, user_agent) 
-       DO UPDATE SET last_login_at = CURRENT_TIMESTAMP, location = EXCLUDED.location, latitude = EXCLUDED.latitude, longitude = EXCLUDED.longitude`,
-      [user.id, ip, normalizedUA, deviceName, locationStr, lat, lon]
+    // Register/update device entry without relying on ON CONFLICT constraint
+    const existingDev = await pool.query(
+      'SELECT id FROM user_devices WHERE user_id = $1 AND (ip_address = $2 OR user_agent = $3)',
+      [user.id, ip, normalizedUA]
     );
+    if (existingDev.rows.length > 0) {
+      await pool.query(
+        'UPDATE user_devices SET last_login_at = CURRENT_TIMESTAMP, location = $1, latitude = $2, longitude = $3 WHERE id = $4',
+        [locationStr, lat, lon, existingDev.rows[0].id]
+      );
+    } else {
+      await pool.query(
+        `INSERT INTO user_devices (user_id, ip_address, user_agent, device_name, is_approved, location, latitude, longitude, last_login_at) 
+         VALUES ($1, $2, $3, $4, true, $5, $6, $7, CURRENT_TIMESTAMP)`,
+        [user.id, ip, normalizedUA, deviceName, locationStr, lat, lon]
+      );
+    }
   } catch (err) {
     console.error("Error in checkAndAlertNewDevice:", err.message);
   }
@@ -239,8 +256,8 @@ exports.login = async (req, res) => {
               [isApproved, lat || pendingDevice.latitude, lon || pendingDevice.longitude, normalizedUA, pendingDevice.id]
             );
           } else {
-            // It's a new device for regular user!
-            isApproved = process.env.NODE_ENV === 'development';
+            // It's a new device for user! Auto-approve if user is Admin or in Dev mode
+            isApproved = isUserAdmin || process.env.NODE_ENV === 'development';
 
             let locationStr = 'Local / Unknown';
             if (ip && ip !== '127.0.0.1' && ip !== '::1' && !ip.startsWith('192.168.')) {
@@ -329,7 +346,7 @@ exports.login = async (req, res) => {
     );
   } catch (err) {
     console.error('Error in login:', err.message);
-    res.status(500).send('Server error');
+    res.status(500).json({ msg: err.message || 'Server error' });
   }
 };
 
