@@ -43,21 +43,16 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (email, password, rememberMe, isAdminLogin = false, coords = null) => {
     const res = await api.post('/auth/login', { email, password, isAdminLogin, coords });
-    if (rememberMe) {
-      localStorage.setItem('token', res.data.token);
-      sessionStorage.removeItem('token');
-    } else {
-      sessionStorage.setItem('token', res.data.token);
-      localStorage.removeItem('token');
-    }
+    localStorage.setItem('token', res.data.token);
+    sessionStorage.setItem('token', res.data.token);
     setUser(sanitizeUser(res.data.user));
     return res.data;
   };
 
   const register = async (name, email, password) => {
     const res = await api.post('/auth/register', { name, email, password });
+    localStorage.setItem('token', res.data.token);
     sessionStorage.setItem('token', res.data.token);
-    localStorage.removeItem('token');
     setUser(sanitizeUser(res.data.user));
     return res.data;
   };
@@ -69,13 +64,8 @@ export const AuthProvider = ({ children }) => {
   };
 
   const autoLogin = (token, user, rememberMe) => {
-    if (rememberMe) {
-      localStorage.setItem('token', token);
-      sessionStorage.removeItem('token');
-    } else {
-      sessionStorage.setItem('token', token);
-      localStorage.removeItem('token');
-    }
+    localStorage.setItem('token', token);
+    sessionStorage.setItem('token', token);
     setUser(sanitizeUser(user));
   };
 

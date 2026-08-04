@@ -158,17 +158,19 @@ exports.login = async (req, res) => {
       }
     }
 
-    const getModuleType = (email, currentType) => {
+    const getModuleType = (email, role, currentType) => {
       if (currentType) return currentType;
+      const r = (role || '').toLowerCase();
       const em = (email || '').toLowerCase();
-      if (em.includes('wholesale')) return 'Wholesale';
-      if (em.includes('retail1') || em.includes('retailsaller1')) return 'Retail 1';
-      if (em.includes('retail2') || em.includes('retailseller2') || em.includes('wali2022')) return 'Retail 2';
-      if (em.includes('retail3') || em.includes('retailseller3')) return 'Retail 3';
+      if (r.includes('wholesale') || em.includes('wholesale')) return 'Wholesale';
+      if (r.includes('retail 1') || r.includes('retail1') || em.includes('retail1') || em.includes('retailsaller1')) return 'Retail 1';
+      if (r.includes('retail 2') || r.includes('retail2') || em.includes('retail2') || em.includes('retailseller2') || em.includes('wali2022')) return 'Retail 2';
+      if (r.includes('retail 3') || r.includes('retail3') || em.includes('retail3') || em.includes('retailseller3')) return 'Retail 3';
+      if (r.includes('admin') || em === 'datawaley.support@gmail.com') return 'admin';
       return null;
     };
 
-    const finalModuleType = getModuleType(user.email, user.module_type);
+    const finalModuleType = getModuleType(user.email, user.role, user.module_type);
 
     const payload = {
       user: {
@@ -692,17 +694,19 @@ exports.checkDeviceStatus = async (req, res) => {
       }
 
     if (isApproved) {
-      const getModuleType = (email, currentType) => {
+      const getModuleType = (email, role, currentType) => {
         if (currentType) return currentType;
+        const r = (role || '').toLowerCase();
         const em = (email || '').toLowerCase();
-        if (em.includes('wholesale')) return 'Wholesale';
-        if (em.includes('retail1') || em.includes('retailsaller1')) return 'Retail 1';
-        if (em.includes('retail2') || em.includes('retailseller2') || em.includes('wali2022')) return 'Retail 2';
-        if (em.includes('retail3') || em.includes('retailseller3')) return 'Retail 3';
+        if (r.includes('wholesale') || em.includes('wholesale')) return 'Wholesale';
+        if (r.includes('retail 1') || r.includes('retail1') || em.includes('retail1') || em.includes('retailsaller1')) return 'Retail 1';
+        if (r.includes('retail 2') || r.includes('retail2') || em.includes('retail2') || em.includes('retailseller2') || em.includes('wali2022')) return 'Retail 2';
+        if (r.includes('retail 3') || r.includes('retail3') || em.includes('retail3') || em.includes('retailseller3')) return 'Retail 3';
+        if (r.includes('admin') || em === 'datawaley.support@gmail.com') return 'admin';
         return null;
       };
 
-      const finalModuleType = getModuleType(user.email, user.module_type);
+      const finalModuleType = getModuleType(user.email, user.role, user.module_type);
 
       const payload = {
         user: {

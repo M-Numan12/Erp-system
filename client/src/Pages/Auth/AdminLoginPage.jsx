@@ -88,7 +88,18 @@ const AdminLoginPage = () => {
           <p>Secure administrative access. Enter credentials below.</p>
         </div>
 
-        {error && <div className="error-message">{error}</div>}
+        {error && (
+          <div className="error-message">
+            {error}
+            {(error.includes('admin portal') || error.includes('Regular users')) && (
+              <div style={{ marginTop: '8px' }}>
+                <Link to="/login" style={{ color: '#818cf8', fontWeight: 600, textDecoration: 'underline' }}>
+                  Go to Staff / Counter Login →
+                </Link>
+              </div>
+            )}
+          </div>
+        )}
 
         {isPendingApproval ? (
           <div className="pending-approval-box" style={{ textAlign: 'center', padding: '10px 0' }}>
