@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { AuthContext } from '../../context/AuthContext';
 import api from '../../services/api';
 import { Building2, Eye, EyeOff } from 'lucide-react';
+import '../../Styles/LoginPage.scss';
 
 const LoginPage = () => {
   const [email, setEmail] = useState('');
