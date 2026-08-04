@@ -5,9 +5,17 @@ import { AuthContext } from '../context/AuthContext';
 const PrivateRoute = ({ children }) => {
   const { user, loading } = useContext(AuthContext);
 
-  if (loading) return <div>Loading...</div>;
+  if (loading) {
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', background: '#0f172a', color: '#f8fafc' }}>
+        <h2>Loading ERP System...</h2>
+      </div>
+    );
+  }
 
-  return user ? children : <Navigate to="/" />;
+  const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+
+  return (user || token) ? children : <Navigate to="/login" />;
 };
 
 export default PrivateRoute;
