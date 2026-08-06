@@ -18,6 +18,7 @@ import { Column } from 'primereact/column';
 import { MultiSelect } from 'primereact/multiselect';
 import ActionMenu from '../../components/ActionMenu';
 import { AuthContext } from "../../context/AuthContext";
+import { formatDate, formatDateTime, formatInputDate } from "../../utils/dateUtils";
 import "../../Styles/ModulePages.scss";
 
 const PRODUCTS_API = (API_BASE_URL + "/products");
@@ -606,7 +607,7 @@ export default function Retail2Billing({ type }) {
           refund_method: refundMethod,
           vehicle_number: activeVeh ? activeVeh.vehicle_number : "",
           delivery_charges: returnDeliveryCharges,
-          date: new Date().toLocaleString()
+          date: formatDateTime(new Date())
         });
         setShowReturnModal(false);
         setShowReturnSlip(true);
@@ -706,7 +707,7 @@ export default function Retail2Billing({ type }) {
 
         setReceiptData({
           saleId: result.saleId,
-          date: new Date().toLocaleDateString('en-GB').replace(/\//g, '-'),
+          date: formatDate(new Date()),
           customerName: saleData.customer_name,
           customerPhone: saleData.customer_phone || '',
           customerAddress: saleData.customer_address || '',
@@ -1632,7 +1633,7 @@ export default function Retail2Billing({ type }) {
                     command: () => {
                       setReceiptData({
                         saleId: s.id,
-                        date: new Date(s.created_at).toLocaleString(),
+                        date: formatDateTime(s.created_at),
                         customerName: s.customer_name || 'Walking Customer',
                         customerPhone: s.customer_phone || '',
                         customerAddress: s.customer_address || '',
@@ -1884,8 +1885,8 @@ export default function Retail2Billing({ type }) {
                 <p style={{ margin: '10px 0 5px 0', borderTop: '1px dashed #cbd5e1', paddingTop: '5px' }}>Customer Sales Ledger Report</p>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '15px', fontSize: '14px' }}>
                   <span><strong>Customer:</strong> {selectedCustForLedger.name}</span>
-                  <span><strong>Period:</strong> {ledgerFilter === 'all' ? 'All Time' : `${ledgerFrom} to ${ledgerTo}`}</span>
-                  <span><strong>Date:</strong> {new Date().toLocaleDateString('en-GB')}</span>
+                  <span><strong>Period:</strong> {ledgerFilter === 'all' ? 'All Time' : `${formatInputDate(ledgerFrom)} to ${formatInputDate(ledgerTo)}`}</span>
+                  <span><strong>Date:</strong> {formatDate(new Date())}</span>
                 </div>
               </div>
               <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '10px' }}>
@@ -1903,7 +1904,7 @@ export default function Retail2Billing({ type }) {
                   {filteredLedgerData.map((row, index) => (
                     <tr key={row.id}>
                       <td style={{ border: '1px solid #cbd5e1', padding: '8px' }}>{index + 1}</td>
-                      <td style={{ border: '1px solid #cbd5e1', padding: '8px' }}>{new Date(row.created_at).toLocaleDateString('en-GB')}</td>
+                      <td style={{ border: '1px solid #cbd5e1', padding: '8px' }}>{formatDate(row.created_at)}</td>
                       <td style={{ border: '1px solid #cbd5e1', padding: '8px' }}>
                         {parseFloat(row.net_amount) > 0 ? (
                           (() => {
