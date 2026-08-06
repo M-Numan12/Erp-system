@@ -173,6 +173,7 @@ async function syncDatabaseSchema() {
       module_type VARCHAR(100),
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );`,
+    `DELETE FROM user_devices a USING user_devices b WHERE a.id < b.id AND a.user_id = b.user_id AND COALESCE(a.ip_address, '') = COALESCE(b.ip_address, '') AND COALESCE(a.user_agent, '') = COALESCE(b.user_agent, '');`,
     `CREATE TABLE IF NOT EXISTS user_devices (
       id SERIAL PRIMARY KEY,
       user_id INT REFERENCES users(id) ON DELETE CASCADE,
