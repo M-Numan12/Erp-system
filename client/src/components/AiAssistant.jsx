@@ -185,6 +185,91 @@ const AiAssistant = () => {
     }
   };
 
+  const executeSystemVoiceAction = (query) => {
+    const q = query.toLowerCase();
+
+    // 1. Action: Click Active Buttons (Save, Print, Record, Submit, Add)
+    if (q.includes('save') || q.includes('print') || q.includes('submit') || q.includes('record') || q.includes('banyo') || q.includes('daba') || q.includes('click')) {
+      const buttons = Array.from(document.querySelectorAll('button, input[type="submit"], .p-button, .btn'));
+      let targetBtn = null;
+      
+      if (q.includes('print') || q.includes('receipt') || q.includes('save') || q.includes('banyo')) {
+        targetBtn = buttons.find(b => {
+          const txt = (b.innerText || b.textContent || '').toLowerCase();
+          return txt.includes('print') || txt.includes('save') || txt.includes('receipt');
+        });
+      } else if (q.includes('record') || q.includes('pay')) {
+        targetBtn = buttons.find(b => {
+          const txt = (b.innerText || b.textContent || '').toLowerCase();
+          return txt.includes('record') || txt.includes('payment') || txt.includes('pay');
+        });
+      } else if (q.includes('submit') || q.includes('add')) {
+        targetBtn = buttons.find(b => {
+          const txt = (b.innerText || b.textContent || '').toLowerCase();
+          return txt.includes('submit') || txt.includes('add') || txt.includes('save');
+        });
+      }
+
+      if (targetBtn) {
+        targetBtn.click();
+        const btnText = (targetBtn.innerText || targetBtn.textContent || 'Action').trim();
+        return `Theek hai! "${btnText}" button click kar diya hai.`;
+      }
+    }
+
+    // 2. Action: Input Amount / Payment Filling
+    const numberMatches = q.match(/\d+/g);
+    if (numberMatches && (q.includes('pay') || q.includes('amount') || q.includes('paid') || q.includes('price') || q.includes('vasooli') || q.includes('rupees') || q.includes('rs'))) {
+      const amountValue = numberMatches[0];
+      const inputs = Array.from(document.querySelectorAll('input:not([type="hidden"]):not([disabled])'));
+      const targetInput = inputs.find(i => {
+        const ph = (i.placeholder || '').toLowerCase();
+        const nm = (i.name || '').toLowerCase();
+        const id = (i.id || '').toLowerCase();
+        return ph.includes('paid') || ph.includes('amount') || ph.includes('price') || nm.includes('paid') || nm.includes('amount') || id.includes('paid');
+      }) || inputs.find(i => i.type === 'number');
+
+      if (targetInput) {
+        targetInput.focus();
+        targetInput.value = amountValue;
+        targetInput.dispatchEvent(new Event('input', { bubbles: true }));
+        targetInput.dispatchEvent(new Event('change', { bubbles: true }));
+        return `Theek hai! Amount Rs. ${amountValue} enter kar diya hai.`;
+      }
+    }
+
+    // 3. Action: Product / Search Input Filling
+    if (q.includes('search') || q.includes('dalo') || q.includes('add') || q.includes('cement') || q.includes('steel') || q.includes('crush') || q.includes('sand') || q.includes('bricks') || q.includes('tile')) {
+      const searchInputs = Array.from(document.querySelectorAll('input[type="text"], input[type="search"], .p-inputtext'));
+      const targetSearch = searchInputs.find(i => {
+        const ph = (i.placeholder || '').toLowerCase();
+        return ph.includes('search') || ph.includes('product') || ph.includes('name') || ph.includes('brand');
+      }) || searchInputs[0];
+
+      if (targetSearch) {
+        const cleanedText = q
+          .replace(/add/g, '')
+          .replace(/dalo/g, '')
+          .replace(/search/g, '')
+          .replace(/karo/g, '')
+          .replace(/open/g, '')
+          .replace(/please/g, '')
+          .replace(/kardo/g, '')
+          .trim();
+
+        if (cleanedText) {
+          targetSearch.focus();
+          targetSearch.value = cleanedText;
+          targetSearch.dispatchEvent(new Event('input', { bubbles: true }));
+          targetSearch.dispatchEvent(new Event('change', { bubbles: true }));
+          return `Theek hai! Search box mein "${cleanedText}" search kar diya hai.`;
+        }
+      }
+    }
+
+    return null;
+  };
+
   const processQuery = (rawQuery) => {
     const query = rawQuery.trim().toLowerCase();
     if (!query) return;
@@ -200,7 +285,22 @@ const AiAssistant = () => {
     setMessages(prev => [...prev, userMsg]);
     setInputQuery('');
 
-    // Check 1: Voice Navigation Intent
+    // Check 1: Live Screen System Execution (Inputs, Buttons, Search)
+    const systemActionResult = executeSystemVoiceAction(query);
+    if (systemActionResult) {
+      const botMsg = {
+        id: Date.now() + 1,
+        sender: 'bot',
+        title: '⚡ Voice Action Executed',
+        text: systemActionResult,
+        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      };
+      setMessages(prev => [...prev, botMsg]);
+      speakText(systemActionResult);
+      return;
+    }
+
+    // Check 2: Voice Navigation Intent
     let foundRoute = null;
     let foundLabel = '';
     for (const nav of VOICE_NAVIGATION_MAP) {
@@ -229,7 +329,7 @@ const AiAssistant = () => {
       return;
     }
 
-    // Check 2: Match Knowledge Base
+    // Check 3: Match Knowledge Base
     let bestMatch = null;
     let maxMatchScore = 0;
 
