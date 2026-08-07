@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import Sidebar from './Sidebar';
+import AiAssistant from './AiAssistant';
 import { Menu } from 'lucide-react';
 import "../Styles/MainLayout.scss";
 
@@ -26,6 +27,9 @@ const MainLayout = ({ children }) => {
       <div className="content-area">
         {children}
       </div>
+
+      {/* AI Voice Assistant & Guidance Chatbot */}
+      <AiAssistant />
     </div>
   );
 };
