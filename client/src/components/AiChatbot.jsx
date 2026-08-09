@@ -5,6 +5,20 @@ import {
 } from 'lucide-react';
 import '../Styles/AiChatbot.scss';
 
+const API_BASE_URL = process.env.REACT_APP_API_URL ? `${process.env.REACT_APP_API_URL}/api` : 'https://erp-backend-3rf8.onrender.com/api';
+
+const formatItemName = (brand, name) => {
+  const b = (brand || '').trim();
+  const n = (name || '').trim();
+  if (!b || b === 'undefined') return n;
+  if (!n) return b;
+  const bLower = b.toLowerCase();
+  const nLower = n.toLowerCase();
+  if (nLower.includes(bLower)) return n;
+  if (bLower.includes(nLower)) return b;
+  return `${b} ${n}`;
+};
+
 // Public Customer Support Knowledge Base for Website Visitors
 const PUBLIC_CUSTOMER_KB = [
   {
@@ -95,7 +109,27 @@ const AiChatbot = () => {
   const [messages, setMessages] = useState([]);
   const [inputQuery, setInputQuery] = useState('');
   const [speechEnabled, setSpeechEnabled] = useState(false);
+  const [erpProducts, setErpProducts] = useState([]);
   const messagesEndRef = useRef(null);
+
+  // Fetch live products from ERP database
+  useEffect(() => {
+    const fetchLiveProducts = async () => {
+      try {
+        const res = await fetch(`${API_BASE_URL}/products`);
+        if (res.ok) {
+          const data = await res.json();
+          if (Array.isArray(data)) {
+            setErpProducts(data);
+          }
+        }
+      } catch (e) {
+        console.warn('Failed to fetch live ERP products for Chatbot:', e);
+      }
+    };
+
+    fetchLiveProducts();
+  }, []);
 
   // Set initial greeting based on Public Customer vs Staff Portal
   useEffect(() => {
@@ -105,7 +139,7 @@ const AiChatbot = () => {
           id: 1,
           sender: 'bot',
           title: '🏗️ Data Waley Cement Support',
-          text: 'Assalam-o-Alaikum! Data Waley Cement & Building Materials Customer Support mein khush-amdeed. Cement rates, bulk orders, delivery, ya branches ke baare mein koi bhi sawaal poochein!',
+          text: 'Assalam-o-Alaikum! Data Waley Cement & Building Materials Customer Support mein khush-amdeed. Taza tareen cement rates, available products, bulk orders, ya delivery ke baare mein poochein!',
           time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
         }
       ]);
@@ -156,6 +190,31 @@ const AiChatbot = () => {
 
     setMessages(prev => [...prev, userMsg]);
     setInputQuery('');
+
+    // Dynamic ERP Products Inquiry Handler
+    if (isPublicPage && (query.includes('product') || query.includes('products') || query.includes('samaan') || query.includes('list') || query.includes('rates') || query.includes('rate') || query.includes('price') || query.includes('maal') || query.includes('kya kya') || query.includes('items'))) {
+      if (erpProducts && erpProducts.length > 0) {
+        let catalogText = "Humari Live ERP Inventory mein yeh active products & brands available hain:\n\n";
+        erpProducts.slice(0, 12).forEach((p) => {
+          const name = formatItemName(p.brand, p.name || p.item_name);
+          const price = p.retail_price || p.sale_price || p.price || p.wholesale_price;
+          const priceDisplay = price ? `Rs. ${price}` : 'Wholesale Market Rate';
+          catalogText += `• ${name} — ${priceDisplay}\n`;
+        });
+        catalogText += "\nDirect order placement & bulk delivery ke liye Call / WhatsApp: 0300-1234567 / 0321-7654321!";
+
+        const botMsg = {
+          id: Date.now() + 1,
+          sender: 'bot',
+          title: '📦 Available Products & Wholesale Rates',
+          text: catalogText,
+          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        };
+        setMessages(prev => [...prev, botMsg]);
+        speakText(catalogText);
+        return;
+      }
+    }
 
     const targetKb = isPublicPage ? PUBLIC_CUSTOMER_KB : INTERNAL_STAFF_KB;
     let bestMatch = null;
@@ -260,9 +319,9 @@ const AiChatbot = () => {
           {/* Quick Shortcuts Bar for Visitors */}
           {isPublicPage ? (
             <div className="ai-quick-shortcuts">
+              <button onClick={() => processQuery('Consay products aur rates hain?')}>📦 Available Products</button>
               <button onClick={() => processQuery('Cement brands aur rates batayein')}>🧱 Cement Rates</button>
               <button onClick={() => processQuery('Depot ki location kahan hai')}>📍 Branch Locations</button>
-              <button onClick={() => processQuery('Site delivery service hai')}>🚚 Delivery Service</button>
               <button onClick={() => processQuery('Sales team ka phone number')}>📞 Contact Info</button>
             </div>
           ) : (
@@ -310,7 +369,7 @@ const AiChatbot = () => {
           <div className="ai-chat-footer">
             <input 
               type="text" 
-              placeholder={isPublicPage ? "Cement, rates, ya order ke baare mein poochein..." : "System ke baare mein sawaal likhein..."}
+              placeholder={isPublicPage ? "Products, rates, ya order ke baare mein poochein..." : "System ke baare mein sawaal likhein..."}
               value={inputQuery}
               onChange={(e) => setInputQuery(e.target.value)}
               onKeyDown={handleKeyDown}
