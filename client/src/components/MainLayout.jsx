@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import Sidebar from './Sidebar';
-import AiAssistant from './AiAssistant';
+import AiChatbot from './AiChatbot';
 import { Menu } from 'lucide-react';
 import "../Styles/MainLayout.scss";
 
@@ -28,8 +28,8 @@ const MainLayout = ({ children }) => {
         {children}
       </div>
 
-      {/* AI Voice Assistant & Guidance Chatbot */}
-      <AiAssistant />
+      {/* ERP System Guidance Chatbot */}
+      <AiChatbot />
     </div>
   );
 };
