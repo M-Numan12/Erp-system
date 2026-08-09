@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import '../../Styles/LandingPage.scss';
+import AiChatbot from '../../components/AiChatbot';
 import {
   Building2,
   Truck,
@@ -906,6 +907,9 @@ const LandingPage = () => {
           <p>© 2026 Data Waley Cement Depot. All rights reserved. Established 1978.</p>
         </div>
       </footer>
+
+      {/* ERP System Guidance Chatbot */}
+      <AiChatbot />
     </div>
   );
 };
