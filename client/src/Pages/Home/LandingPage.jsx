@@ -907,9 +907,6 @@ const LandingPage = () => {
           <p>© 2026 Data Waley Cement Depot. All rights reserved. Established 1978.</p>
         </div>
       </footer>
-
-      {/* ERP System Guidance Chatbot */}
-      <AiChatbot />
     </div>
   );
 };

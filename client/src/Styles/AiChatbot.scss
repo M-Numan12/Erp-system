@@ -1,8 +1,9 @@
 .ai-chatbot-wrapper {
-  position: fixed;
-  bottom: 24px;
-  right: 24px;
-  z-index: 99999;
+  position: fixed !important;
+  bottom: 24px !important;
+  right: 24px !important;
+  z-index: 999999 !important;
+  display: block !important;
   font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
 
   /* Floating Launch Button */

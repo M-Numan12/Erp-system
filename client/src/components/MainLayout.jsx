@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import Sidebar from './Sidebar';
-import AiChatbot from './AiChatbot';
 import { Menu } from 'lucide-react';
 import "../Styles/MainLayout.scss";
 
@@ -27,9 +26,6 @@ const MainLayout = ({ children }) => {
       <div className="content-area">
         {children}
       </div>
-
-      {/* ERP System Guidance Chatbot */}
-      <AiChatbot />
     </div>
   );
 };

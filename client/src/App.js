@@ -4,6 +4,7 @@ import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext";
 import PrivateRoute from "./components/PrivateRoute";
 import MainLayout from "./components/MainLayout";
+import AiChatbot from "./components/AiChatbot";
 import LoginPage from "./Pages/Auth/LoginPage.jsx";
 import AdminLoginPage from "./Pages/Auth/AdminLoginPage.jsx";
 import ForgotPassword from "./Pages/Auth/ForgotPassword.jsx";
@@ -148,6 +149,9 @@ function App() {
           <Route path="/accounts" element={<PrivateRoute><MainLayout><Accounts /></MainLayout></PrivateRoute>} />
           <Route path="/labours" element={<PrivateRoute><MainLayout><Labours /></MainLayout></PrivateRoute>} />
         </Routes>
+        
+        {/* Global ERP Guidance Chatbot Widget (Applies to Home Landing Page, Login, Dashboard, POS) */}
+        <AiChatbot />
       </Router>
     </AuthProvider>
     </ErrorBoundary>

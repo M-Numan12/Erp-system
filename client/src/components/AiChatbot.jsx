@@ -1,92 +1,126 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import {
-  Bot, Send, Volume2, VolumeX, X, Sparkles, ArrowRight
+  Bot, Send, Volume2, VolumeX, X, Sparkles, ArrowRight, MessageSquare, PhoneCall
 } from 'lucide-react';
 import '../Styles/AiChatbot.scss';
 
-// Comprehensive ERP Knowledge Base in Roman Urdu & English
-const KNOWLEDGE_BASE = [
+// Public Customer Support Knowledge Base for Website Visitors
+const PUBLIC_CUSTOMER_KB = [
+  {
+    keywords: ['cement', 'brand', 'rate', 'price', 'bori', 'bag', 'dg', 'maple', 'fauji', 'flying', 'bestway', 'cherat'],
+    title: '🧱 Cement Brands & Bulk Supply',
+    response: 'Hum Pakistan ke tamam top cement brands ki direct factory & wholesale supply karte hain:\n• DG Khan Cement\n• Maple Leaf Cement\n• Fauji Cement\n• Bestway & Flying Cement\n\nDaily wholesale rates aur bulk site delivery ke liye niche contact number par call karein ya chat par message karein!'
+  },
+  {
+    keywords: ['location', 'address', 'depot', 'dukan', 'branch', 'lahore', 'sharaqpur', 'kot abdul malik', 'kahan'],
+    title: '📍 Humare Main Depots & Branches',
+    response: 'Humare 2 main locations hain jahan se aap visit kar sakte hain ya delivery mangwa sakte hain:\n1. Main Depot: Kot Abdul Malik, Lahore Bypass.\n2. Branch Depot: Adda Tredewali, Near Sharaqpur Sharif.\n\nTiming: Mon - Sat (8:00 AM se 8:00 PM tak).'
+  },
+  {
+    keywords: ['delivery', 'gaari', 'truck', 'trolley', 'site', 'freight', 'kharcha'],
+    title: '🚚 Fast Site Delivery Service',
+    response: 'Hum poore Lahore, Sharaqpur, Sheikhupura aur Punjab ke tamam ilaqon mein direct aap ki construction site par mazdoor & transport trolley ke sath fast delivery provide karte hain.'
+  },
+  {
+    keywords: ['order', 'kharidna', 'buy', 'quote', 'rate', 'order kaise karein', 'samaan'],
+    title: '🛒 Cement Order & Rate Inquiry',
+    response: 'Order dene ya aaj ka rate jaan-ne ke liye:\n1. Top menu se "Request a Quote" button dabayein.\n2. Apni location aur jitni bori (bags) chahiyein likh kar bhejein.\n3. Humari sales team aap ko fawran wholesale rate SMS/Call kar de gi.'
+  },
+  {
+    keywords: ['contact', 'phone', 'number', 'mobile', 'whatsapp', 'email', 'rabta', 'call'],
+    title: '📞 Rabta & Support Team',
+    response: 'Sales & Inquiries ke liye hum se direct rabta karein:\n• Phone: 0300-1234567 / 0321-7654321\n• WhatsApp: Available 24/7\n• Address: Kot Abdul Malik, Lahore'
+  },
+  {
+    keywords: ['steel', 'sariya', 'crush', 'bajri', 'sand', 'ret', 'brick', 'eent', 'material'],
+    title: '🏗️ Building Materials (Steel, Bricks, Sand)',
+    response: 'Cement ke ilawa hum Awwal Eent (Bricks), Margalla/Sargodha Crush (Bajri), Chenab/Ravi Sand (Ret) aur High Grade Steel (Sariya) bhi direct site par supply karte hain.'
+  }
+];
+
+// Internal ERP System Knowledge Base for Staff Portal
+const INTERNAL_STAFF_KB = [
   {
     keywords: ['bill', 'billing', 'pos', 'receipt', 'sale', 'bech', 'dukan', 'invoice'],
     title: 'Sale Bill Kaise Banayein?',
-    response: 'Sale Bill banane ke liye:\n1. Top menu se "Billing / POS" par jayein.\n2. Customer select karein ya Walk-in rehne dein.\n3. Products search karke cart mein add karein.\n4. Price aur Qty adjust karein.\n5. Payment Method (Cash/Bank) select karke "Save & Print Receipt" daba dein.',
+    response: 'Sale Bill banane ke liye:\n1. Top menu se "Billing / POS" par jayein.\n2. Customer select karein ya Walk-in rehne dein.\n3. Products search karke cart mein add karein.\n4. Price aur Qty adjust karein.\n5. Payment Method select karke "Save & Print Receipt" daba dein.',
     actionRoute: '/billing',
     actionLabel: 'Go to Billing Page'
   },
   {
     keywords: ['customer', 'grahak', 'ledger', 'khata', 'vasooli', 'customer balance'],
     title: 'Customer Ledger & Payments',
-    response: 'Customer khata dekhne ya payment receive karne ke liye:\n1. "Customers" page par jayein.\n2. Customer search karein aur "Ledger" button dabayein.\n3. Wahan har sale, payment, aur running balance ka poora record dikhayega.\n4. "Receive Payment" se payment record kar sakte hain.',
+    response: 'Customer khata dekhne ya payment receive karne ke liye:\n1. "Customers" page par jayein.\n2. Customer search karein aur "Ledger" button dabayein.\n3. Wahan har sale, payment, aur running balance ka poora record dikhayega.',
     actionRoute: '/customers',
     actionLabel: 'Go to Customers'
   },
   {
     keywords: ['supplier', 'vendor', 'purchases', 'kharidari', 'maal aana'],
     title: 'Supplier & Purchase Management',
-    response: 'Suppliers ka balance aur purchase entries sambhalne ke liye:\n1. "Suppliers" page par jayein.\n2. Naya Supplier add karein ya list mein se select karein.\n3. Nayi Purchase add karne ke liye "Add Purchase" daba kar bill amount, gatepass, aur payment enter karein.',
+    response: 'Suppliers ka balance aur purchase entries sambhalne ke liye:\n1. "Suppliers" page par jayein.\n2. Nayi Purchase add karne ke liye "Add Purchase" daba kar bill amount aur payment enter karein.',
     actionRoute: '/suppliers',
     actionLabel: 'Go to Suppliers'
   },
   {
     keywords: ['salary', 'staff', 'tankhwah', 'advance', 'pay', 'employee'],
     title: 'Staff Salary & Advance Payment',
-    response: 'Staff ki salary aur advance deductions ke liye:\n1. "Salary" page open karein.\n2. Staff member select karke "Record Payment" karein.\n3. Agar pichla advance deduct karna ho toh active deduction select karein.\n4. System auto-calculate karke receipt generate kar dega.',
+    response: 'Staff ki salary ke liye "Salary" page open karein aur "Record Payment" karein.',
     actionRoute: '/salary',
     actionLabel: 'Go to Salary Page'
   },
   {
-    keywords: ['expense', 'kharcha', 'office expense', 'daily expense', 'paisa gaya'],
+    keywords: ['expense', 'kharcha', 'office expense', 'daily expense'],
     title: 'Office & Daily Expenses Record',
-    response: 'Dukan ke kharche add karne ke liye:\n1. "Expenses" ya "Other Expenses" page par jayein.\n2. Expense category (Office, Tea, Fuel, Utility) choose karein.\n3. Amount aur payment type (Cash/Bank) dal kar save karein.',
+    response: 'Dukan ke kharche add karne ke liye "Expenses" page par jayein.',
     actionRoute: '/expenses',
     actionLabel: 'Go to Expenses'
   },
   {
-    keywords: ['rent', 'kiraya', 'dukhan kiraya', 'property'],
-    title: 'Rent & Property Payments',
-    response: 'Shop / Property ka Rent record karne ke liye:\n1. "Rent" page par jayein.\n2. Property/Shop name select karein, rent month choose karein.\n3. Paid amount aur payment method enter karke submit kar dein.',
-    actionRoute: '/rent',
-    actionLabel: 'Go to Rent Page'
-  },
-  {
-    keywords: ['profit', 'loss', 'munafa', 'report', 'income', 'hisab'],
+    keywords: ['profit', 'loss', 'munafa', 'report', 'hisab'],
     title: 'Profit & Loss Reports',
-    response: 'Karobar ka munafa aur reports dekhne ke liye:\n1. "Profit / Reports" page par jayein.\n2. Specific Date Range (Today, This Month, Custom) choose karein.\n3. Total Sales, Cost of Goods, Expenses, aur Net Profit auto-calculate ho kar samne aa jayega.',
+    response: 'Karobar ka munafa dekhne ke liye "Profit / Reports" page par jayein.',
     actionRoute: '/profit',
     actionLabel: 'Go to Profit Reports'
-  },
-  {
-    keywords: ['stock', 'inventory', 'product', 'rate', 'maal', 'cement', 'steel'],
-    title: 'Stock & Product Rates',
-    response: 'Stock aur Product rates manage karne ke liye:\n1. "Stock" ya "Products" page open karein.\n2. Naye products add karein, minimum stock set karein, aur cost/retail rates update karein.',
-    actionRoute: '/stock',
-    actionLabel: 'Go to Stock'
-  },
-  {
-    keywords: ['account', 'bank', 'cash', 'closing', 'dukan balance'],
-    title: 'Bank Accounts & Cash Balance',
-    response: 'Dukan ke Cash aur Bank Accounts ka balance check karne ke liye:\n1. "Accounts" page par jayein.\n2. Har Bank Account aur Cash in Hand ka real-time balance check karein aur transfer entries karein.',
-    actionRoute: '/accounts',
-    actionLabel: 'Go to Accounts'
   }
 ];
 
 const AiChatbot = () => {
   const [isOpen, setIsOpen] = useState(false);
-  const [messages, setMessages] = useState([
-    {
-      id: 1,
-      sender: 'bot',
-      text: 'Assalam-o-Alaikum! Main aapka ERP System Guide Chatbot hoon. System ke baare mein koi bhi sawaal poochein ya step-by-step madad lein!',
-      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-    }
-  ]);
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  const isPublicPage = location.pathname === '/' || location.pathname === '/login' || location.pathname === '/portal-admin' || location.pathname === '/forgot';
+
+  const [messages, setMessages] = useState([]);
   const [inputQuery, setInputQuery] = useState('');
   const [speechEnabled, setSpeechEnabled] = useState(false);
-
   const messagesEndRef = useRef(null);
-  const navigate = useNavigate();
+
+  // Set initial greeting based on Public Customer vs Staff Portal
+  useEffect(() => {
+    if (isPublicPage) {
+      setMessages([
+        {
+          id: 1,
+          sender: 'bot',
+          title: '🏗️ Data Waley Cement Support',
+          text: 'Assalam-o-Alaikum! Data Waley Cement & Building Materials Customer Support mein khush-amdeed. Cement rates, bulk orders, delivery, ya branches ke baare mein koi bhi sawaal poochein!',
+          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        }
+      ]);
+    } else {
+      setMessages([
+        {
+          id: 1,
+          sender: 'bot',
+          title: '⚙️ ERP System Guide',
+          text: 'Assalam-o-Alaikum! Main aapka ERP System Guide Chatbot hoon. System ke baare mein koi bhi sawaal poochein ya step-by-step madad lein!',
+          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        }
+      ]);
+    }
+  }, [location.pathname, isPublicPage]);
 
   // Auto-scroll chat to bottom
   useEffect(() => {
@@ -123,11 +157,11 @@ const AiChatbot = () => {
     setMessages(prev => [...prev, userMsg]);
     setInputQuery('');
 
-    // Match Knowledge Base
+    const targetKb = isPublicPage ? PUBLIC_CUSTOMER_KB : INTERNAL_STAFF_KB;
     let bestMatch = null;
     let maxMatchScore = 0;
 
-    for (const kb of KNOWLEDGE_BASE) {
+    for (const kb of targetKb) {
       let score = 0;
       for (const kw of kb.keywords) {
         if (query.includes(kw)) score += 2;
@@ -151,7 +185,10 @@ const AiChatbot = () => {
       setMessages(prev => [...prev, botMsg]);
       speakText(bestMatch.response);
     } else {
-      const fallbackText = "Main aapka System Guide Chatbot hoon. Aap mujhse pucch sakte hain: 'Bill kaise banayein?', 'Customer ledger kaise dekhein?', 'Salary payment kaise karein?', ya koi bhi help le sakte hain.";
+      const fallbackText = isPublicPage
+        ? "Shukriya aap ke message ka! Aap humari Sales Team se direct rabta kar sakte hain (Phone: 0300-1234567 / Kot Abdul Malik, Lahore). Hum DG, Maple Leaf, Fauji Cement wholesale supply karte hain."
+        : "Main aapka System Guide Chatbot hoon. Aap mujhse pucch sakte hain: 'Bill kaise banayein?', 'Customer ledger kaise dekhein?', 'Salary payment kaise karein?'.";
+
       const botMsg = {
         id: Date.now() + 1,
         sender: 'bot',
@@ -177,11 +214,11 @@ const AiChatbot = () => {
         <button 
           className="ai-floating-btn" 
           onClick={() => setIsOpen(true)}
-          title="Open ERP System Help Chatbot"
+          title={isPublicPage ? "Data Waley Cement Customer Support" : "ERP System Help Chatbot"}
         >
           <div className="btn-glow" />
           <Sparkles className="sparkle-icon" size={20} />
-          <span className="btn-text">ERP Chatbot</span>
+          <span className="btn-text">{isPublicPage ? 'Customer Support' : 'ERP Chatbot'}</span>
           <div className="pulse-badge" />
         </button>
       )}
@@ -196,8 +233,8 @@ const AiChatbot = () => {
                 <Bot size={22} />
               </div>
               <div className="header-info">
-                <h4>ERP System Chatbot</h4>
-                <span className="status-online"><span className="dot" /> Online & Ready to Help</span>
+                <h4>{isPublicPage ? 'Data Waley Support' : 'ERP System Chatbot'}</h4>
+                <span className="status-online"><span className="dot" /> Online 24/7 Support</span>
               </div>
             </div>
 
@@ -220,13 +257,22 @@ const AiChatbot = () => {
             </div>
           </div>
 
-          {/* Quick Shortcuts Bar */}
-          <div className="ai-quick-shortcuts">
-            <button onClick={() => processQuery('Bill kaise banayein?')}>🧾 Sale Bill Guide</button>
-            <button onClick={() => processQuery('Customer ledger dekho')}>👥 Customer Khata</button>
-            <button onClick={() => processQuery('Salary entry kaise karein?')}>💵 Salary Payment</button>
-            <button onClick={() => processQuery('Expenses page open karo')}>📉 Expenses</button>
-          </div>
+          {/* Quick Shortcuts Bar for Visitors */}
+          {isPublicPage ? (
+            <div className="ai-quick-shortcuts">
+              <button onClick={() => processQuery('Cement brands aur rates batayein')}>🧱 Cement Rates</button>
+              <button onClick={() => processQuery('Depot ki location kahan hai')}>📍 Branch Locations</button>
+              <button onClick={() => processQuery('Site delivery service hai')}>🚚 Delivery Service</button>
+              <button onClick={() => processQuery('Sales team ka phone number')}>📞 Contact Info</button>
+            </div>
+          ) : (
+            <div className="ai-quick-shortcuts">
+              <button onClick={() => processQuery('Bill kaise banayein?')}>🧾 Sale Bill Guide</button>
+              <button onClick={() => processQuery('Customer ledger dekho')}>👥 Customer Khata</button>
+              <button onClick={() => processQuery('Salary entry kaise karein?')}>💵 Salary Payment</button>
+              <button onClick={() => processQuery('Expenses page open karo')}>📉 Expenses</button>
+            </div>
+          )}
 
           {/* Chat Message History Area */}
           <div className="ai-chat-messages">
@@ -241,7 +287,7 @@ const AiChatbot = () => {
                   {msg.title && <div className="msg-title">{msg.title}</div>}
                   <div className="msg-text">{msg.text}</div>
 
-                  {msg.actionRoute && (
+                  {!isPublicPage && msg.actionRoute && (
                     <button 
                       className="msg-action-btn"
                       onClick={() => {
@@ -264,7 +310,7 @@ const AiChatbot = () => {
           <div className="ai-chat-footer">
             <input 
               type="text" 
-              placeholder="System ke baare mein sawaal likhein..."
+              placeholder={isPublicPage ? "Cement, rates, ya order ke baare mein poochein..." : "System ke baare mein sawaal likhein..."}
               value={inputQuery}
               onChange={(e) => setInputQuery(e.target.value)}
               onKeyDown={handleKeyDown}
