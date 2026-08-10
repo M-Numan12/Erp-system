@@ -115,6 +115,8 @@ const AiChatbot = () => {
   // Fetch live products from ERP database
   useEffect(() => {
     const fetchLiveProducts = async () => {
+      const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+      if (!token) return;
       try {
         const res = await fetch(`${API_BASE_URL}/products`);
         if (res.ok) {

@@ -100,7 +100,7 @@ const LoginPage = () => {
             {error}
             {error.includes('admin portal') && (
               <div style={{ marginTop: '8px' }}>
-                <Link to="/admin-login" style={{ color: '#2563eb', fontWeight: 600, textDecoration: 'underline' }}>
+                <Link to="/portal-admin" style={{ color: '#2563eb', fontWeight: 600, textDecoration: 'underline' }}>
                   Go to Admin Portal Login →
                 </Link>
               </div>

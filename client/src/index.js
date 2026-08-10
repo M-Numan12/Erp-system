@@ -63,7 +63,8 @@ window.fetch = async function (url, options) {
     if (response.status === 401) {
       localStorage.removeItem('token');
       sessionStorage.removeItem('token');
-      if (window.location.pathname !== '/') {
+      const publicPaths = ['/', '/login', '/portal-admin', '/forgot'];
+      if (!publicPaths.includes(window.location.pathname)) {
         window.location.href = '/';
       }
     }
