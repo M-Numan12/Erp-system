@@ -18,7 +18,16 @@ app.use('/temp', express.static(path.join(__dirname, 'public', 'temp')));
 
 // Init Middleware - allow large base64 JSON payloads (PDFs can be 2-5MB encoded)
 app.use(express.json({ limit: '15mb' }));
-app.use(cors());
+
+// CORS configuration - handle all origins and preflight requests properly
+app.use(cors({
+  origin: '*',
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
+}));
+
+// Explicit OPTIONS handler for CORS preflights
+app.options('*', cors());
 
 // Define Routes
 app.use('/api/auth', require('./api/routes/authRoutes'));
@@ -43,18 +52,17 @@ app.use('/api/admin', require('./api/routes/adminRoutes'));
 
 const PORT = process.env.PORT || 5000;
 
-// Auto-sync database schema on startup
-const syncDatabaseSchema = require('./api/utils/dbInit');
-syncDatabaseSchema().then(() => {
-  app.listen(PORT, (err) => {
-    if (err) {
-      console.error(`Failed to start server: ${err.message}`);
-      process.exit(1);
-    }
-    console.log(`Server started on port ${PORT}`);
-  });
-}).catch(err => {
-  console.error('Failed to initialize database sync:', err);
-  // Start server anyway just in case
-  app.listen(PORT, () => console.log(`Server running (schema sync failed) on port ${PORT}`));
+// Start listening immediately so Render health check passes without delay
+app.listen(PORT, (err) => {
+  if (err) {
+    console.error(`Failed to start server: ${err.message}`);
+    process.exit(1);
+  }
+  console.log(`Server started on port ${PORT}`);
+
+  // Auto-sync database schema asynchronously in background
+  const syncDatabaseSchema = require('./api/utils/dbInit');
+  syncDatabaseSchema()
+    .then(() => console.log('Database schema initialization completed.'))
+    .catch(err => console.error('Failed to initialize database sync:', err));
 });
