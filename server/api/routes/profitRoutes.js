@@ -206,12 +206,15 @@ router.get('/detail/:counter', auth, async (req, res) => {
       getParams([...(from ? [from] : []), ...(to ? [to] : [])])
     );
 
-    // Top products
+    // All products breakdown
     const productsRes = await pool.query(
-      `SELECT si.product_name, SUM(si.qty) as total_qty, SUM(si.subtotal) as total_revenue
-       FROM sale_items si JOIN sales s ON s.id = si.sale_id
+      `SELECT si.product_name, SUM(si.qty) as total_qty, SUM(si.subtotal) as total_revenue,
+              COALESCE(SUM(si.subtotal - (si.qty * COALESCE(p.cost_price, 0))), 0) as total_profit
+       FROM sale_items si
+       JOIN sales s ON s.id = si.sale_id
+       LEFT JOIN products p ON p.id = si.product_id
        WHERE ${salesFilter} ${from ? `AND s.created_at >= $${isWholesale ? 1 : 2}` : ''} ${to ? `AND s.created_at <= $${isWholesale ? (from ? 2 : 1) : (from ? 3 : 2)}` : ''}
-       GROUP BY si.product_name ORDER BY total_revenue DESC LIMIT 10`,
+       GROUP BY si.product_name ORDER BY total_revenue DESC`,
       getParams([...(from ? [from] : []), ...(to ? [to] : [])])
     );
 
@@ -233,7 +236,8 @@ router.get('/detail/:counter', auth, async (req, res) => {
       other: otherRes.rows,
       investments: investRes.rows,
       supply: supplyRes.rows,
-      topProducts: productsRes.rows,
+      topProducts: productsRes.rows.slice(0, 10),
+      allProducts: productsRes.rows,
     });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });

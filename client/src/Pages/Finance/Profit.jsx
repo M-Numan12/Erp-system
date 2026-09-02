@@ -6,7 +6,7 @@ import {
   TrendingUp, TrendingDown, DollarSign, ArrowUpRight, ArrowDownRight,
   Wallet, ShoppingBag, Building2, Store, ChevronRight, ChevronLeft,
   Download, Receipt, Home, Users, MoreHorizontal, Package, Star,
-  CreditCard, Banknote, AlertCircle, BarChart3, PieChart, Briefcase
+  CreditCard, Banknote, AlertCircle, BarChart3, PieChart, Briefcase, Search
 } from "lucide-react";
 import { DataTable } from 'primereact/datatable';
 import { Column } from 'primereact/column';
@@ -47,6 +47,8 @@ export default function Profit() {
   const [quickFilter, setQuickFilter] = useState('today');
   const [fromDate, setFromDate] = useState(today());
   const [toDate, setToDate]     = useState(today());
+  const [productSearch, setProductSearch] = useState('');
+  const [productFilterMode, setProductFilterMode] = useState('all');
 
   const headers = { Authorization: `Bearer ${localStorage.getItem('token')}` };
 
@@ -123,7 +125,7 @@ export default function Profit() {
     { key: 'rent',      label: 'Rent',             icon: <Home size={15}/> },
     { key: 'salary',    label: 'Salary',           icon: <Users size={15}/> },
     { key: 'other',     label: 'Other Exp.',       icon: <MoreHorizontal size={15}/> },
-    { key: 'products',  label: 'Top Products',     icon: <Package size={15}/> },
+    { key: 'products',  label: 'All Products',     icon: <Package size={15}/> },
     { key: 'invest',    label: 'Investments',      icon: <TrendingUp size={15}/> },
   ];
 
@@ -427,14 +429,64 @@ export default function Profit() {
               </DataTable>
             )}
 
-            {activeTab === 'products' && (
-              <DataTable value={detail.topProducts} paginator rows={10} className="p-datatable-sm" stripedRows emptyMessage="No product sales data.">
-                <Column header="#" body={(_, { rowIndex }) => <span style={{fontWeight:800,color:'#64748b'}}>#{rowIndex+1}</span>} style={{width:'50px'}} />
-                <Column header="Product"  field="product_name" sortable />
-                <Column header="Qty Sold" body={r => <span style={{fontWeight:700,color:'#3b82f6'}}>{parseFloat(r.total_qty).toLocaleString()}</span>} sortable field="total_qty" />
-                <Column header="Revenue"  body={r => <span style={{fontWeight:800,color:'#16a34a'}}>{fmt(r.total_revenue)}</span>} sortable field="total_revenue" />
-              </DataTable>
-            )}
+            {activeTab === 'products' && (() => {
+              const rawList = productFilterMode === 'top10' 
+                ? (detail.topProducts || []) 
+                : (detail.allProducts || detail.topProducts || []);
+              
+              const filteredList = rawList.filter(p => 
+                !productSearch || p.product_name?.toLowerCase().includes(productSearch.toLowerCase())
+              );
+
+              return (
+                <div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '12px' }}>
+                    <div style={{ display: 'flex', gap: '8px', background: '#f1f5f9', padding: '4px', borderRadius: '8px' }}>
+                      <button 
+                        type="button"
+                        onClick={() => setProductFilterMode('all')}
+                        style={{ padding: '6px 14px', borderRadius: '6px', border: 'none', cursor: 'pointer', fontWeight: 700, fontSize: '0.8rem', background: productFilterMode === 'all' ? '#3b82f6' : 'transparent', color: productFilterMode === 'all' ? 'white' : '#64748b' }}
+                      >
+                        All Products ({detail.allProducts?.length || 0})
+                      </button>
+                      <button 
+                        type="button"
+                        onClick={() => setProductFilterMode('top10')}
+                        style={{ padding: '6px 14px', borderRadius: '6px', border: 'none', cursor: 'pointer', fontWeight: 700, fontSize: '0.8rem', background: productFilterMode === 'top10' ? '#3b82f6' : 'transparent', color: productFilterMode === 'top10' ? 'white' : '#64748b' }}
+                      >
+                        Top 10 Products
+                      </button>
+                    </div>
+
+                    <div style={{ display: 'flex', alignItems: 'center', background: '#f8fafc', border: '1px solid #cbd5e1', borderRadius: '8px', padding: '6px 12px', gap: '8px', minWidth: '240px' }}>
+                      <Search size={16} color="#64748b" />
+                      <input 
+                        type="text" 
+                        placeholder="Search product..." 
+                        value={productSearch} 
+                        onChange={(e) => setProductSearch(e.target.value)} 
+                        style={{ border: 'none', outline: 'none', background: 'transparent', width: '100%', fontSize: '0.85rem' }}
+                      />
+                    </div>
+                  </div>
+
+                  <DataTable value={filteredList} paginator rows={10} rowsPerPageOptions={[10, 25, 50, 100]} className="p-datatable-sm" stripedRows emptyMessage="No product sales data.">
+                    <Column header="#" body={(_, { rowIndex }) => <span style={{fontWeight:800,color:'#64748b'}}>#{rowIndex+1}</span>} style={{width:'50px'}} />
+                    <Column header="Product Name" field="product_name" sortable />
+                    <Column header="Quantity Sold" body={r => <span style={{fontWeight:700,color:'#3b82f6'}}>{parseFloat(r.total_qty || 0).toLocaleString()}</span>} sortable field="total_qty" />
+                    <Column header="Total Revenue" body={r => <span style={{fontWeight:800,color:'#16a34a'}}>{fmt(r.total_revenue)}</span>} sortable field="total_revenue" />
+                    <Column header="Sales Profit" body={r => {
+                      const prof = parseFloat(r.total_profit || 0);
+                      return (
+                        <span style={{ fontWeight: 700, color: prof >= 0 ? '#16a34a' : '#e11d48' }}>
+                          {prof >= 0 ? '+' : ''}{fmt(prof)}
+                        </span>
+                      );
+                    }} sortable field="total_profit" />
+                  </DataTable>
+                </div>
+              );
+            })()}
 
             {activeTab === 'invest' && (
               <DataTable value={detail.investments} paginator rows={10} className="p-datatable-sm" stripedRows emptyMessage="No investment records found.">
