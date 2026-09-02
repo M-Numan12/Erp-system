@@ -26,9 +26,6 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
 }));
 
-// Explicit OPTIONS handler for CORS preflights
-app.options('*', cors());
-
 // Define Routes
 app.use('/api/auth', require('./api/routes/authRoutes'));
 app.use('/api/users', require('./api/routes/userRoutes'));
