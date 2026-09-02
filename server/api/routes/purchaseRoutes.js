@@ -100,7 +100,8 @@ router.post('/', auth, async (req, res) => {
     await client.query('BEGIN');
     const {
       supplier_id, product_id, vehicle_number, quantity, rate,
-      paid_amount, module_type, vehicle_id, delivery_charges, fare_status, gatepass
+      paid_amount, module_type, vehicle_id, delivery_charges, fare_status, gatepass,
+      purchase_date
     } = req.body;
 
     const qty = parseFloat(quantity) || 0;
@@ -111,6 +112,9 @@ router.post('/', auth, async (req, res) => {
     const balanceAmount = totalAmount - paid;
 
     const finalModule = isAdmin(req) ? (module_type || 'Wholesale') : (req.user.module_type || 'Retail 1');
+    const pDate = purchase_date 
+      ? (purchase_date.includes('T') || purchase_date.includes(' ') ? purchase_date : `${purchase_date} ${new Date().toTimeString().split(' ')[0]}`)
+      : new Date();
 
     // Find vehicle_id if not provided but number is present
     let vId = vehicle_id;
@@ -122,9 +126,9 @@ router.post('/', auth, async (req, res) => {
     // 1. Insert Purchase Record
     const purchaseRes = await client.query(
       `INSERT INTO purchases 
-      (supplier_id, product_id, vehicle_number, vehicle_id, quantity, rate, total_amount, paid_amount, balance_amount, delivery_charges, fare_payment_type, module_type, user_id, gatepass) 
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14) RETURNING *`,
-      [supplier_id, product_id, vehicle_number, vId || null, qty, rt, totalAmount, paid, balanceAmount, fare, fare_status || 'Pending', finalModule, req.user.id, gatepass || null]
+      (supplier_id, product_id, vehicle_number, vehicle_id, quantity, rate, total_amount, paid_amount, balance_amount, delivery_charges, fare_payment_type, module_type, user_id, gatepass, purchase_date) 
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15) RETURNING *`,
+      [supplier_id, product_id, vehicle_number, vId || null, qty, rt, totalAmount, paid, balanceAmount, fare, fare_status || 'Pending', finalModule, req.user.id, gatepass || null, pDate]
     );
 
     // 2. Update Product Stock
@@ -173,12 +177,13 @@ router.post('/', auth, async (req, res) => {
       // 5. Automatically record as an Expense with the correct type and link vehicle_id
       await client.query(
         `INSERT INTO expenses (description, expense_type, category, amount, expense_date, notes, user_id, module_type, payment_type, vehicle_id) 
-         VALUES ($1, $2, $3, $4, CURRENT_DATE, $5, $6, $7, $8, $9)`,
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
         [
           `Transport Fare: ${vehicle_number || 'Vehicle'}`,
           expenseType,
           'Transport',
           fare,
+          pDate,
           JSON.stringify({ vehicle_id: vId, vehicle_number }),
           req.user.id,
           finalModule,
@@ -204,17 +209,20 @@ router.post('/payment', auth, async (req, res) => {
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
-    const { supplier_id, paid_amount, notes, module_type, payment_type } = req.body;
+    const { supplier_id, paid_amount, notes, module_type, payment_type, purchase_date } = req.body;
 
     const paid = parseFloat(paid_amount) || 0;
     const finalModule = isAdmin(req) ? (module_type || 'Wholesale') : (req.user.module_type || 'Retail 1');
+    const pDate = purchase_date 
+      ? (purchase_date.includes('T') || purchase_date.includes(' ') ? purchase_date : `${purchase_date} ${new Date().toTimeString().split(' ')[0]}`)
+      : new Date();
 
     // 1. Insert Payment Record into Purchases (as a ledger entry)
     const paymentRes = await client.query(
       `INSERT INTO purchases 
-      (supplier_id, product_id, vehicle_number, quantity, rate, total_amount, paid_amount, balance_amount, module_type, user_id, payment_type) 
-      VALUES ($1, NULL, $2, 0, 0, 0, $3, $4, $5, $6, $7) RETURNING *`,
-      [supplier_id, notes || 'Payment', paid, -paid, finalModule, req.user.id, payment_type || 'Cash']
+      (supplier_id, product_id, vehicle_number, quantity, rate, total_amount, paid_amount, balance_amount, module_type, user_id, payment_type, purchase_date) 
+      VALUES ($1, NULL, $2, 0, 0, 0, $3, $4, $5, $6, $7, $8) RETURNING *`,
+      [supplier_id, notes || 'Payment', paid, -paid, finalModule, req.user.id, payment_type || 'Cash', pDate]
     );
 
     // 2. Update Supplier Balance

@@ -6,7 +6,7 @@ import React, { useState, useEffect, useContext, useMemo } from "react";
 import { 
   Truck, Plus, X, Search, Phone, Mail, 
   MapPin, Building, CreditCard, Banknote, ClipboardList, Package, FileText,
-  Maximize2, Minimize2
+  Maximize2, Minimize2, Calendar
 } from "lucide-react";
 import { DataTable } from 'primereact/datatable';
 import { Column } from 'primereact/column';
@@ -64,7 +64,7 @@ export default function Suppliers({ type }) {
   const [showLedgerModal, setShowLedgerModal] = useState(false);
   const [isLedgerMaximized, setIsLedgerMaximized] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
-  const [paymentForm, setPaymentForm] = useState({ amount: "", notes: "Payment via Cash/Bank" });
+  const [paymentForm, setPaymentForm] = useState({ amount: "", notes: "Payment via Cash/Bank", purchase_date: new Date().toISOString().split('T')[0] });
   const [selectedSupplier, setSelectedSupplier] = useState(null);
   const [bankAccounts, setBankAccounts] = useState([]);
   const [selectedBank, setSelectedBank] = useState("");
@@ -330,7 +330,7 @@ export default function Suppliers({ type }) {
 
   const openPayment = (supplier) => {
     setSelectedSupplier(supplier);
-    setPaymentForm({ amount: "", notes: "Payment Sent" });
+    setPaymentForm({ amount: "", notes: "Payment Sent", purchase_date: new Date().toISOString().split('T')[0] });
     setSelectedBank("");
     setPaymentSource("Cash");
     fetchBanks(); // Refresh banks list when modal opens
@@ -366,7 +366,8 @@ export default function Suppliers({ type }) {
           paid_amount: paymentForm.amount,
           notes: paymentForm.notes,
           payment_type: finalPaymentType,
-          module_type: activeTab
+          module_type: activeTab,
+          purchase_date: paymentForm.purchase_date || new Date().toISOString().split('T')[0]
         })
       });
       if (res.ok) {
@@ -1152,6 +1153,15 @@ export default function Suppliers({ type }) {
               <div style={{background: '#fff1f2', padding: '12px', borderRadius: '8px', marginBottom: '16px', display: 'flex', justifyContent: 'space-between'}}>
                 <span style={{fontWeight: 600, color: '#e11d48'}}>Current Balance:</span>
                 <span style={{fontWeight: 700, color: '#e11d48'}}>Rs. {parseFloat(selectedSupplier.balance).toLocaleString()}</span>
+              </div>
+
+              <div className="form-group" style={{marginBottom: '15px'}}>
+                <label>Payment Date *</label>
+                <div className="input-wrapper">
+                  <Calendar size={18} />
+                  <input type="date" required value={paymentForm.purchase_date}
+                    onChange={(e) => setPaymentForm({ ...paymentForm, purchase_date: e.target.value })} />
+                </div>
               </div>
 
               <div className="form-group" style={{marginBottom: '15px'}}>

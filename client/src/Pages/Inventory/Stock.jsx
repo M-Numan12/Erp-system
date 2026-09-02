@@ -5,7 +5,7 @@ import React, { useState, useEffect, useContext } from "react";
 import {
   Boxes, Plus, Minus, Search, AlertTriangle, TrendingUp,
   Database, Info, X, ChevronRight, ChevronLeft, Hash, Truck, User,
-  CircleDollarSign, ArrowUpCircle, ArrowDownCircle, Tag
+  CircleDollarSign, ArrowUpCircle, ArrowDownCircle, Tag, Calendar
 } from "lucide-react";
 import { DataTable } from 'primereact/datatable';
 import { Column } from 'primereact/column';
@@ -31,7 +31,7 @@ export default function Stock({ type }) {
   const [receiveForm, setReceiveForm] = useState({
     supplier_id: "", quantity: "", vehicle_number: "", vehicle_id: "",
     rate: "", paid_amount: "0", delivery_charges: "0", fare_status: "Pending",
-    vehicle_type: "External", gatepass: ""
+    vehicle_type: "External", gatepass: "", purchase_date: new Date().toISOString().split('T')[0]
   });
   const [purchaseReturnForm, setPurchaseReturnForm] = useState({
     supplier_id: "", quantity: "", vehicle_number: "", vehicle_id: "",
@@ -251,7 +251,8 @@ export default function Stock({ type }) {
           delivery_charges: receiveForm.delivery_charges,
           fare_status: receiveForm.fare_status,
           module_type: activeTab,
-          gatepass: receiveForm.gatepass
+          gatepass: receiveForm.gatepass,
+          purchase_date: receiveForm.purchase_date || new Date().toISOString().split('T')[0]
         })
       });
       if (res.ok) {
@@ -259,7 +260,7 @@ export default function Stock({ type }) {
         setReceiveForm({
           supplier_id: "", quantity: "", vehicle_number: "", vehicle_id: "",
           rate: "", paid_amount: "0", delivery_charges: "0", fare_status: "Pending",
-          vehicle_type: "External", gatepass: ""
+          vehicle_type: "External", gatepass: "", purchase_date: new Date().toISOString().split('T')[0]
         });
         fetchData();
       }
@@ -794,6 +795,15 @@ export default function Stock({ type }) {
                         <option key={sup.id} value={sup.id}>{sup.name} {sup.company ? `(${sup.company})` : ''}</option>
                       ))}
                     </select>
+                  </div>
+                </div>
+
+                <div className="form-group">
+                  <label>Transaction / Arrival Date *</label>
+                  <div className="input-wrapper">
+                    <Calendar size={18} />
+                    <input type="date" required value={receiveForm.purchase_date}
+                      onChange={(e) => setReceiveForm({ ...receiveForm, purchase_date: e.target.value })} />
                   </div>
                 </div>
 
