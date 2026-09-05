@@ -142,38 +142,38 @@ export default function Dashboard() {
       {/* Stats Grid - ONLY for Master Admin */}
       {user?.role === 'admin' && (
         <div className="stats-grid">
-          <div className="stat-card premium-shadow">
+          <Link to="/products" className="stat-card premium-shadow">
             <div className="stat-icon blue"><Package size={24} /></div>
             <div className="stat-info">
               <span className="stat-label">Inventory</span>
               <span className="stat-value">{stats.products} Items</span>
             </div>
             <div className="stat-chart mini-line blue"></div>
-          </div>
-          <div className="stat-card premium-shadow">
+          </Link>
+          <Link to="/stock" className="stat-card premium-shadow">
             <div className="stat-icon orange"><AlertTriangle size={24} /></div>
             <div className="stat-info">
               <span className="stat-label">Low Stock</span>
               <span className="stat-value">{stats.lowStock} Alerts</span>
             </div>
             <div className="stat-chart mini-line orange"></div>
-          </div>
-          <div className="stat-card premium-shadow">
+          </Link>
+          <Link to="/customers" className="stat-card premium-shadow">
             <div className="stat-icon green"><UsersIcon size={24} /></div>
             <div className="stat-info">
               <span className="stat-label">Partners</span>
               <span className="stat-value">{stats.customers} Contacts</span>
             </div>
             <div className="stat-chart mini-line green"></div>
-          </div>
-          <div className="stat-card premium-shadow">
+          </Link>
+          <Link to="/expenses" className="stat-card premium-shadow">
             <div className="stat-icon red"><Wallet size={24} /></div>
             <div className="stat-info">
               <span className="stat-label">Expense Flow</span>
               <span className="stat-value">Rs. {stats.monthlyExpenses.toLocaleString()}</span>
             </div>
             <div className="stat-chart mini-line red"></div>
-          </div>
+          </Link>
         </div>
       )}
 
