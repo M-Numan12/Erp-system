@@ -49,11 +49,38 @@ export default function Dashboard() {
 
         // Extract standard stats for Dashboard view rendering
         if (Array.isArray(products) && Array.isArray(expenses) && Array.isArray(customers)) {
+          const now = new Date();
+          const currentYear = now.getFullYear();
+          const currentMonth = now.getMonth();
+
+          const isCurrentMonth = (dateStr) => {
+            if (!dateStr) return false;
+            if (typeof dateStr === 'string') {
+              const cleanStr = dateStr.split('T')[0];
+              const parts = cleanStr.split('-');
+              if (parts.length >= 2) {
+                const y = parseInt(parts[0], 10);
+                const m = parseInt(parts[1], 10) - 1;
+                return y === currentYear && m === currentMonth;
+              }
+            }
+            const d = new Date(dateStr);
+            return !isNaN(d.getTime()) && d.getFullYear() === currentYear && d.getMonth() === currentMonth;
+          };
+
           const newStats = {
             products: products.length,
             lowStock: products.filter(p => parseFloat(p.stock_quantity || 0) <= parseFloat(p.minimum_stock || 0)).length,
             customers: customers.length,
-            monthlyExpenses: Array.isArray(expenses) ? expenses.reduce((sum, e) => sum + parseFloat(e.amount || 0), 0) : 0
+            monthlyExpenses: Array.isArray(expenses)
+              ? expenses.reduce((sum, e) => {
+                  const dateVal = e.expense_date || e.created_at;
+                  if (isCurrentMonth(dateVal)) {
+                    return sum + parseFloat(e.amount || 0);
+                  }
+                  return sum;
+                }, 0)
+              : 0
           };
           setStats(newStats);
         }
