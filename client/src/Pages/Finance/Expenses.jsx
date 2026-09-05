@@ -69,6 +69,23 @@ export default function Expenses({ type }) {
   const [customStart, setCustomStart] = useState("");
   const [customEnd, setCustomEnd] = useState("");
 
+  const minAllowedDate = useMemo(() => {
+    const d = new Date();
+    d.setDate(d.getDate() - 3);
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }, []);
+
+  const maxAllowedDate = useMemo(() => {
+    const d = new Date();
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }, []);
+
   // Pagination State
   const [currentPage, setCurrentPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(15);
@@ -730,7 +747,7 @@ export default function Expenses({ type }) {
                   <label>Expense Date</label>
                   <div className="input-wrapper">
                     <Calendar size={18} />
-                    <input type="date" value={form.expense_date} onChange={(e) => setForm({...form, expense_date: e.target.value})} />
+                    <input type="date" min={minAllowedDate} max={maxAllowedDate} value={form.expense_date} onChange={(e) => setForm({...form, expense_date: e.target.value})} />
                   </div>
                 </div>
                 <div className="form-group">

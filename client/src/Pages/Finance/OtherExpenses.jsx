@@ -68,6 +68,23 @@ export default function OtherExpenses({ type }) {
   const [editId, setEditId] = useState(null);
   const [showModal, setShowModal] = useState(false);
   const [search, setSearch] = useState("");
+
+  const minAllowedDate = useMemo(() => {
+    const d = new Date();
+    d.setDate(d.getDate() - 3);
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }, []);
+
+  const maxAllowedDate = useMemo(() => {
+    const d = new Date();
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }, []);
   const [filterCategory, setFilterCategory] = useState("All");
   const [loading, setLoading] = useState(false);
 
@@ -297,7 +314,7 @@ export default function OtherExpenses({ type }) {
                   <label>Payment Date</label>
                   <div className="input-wrapper">
                     <Calendar size={18} />
-                    <input type="date" value={form.date}
+                    <input type="date" min={minAllowedDate} max={maxAllowedDate} value={form.date}
                       onChange={(e) => setForm({...form, date: e.target.value})} />
                   </div>
                 </div>
