@@ -76,7 +76,7 @@ export default function Suppliers({ type }) {
   const [ledgerOpeningBalance, setLedgerOpeningBalance] = useState(0);
   const [adjForm, setAdjForm] = useState({ type: "Debit", amount: "", notes: "" });
   const [undoLoading, setUndoLoading] = useState(false);
-  const [changedIds, setChangedIds] = useState(new Set()); // row ids that have unsaved edits
+  const [pendingEdits, setPendingEdits] = useState({}); // { [purchaseId]: { qty, rate, originalQty, originalRate, hasQtyChange, hasRateChange } }
   const [isSavingEdits, setIsSavingEdits] = useState(false);
   const qtyRefs = React.useRef({});  // { [rowId]: inputElement }
   const rateRefs = React.useRef({}); // { [rowId]: inputElement }
@@ -384,28 +384,61 @@ export default function Suppliers({ type }) {
     setLoading(false);
   };
 
-  // Mark a row as changed (input is uncontrolled — value stays in DOM)
-  const markChanged = (purchaseId, originalQty, originalRate) => {
-    const currentQty  = qtyRefs.current[purchaseId]?.value;
-    const currentRate = rateRefs.current[purchaseId]?.value;
-    const hasQtyChange  = currentQty  !== undefined && currentQty  !== String(originalQty);
-    const hasRateChange = currentRate !== undefined && currentRate !== String(originalRate);
-    setChangedIds(prev => {
-      const next = new Set(prev);
-      if (hasQtyChange || hasRateChange) next.add(purchaseId);
-      else next.delete(purchaseId);
+  // Handle field change in ledger row - uncontrolled DOM input + visual diff tracking
+  const handleFieldChange = (row, field, val) => {
+    setPendingEdits(prev => {
+      const currentQty  = field === 'qty'  ? val : (qtyRefs.current[row.id]?.value  ?? String(row.quantity));
+      const currentRate = field === 'rate' ? val : (rateRefs.current[row.id]?.value ?? String(row.rate));
+      
+      const hasQtyChange  = String(currentQty).trim()  !== String(row.quantity);
+      const hasRateChange = String(currentRate).trim() !== String(row.rate);
+      
+      const next = { ...prev };
+      if (hasQtyChange || hasRateChange) {
+        next[row.id] = {
+          qty: currentQty,
+          rate: currentRate,
+          originalQty: row.quantity,
+          originalRate: row.rate,
+          hasQtyChange,
+          hasRateChange
+        };
+      } else {
+        delete next[row.id];
+      }
       return next;
     });
   };
 
-  // Save ALL changed rows to the server in one go (reads values from DOM refs)
+  // Revert a single row back to original values
+  const handleRevertRow = (row) => {
+    if (qtyRefs.current[row.id]) qtyRefs.current[row.id].value = row.quantity;
+    if (rateRefs.current[row.id]) rateRefs.current[row.id].value = row.rate;
+    setPendingEdits(prev => {
+      const next = { ...prev };
+      delete next[row.id];
+      return next;
+    });
+  };
+
+  // Discard all pending changes across all rows
+  const handleDiscardAllEdits = () => {
+    Object.entries(pendingEdits).forEach(([id, edit]) => {
+      if (qtyRefs.current[id]) qtyRefs.current[id].value = edit.originalQty;
+      if (rateRefs.current[id]) rateRefs.current[id].value = edit.originalRate;
+    });
+    setPendingEdits({});
+  };
+
+  // Save ALL changed rows to the server in one go
   const handleSavePendingEdits = async () => {
-    if (changedIds.size === 0) return;
+    const editEntries = Object.entries(pendingEdits);
+    if (editEntries.length === 0) return;
     setIsSavingEdits(true);
     try {
-      const savePromises = Array.from(changedIds).map(purchaseId => {
-        const qty  = qtyRefs.current[purchaseId]?.value;
-        const rate = rateRefs.current[purchaseId]?.value;
+      const savePromises = editEntries.map(([purchaseId, edit]) => {
+        const qty  = qtyRefs.current[purchaseId]?.value ?? edit.qty;
+        const rate = rateRefs.current[purchaseId]?.value ?? edit.rate;
         return fetch((API_BASE_URL + "/purchases/update-ledger-entry"), {
           method: "POST",
           headers: {
@@ -416,7 +449,9 @@ export default function Suppliers({ type }) {
         });
       });
       await Promise.all(savePromises);
-      setChangedIds(new Set());
+      setPendingEdits({});
+      qtyRefs.current = {};
+      rateRefs.current = {};
       // Refresh records & ledger
       const updatedRecords = await fetchRecords();
       const updatedSup = (updatedRecords || []).find(s => s.id === selectedSupplier.id);
@@ -695,7 +730,7 @@ export default function Suppliers({ type }) {
         ];
 
         return (
-        <div className="modal-overlay" onClick={() => { setShowLedgerModal(false); setIsLedgerMaximized(false); setChangedIds(new Set()); qtyRefs.current = {}; rateRefs.current = {}; }}>
+        <div className="modal-overlay" onClick={() => { setShowLedgerModal(false); setIsLedgerMaximized(false); setPendingEdits({}); qtyRefs.current = {}; rateRefs.current = {}; }}>
           <div className="modal" onClick={(e) => e.stopPropagation()} style={{
             maxWidth: isLedgerMaximized ? '100vw' : '1280px',
             width: isLedgerMaximized ? '100vw' : '96%',
@@ -711,28 +746,47 @@ export default function Suppliers({ type }) {
                 <h3>Supplier Ledger: {selectedSupplier.company || selectedSupplier.name}</h3>
               </div>
               <div style={{display:'flex', gap:'10px', alignItems: 'center'}}>
-                {changedIds.size > 0 && (
-                  <button
-                    onClick={handleSavePendingEdits}
-                    disabled={isSavingEdits}
-                    style={{
-                      padding: '6px 16px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '6px',
-                      background: isSavingEdits ? '#94a3b8' : '#16a34a',
-                      color: 'white',
-                      border: 'none',
-                      borderRadius: '8px',
-                      fontWeight: 700,
-                      fontSize: '0.88rem',
-                      cursor: isSavingEdits ? 'not-allowed' : 'pointer',
-                      boxShadow: '0 2px 8px rgba(22,163,74,0.25)',
-                      animation: 'pulse-green 1.5s infinite'
-                    }}
-                  >
-                    💾 {isSavingEdits ? 'Saving...' : `Save Changes (${changedIds.size})`}
-                  </button>
+                {Object.keys(pendingEdits).length > 0 && (
+                  <>
+                    <button
+                      onClick={handleSavePendingEdits}
+                      disabled={isSavingEdits}
+                      style={{
+                        padding: '6px 16px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        background: isSavingEdits ? '#94a3b8' : '#16a34a',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '8px',
+                        fontWeight: 700,
+                        fontSize: '0.88rem',
+                        cursor: isSavingEdits ? 'not-allowed' : 'pointer',
+                        boxShadow: '0 2px 8px rgba(22,163,74,0.25)',
+                        animation: 'pulse-green 1.5s infinite'
+                      }}
+                    >
+                      💾 {isSavingEdits ? 'Saving...' : `Save Changes (${Object.keys(pendingEdits).length})`}
+                    </button>
+                    <button
+                      onClick={handleDiscardAllEdits}
+                      disabled={isSavingEdits}
+                      style={{
+                        padding: '6px 12px',
+                        background: '#f1f5f9',
+                        color: '#64748b',
+                        border: '1px solid #cbd5e1',
+                        borderRadius: '8px',
+                        fontWeight: 600,
+                        fontSize: '0.82rem',
+                        cursor: 'pointer'
+                      }}
+                      title="Discard all pending changes"
+                    >
+                      ✕ Discard All
+                    </button>
+                  </>
                 )}
                 <button className="btn-secondary" onClick={() => window.print()} style={{padding: '6px 12px', display:'flex', alignItems:'center', gap:'6px'}}>
                   <ClipboardList size={16} /> Print Ledger
@@ -745,7 +799,7 @@ export default function Suppliers({ type }) {
                 >
                   {isLedgerMaximized ? <Minimize2 size={18} color="#475569" /> : <Maximize2 size={18} color="#475569" />}
                 </button>
-                <button className="modal-close" onClick={() => { setShowLedgerModal(false); setIsLedgerMaximized(false); setChangedIds(new Set()); qtyRefs.current = {}; rateRefs.current = {}; }}><X size={20} /></button>
+                <button className="modal-close" onClick={() => { setShowLedgerModal(false); setIsLedgerMaximized(false); setPendingEdits({}); qtyRefs.current = {}; rateRefs.current = {}; }}><X size={20} /></button>
               </div>
             </div>
 
@@ -928,6 +982,44 @@ export default function Suppliers({ type }) {
                 </div>
               </div>
 
+              {Object.keys(pendingEdits).length > 0 && (
+                <div style={{
+                  background: '#fffbeb',
+                  border: '1px solid #fde68a',
+                  borderRadius: '8px',
+                  padding: '10px 16px',
+                  marginBottom: '12px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  fontSize: '0.88rem',
+                  color: '#92400e',
+                  boxShadow: '0 1px 3px rgba(245,158,11,0.1)'
+                }}>
+                  <div style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
+                    <span style={{fontSize: '1.2rem'}}>✏️</span>
+                    <span>
+                      <strong>{Object.keys(pendingEdits).length} row(s) modified:</strong> Tabdeeli yellow highlight mein aur puraani value cross-out nazar aa rahi hai. Save karne ke liye upar <strong>"Save Changes"</strong> dabayein.
+                    </span>
+                  </div>
+                  <button 
+                    onClick={handleDiscardAllEdits}
+                    style={{
+                      background: '#fef3c7',
+                      border: '1px solid #f59e0b',
+                      color: '#b45309',
+                      padding: '4px 10px',
+                      borderRadius: '6px',
+                      cursor: 'pointer',
+                      fontWeight: 700,
+                      fontSize: '0.8rem'
+                    }}
+                  >
+                    Discard All
+                  </button>
+                </div>
+              )}
+
               {loading ? (
                 <div style={{textAlign: 'center', padding: '40px', color: '#64748b'}}>Loading ledger data...</div>
               ) : (
@@ -967,8 +1059,32 @@ export default function Suppliers({ type }) {
                       header="Product / Memo" 
                       body={row => {
                         if (row.isOpening) return <span style={{fontStyle:'italic', color:'#64748b', fontWeight:500}}>Opening balance brought forward</span>;
-                        if (row.product_name) return <strong style={{color:'#1e293b'}}>{row.brand || ''} {row.product_name}</strong>;
-                        return <strong style={{color:'#0284c7', fontSize:'0.85rem', whiteSpace: 'normal', wordBreak: 'break-word', lineHeight: '1.2'}}><ClipboardList size={13} style={{display:'inline', verticalAlign:'middle', marginRight:'4px'}}/>{row.vehicle_number || row.payment_type || 'Manual Adjustment'}</strong>;
+                        const isEdited = pendingEdits[row.id];
+                        return (
+                          <div style={{display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '6px'}}>
+                            {row.product_name ? (
+                              <strong style={{color:'#1e293b'}}>{row.brand || ''} {row.product_name}</strong>
+                            ) : (
+                              <strong style={{color:'#0284c7', fontSize:'0.85rem', whiteSpace: 'normal', wordBreak: 'break-word', lineHeight: '1.2'}}>
+                                <ClipboardList size={13} style={{display:'inline', verticalAlign:'middle', marginRight:'4px'}}/>
+                                {row.vehicle_number || row.payment_type || 'Manual Adjustment'}
+                              </strong>
+                            )}
+                            {isEdited && (
+                              <span style={{
+                                padding: '1px 6px',
+                                fontSize: '0.68rem',
+                                fontWeight: 700,
+                                borderRadius: '4px',
+                                background: '#fef3c7',
+                                color: '#b45309',
+                                border: '1px solid #fde68a'
+                              }}>
+                                ✏️ Modified
+                              </span>
+                            )}
+                          </div>
+                        );
                       }} 
                       style={{ width: '220px' }}
                     />
@@ -994,57 +1110,81 @@ export default function Suppliers({ type }) {
                       body={row => {
                         if (row.isOpening) return null;
                         if (row.product_name) {
+                          const isEdited = pendingEdits[row.id];
+                          const isQtyChanged = isEdited?.hasQtyChange;
                           return (
-                            <div style={{display: 'flex', alignItems: 'center', gap: '4px'}}>
-                              {user?.role === 'admin' ? (
-                                <input 
-                                  type="number" 
-                                  defaultValue={row.quantity}
-                                  ref={el => { if (el) qtyRefs.current[row.id] = el; }}
-                                  style={{
-                                    width: '50px', padding: '2px 4px', fontSize: '0.8rem',
-                                    border: changedIds.has(row.id) ? '1.5px solid #16a34a' : '1px solid #cbd5e1',
-                                    borderRadius: '4px',
-                                    background: changedIds.has(row.id) ? '#f0fdf4' : 'white'
-                                  }}
-                                  onChange={() => markChanged(row.id, row.quantity, row.rate)}
-                                  onClick={(e)=>e.stopPropagation()}
-                                />
-                              ) : <span>{row.quantity}</span>}
-                              <small style={{color: '#64748b'}}>{row.unit}</small>
+                            <div style={{display: 'flex', flexDirection: 'column', gap: '2px'}}>
+                              <div style={{display: 'flex', alignItems: 'center', gap: '4px'}}>
+                                {user?.role === 'admin' ? (
+                                  <input 
+                                    type="number" 
+                                    defaultValue={row.quantity}
+                                    ref={el => { if (el) qtyRefs.current[row.id] = el; }}
+                                    style={{
+                                      width: '54px', padding: '3px 4px', fontSize: '0.82rem',
+                                      border: isQtyChanged ? '2px solid #f59e0b' : '1px solid #cbd5e1',
+                                      borderRadius: '4px',
+                                      fontWeight: isQtyChanged ? '700' : 'normal',
+                                      background: isQtyChanged ? '#fffbeb' : 'white',
+                                      transition: 'all 0.15s ease'
+                                    }}
+                                    onChange={(e) => handleFieldChange(row, 'qty', e.target.value)}
+                                    onClick={(e)=>e.stopPropagation()}
+                                  />
+                                ) : <span>{row.quantity}</span>}
+                                <small style={{color: '#64748b'}}>{row.unit}</small>
+                              </div>
+                              {isQtyChanged && (
+                                <span style={{fontSize: '0.68rem', color: '#dc2626', textDecoration: 'line-through', fontWeight: 600}}>
+                                  was: {row.quantity}
+                                </span>
+                              )}
                             </div>
                           );
                         }
                         return <span style={{color: '#cbd5e1'}}>—</span>;
                       }} 
-                      style={{ width: '60px' }}
+                      style={{ width: '80px' }}
                     />
                     <Column 
                       header="Rate" 
                       body={row => {
                         if (row.isOpening) return null;
                         if (row.product_name) {
-                          return user?.role === 'admin' ? (
-                            <input 
-                              type="number" 
-                              defaultValue={row.rate}
-                              ref={el => { if (el) rateRefs.current[row.id] = el; }}
-                              style={{
-                                width: '60px', padding: '2px 4px', fontSize: '0.8rem',
-                                border: changedIds.has(row.id) ? '1.5px solid #16a34a' : '1px solid #cbd5e1',
-                                borderRadius: '4px',
-                                background: changedIds.has(row.id) ? '#f0fdf4' : 'white'
-                              }}
-                              onChange={() => markChanged(row.id, row.quantity, row.rate)}
-                              onClick={(e)=>e.stopPropagation()}
-                            />
-                          ) : <span>Rs. {row.rate}</span>;
+                          const isEdited = pendingEdits[row.id];
+                          const isRateChanged = isEdited?.hasRateChange;
+                          return (
+                            <div style={{display: 'flex', flexDirection: 'column', gap: '2px'}}>
+                              {user?.role === 'admin' ? (
+                                <input 
+                                  type="number" 
+                                  defaultValue={row.rate}
+                                  ref={el => { if (el) rateRefs.current[row.id] = el; }}
+                                  style={{
+                                    width: '65px', padding: '3px 4px', fontSize: '0.82rem',
+                                    border: isRateChanged ? '2px solid #f59e0b' : '1px solid #cbd5e1',
+                                    borderRadius: '4px',
+                                    fontWeight: isRateChanged ? '700' : 'normal',
+                                    background: isRateChanged ? '#fffbeb' : 'white',
+                                    transition: 'all 0.15s ease'
+                                  }}
+                                  onChange={(e) => handleFieldChange(row, 'rate', e.target.value)}
+                                  onClick={(e)=>e.stopPropagation()}
+                                />
+                              ) : <span>Rs. {row.rate}</span>}
+                              {isRateChanged && (
+                                <span style={{fontSize: '0.68rem', color: '#dc2626', textDecoration: 'line-through', fontWeight: 600}}>
+                                  was: Rs. {row.rate}
+                                </span>
+                              )}
+                            </div>
+                          );
                         }
                         return <span style={{color: '#cbd5e1'}}>—</span>;
                       }}
                       footer="Period Totals:"
                       footerStyle={{ textAlign: 'right', fontWeight: 'bold', color: '#475569' }}
-                      style={{ width: '75px' }}
+                      style={{ width: '85px' }}
                     />
                     <Column 
                       header="Debit (-)" 
@@ -1074,6 +1214,31 @@ export default function Suppliers({ type }) {
                         if (row.isOpening) return <span style={{color:'#cbd5e1'}}>—</span>;
                         const tot = parseFloat(row.total_amount) || 0;
                         const paid = parseFloat(row.paid_amount) || 0;
+                        const isEdited = pendingEdits[row.id];
+                        
+                        if (isEdited && row.product_name) {
+                          const q = parseFloat(isEdited.qty) || 0;
+                          const r = parseFloat(isEdited.rate) || 0;
+                          const newCredit = q * r;
+                          return (
+                            <div style={{display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '2px'}}>
+                              <span style={{
+                                fontWeight: '700', 
+                                color: '#b45309', 
+                                background: '#fef3c7', 
+                                padding: '1px 6px', 
+                                borderRadius: '4px',
+                                border: '1px solid #fde68a'
+                              }}>
+                                Rs. {newCredit.toLocaleString()}
+                              </span>
+                              <span style={{fontSize: '0.68rem', color: '#94a3b8', textDecoration: 'line-through'}}>
+                                was Rs. {tot.toLocaleString()}
+                              </span>
+                            </div>
+                          );
+                        }
+
                         const creditVal = tot > 0 ? tot : (paid < 0 ? Math.abs(paid) : 0);
                         return creditVal > 0 ? (
                           <span style={{fontWeight: '600', color: '#ef4444'}}>
@@ -1082,13 +1247,19 @@ export default function Suppliers({ type }) {
                         ) : <span style={{color:'#cbd5e1'}}>—</span>;
                       }}
                       footer={`Rs. ${sortedLedgerData.reduce((sum, r) => {
+                        const isEdited = pendingEdits[r.id];
+                        if (isEdited && r.product_name) {
+                          const q = parseFloat(isEdited.qty) || 0;
+                          const rate = parseFloat(isEdited.rate) || 0;
+                          return sum + (q * rate);
+                        }
                         const tot = parseFloat(r.total_amount) || 0;
                         const paid = parseFloat(r.paid_amount) || 0;
                         const creditVal = tot > 0 ? tot : (paid < 0 ? Math.abs(paid) : 0);
                         return sum + creditVal;
                       }, 0).toLocaleString()}`}
                       footerStyle={{ textAlign: 'right', fontWeight: '700', color: '#ef4444' }}
-                      style={{ textAlign: 'right', width: '110px' }}
+                      style={{ textAlign: 'right', width: '115px' }}
                     />
                     <Column 
                       header="Balance" 
@@ -1117,18 +1288,40 @@ export default function Suppliers({ type }) {
                         header="Actions" 
                         body={(rec) => {
                           if (rec.isOpening) return null;
+                          const isEdited = pendingEdits[rec.id];
                           return (
-                            <button 
-                              className="btn-secondary" 
-                              style={{ padding: '2px 6px', fontSize: '0.7rem', height: '20px', lineHeight: '1' }} 
-                              onClick={() => handleUndoTransaction(rec.id)}
-                              disabled={undoLoading}
-                            >
-                              Undo
-                            </button>
+                            <div style={{display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px'}}>
+                              {isEdited && (
+                                <button 
+                                  className="btn-secondary" 
+                                  style={{ 
+                                    padding: '2px 6px', 
+                                    fontSize: '0.7rem', 
+                                    height: '22px', 
+                                    lineHeight: '1',
+                                    background: '#fee2e2',
+                                    borderColor: '#fca5a5',
+                                    color: '#b91c1c',
+                                    cursor: 'pointer'
+                                  }} 
+                                  onClick={() => handleRevertRow(rec)}
+                                  title="Revert to original values"
+                                >
+                                  ↺ Reset
+                                </button>
+                              )}
+                              <button 
+                                className="btn-secondary" 
+                                style={{ padding: '2px 6px', fontSize: '0.7rem', height: '22px', lineHeight: '1' }} 
+                                onClick={() => handleUndoTransaction(rec.id)}
+                                disabled={undoLoading}
+                              >
+                                Undo
+                              </button>
+                            </div>
                           );
                         }} 
-                        style={{ width: '80px', textAlign: 'center' }}
+                        style={{ width: '110px', textAlign: 'center' }}
                       />
                     )}
                   </DataTable>
