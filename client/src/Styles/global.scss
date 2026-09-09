@@ -6,6 +6,11 @@ body {
   background: $light;
 }
 
+@keyframes pulse-green {
+  0%, 100% { box-shadow: 0 2px 8px rgba(22, 163, 74, 0.25); }
+  50% { box-shadow: 0 2px 16px rgba(22, 163, 74, 0.55); }
+}
+
 input {
   padding: 12px;
   border-radius: 8px;
