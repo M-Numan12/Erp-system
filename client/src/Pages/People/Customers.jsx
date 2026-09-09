@@ -556,20 +556,24 @@ export default function Customers({ type }) {
               <span className="value">{filtered.length} Users</span>
             </div>
           </div>
-          <div className="pos-stat-card">
-            <div className="icon green"><CreditCard size={24} /></div>
-            <div className="info">
-              <span className="label">Receivables</span>
-              <span className="value">Rs. {totalReceivable.toLocaleString()}</span>
-            </div>
-          </div>
-          <div className="pos-stat-card">
-            <div className="icon red"><Banknote size={24} /></div>
-            <div className="info">
-              <span className="label">Payables</span>
-              <span className="value">Rs. {totalPayable.toLocaleString()}</span>
-            </div>
-          </div>
+          {user?.role === 'admin' && (
+            <>
+              <div className="pos-stat-card">
+                <div className="icon green"><CreditCard size={24} /></div>
+                <div className="info">
+                  <span className="label">Receivables</span>
+                  <span className="value">Rs. {totalReceivable.toLocaleString()}</span>
+                </div>
+              </div>
+              <div className="pos-stat-card">
+                <div className="icon red"><Banknote size={24} /></div>
+                <div className="info">
+                  <span className="label">Payables</span>
+                  <span className="value">Rs. {totalPayable.toLocaleString()}</span>
+                </div>
+              </div>
+            </>
+          )}
         </div>
 
         <div className="pos-table-actions" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '15px', flexWrap: 'wrap', marginBottom: '20px' }}>
