@@ -248,9 +248,12 @@ router.post('/adjustment', auth, async (req, res) => {
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
-    const { supplier_id, amount, notes, type, module_type } = req.body;
+    const { supplier_id, amount, notes, type, module_type, purchase_date } = req.body;
     const amt = parseFloat(amount) || 0;
     const finalModule = isAdmin(req) ? (module_type || 'Wholesale') : (req.user.module_type || 'Retail 1');
+    const pDate = purchase_date 
+      ? (purchase_date.includes('T') || purchase_date.includes(' ') ? purchase_date : `${purchase_date} ${new Date().toTimeString().split(' ')[0]}`)
+      : new Date();
 
     let totalAmount = 0;
     let paidAmount = 0;
@@ -273,9 +276,9 @@ router.post('/adjustment', auth, async (req, res) => {
     // 1. Insert Adjustment into Purchases Table
     const adjustRes = await client.query(
       `INSERT INTO purchases 
-      (supplier_id, product_id, vehicle_number, quantity, rate, total_amount, paid_amount, balance_amount, module_type, user_id, payment_type) 
-      VALUES ($1, NULL, $2, 0, 0, $3, $4, $5, $6, $7, $8) RETURNING *`,
-      [supplier_id, desc, totalAmount, paidAmount, balanceImpact, finalModule, req.user.id, 'Manual Adjustment']
+      (supplier_id, product_id, vehicle_number, quantity, rate, total_amount, paid_amount, balance_amount, module_type, user_id, payment_type, purchase_date) 
+      VALUES ($1, NULL, $2, 0, 0, $3, $4, $5, $6, $7, $8, $9) RETURNING *`,
+      [supplier_id, desc, totalAmount, paidAmount, balanceImpact, finalModule, req.user.id, 'Manual Adjustment', pDate]
     );
 
     // 2. Update Supplier Running Balance

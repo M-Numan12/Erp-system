@@ -74,7 +74,12 @@ export default function Suppliers({ type }) {
   const [ledgerFilter, setLedgerFilter] = useState("all");
    const [ledgerData, setLedgerData] = useState([]);
   const [ledgerOpeningBalance, setLedgerOpeningBalance] = useState(0);
-  const [adjForm, setAdjForm] = useState({ type: "Debit", amount: "", notes: "" });
+  const [adjForm, setAdjForm] = useState({ 
+    type: "Debit", 
+    amount: "", 
+    notes: "", 
+    purchase_date: new Date().toISOString().split('T')[0] 
+  });
   const [undoLoading, setUndoLoading] = useState(false);
   const [pendingEdits, setPendingEdits] = useState({}); // { [purchaseId]: { qty, rate, originalQty, originalRate, hasQtyChange, hasRateChange } }
   const [isSavingEdits, setIsSavingEdits] = useState(false);
@@ -317,11 +322,17 @@ export default function Suppliers({ type }) {
           amount: adjForm.amount,
           notes: adjForm.notes,
           type: adjForm.type,
-          module_type: activeTab
+          module_type: activeTab,
+          purchase_date: adjForm.purchase_date || new Date().toISOString().split('T')[0]
         })
       });
       if (res.ok) {
-        setAdjForm({ type: "Debit", amount: "", notes: "" });
+        setAdjForm({ 
+          type: "Debit", 
+          amount: "", 
+          notes: "", 
+          purchase_date: new Date().toISOString().split('T')[0] 
+        });
         const updatedRecords = await fetchRecords();
         const updatedSup = (updatedRecords || []).find(s => s.id === selectedSupplier.id);
         if (updatedSup) setSelectedSupplier(updatedSup);
@@ -1345,7 +1356,7 @@ export default function Suppliers({ type }) {
                       <option value="Credit">Credit (+ Increases Balance)</option>
                     </select>
                   </div>
-                  <div className="form-group" style={{flex: '2', minWidth: '200px', margin: 0}}>
+                  <div className="form-group" style={{flex: '2', minWidth: '180px', margin: 0}}>
                     <label style={{fontSize: '0.75rem', fontWeight: 600, marginBottom: '4px', display: 'block', color: '#64748b'}}>Memo / Description</label>
                     <input 
                       type="text" 
@@ -1356,7 +1367,17 @@ export default function Suppliers({ type }) {
                       style={{width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.85rem'}}
                     />
                   </div>
-                  <div className="form-group" style={{flex: '1', minWidth: '150px', margin: 0}}>
+                  <div className="form-group" style={{flex: '1', minWidth: '130px', margin: 0}}>
+                    <label style={{fontSize: '0.75rem', fontWeight: 600, marginBottom: '4px', display: 'block', color: '#64748b'}}>Date</label>
+                    <input 
+                      type="date" 
+                      required
+                      value={adjForm.purchase_date} 
+                      onChange={e => setAdjForm({...adjForm, purchase_date: e.target.value})} 
+                      style={{width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.85rem'}}
+                    />
+                  </div>
+                  <div className="form-group" style={{flex: '1', minWidth: '140px', margin: 0}}>
                     <label style={{fontSize: '0.75rem', fontWeight: 600, marginBottom: '4px', display: 'block', color: '#64748b'}}>Adjustment Amount (Rs.)</label>
                     <input 
                       type="number" 
