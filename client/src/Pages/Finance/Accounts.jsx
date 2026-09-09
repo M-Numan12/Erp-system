@@ -124,18 +124,12 @@ export default function Accounts() {
   }, [user]);
 
   const filteredAccounts = useMemo(() => {
-    const recipientAccounts = accounts.filter(a => a.module_type === 'Admin Recipient');
     const targetModule = user?.role === 'admin' ? activeTab : (user?.module_type || 'Wholesale');
-    const isRetailModule = targetModule === 'Retail 1' || targetModule === 'Retail 2';
-    const includeRecipients = !isRetailModule;
-    return [
-      ...accounts.filter(a => {
-        if (a.module_type === 'Admin Recipient') return false;
-        if (targetModule === 'Wholesale') return !a.module_type || a.module_type === 'Wholesale';
-        return a.module_type === targetModule;
-      }),
-      ...(includeRecipients ? recipientAccounts : [])
-    ];
+    return accounts.filter(a => {
+      if (a.module_type === 'Admin Recipient') return false;
+      if (targetModule === 'Wholesale') return !a.module_type || a.module_type === 'Wholesale';
+      return a.module_type === targetModule;
+    });
   }, [accounts, activeTab, user]);
 
   const filteredSales = useMemo(() => {
@@ -239,6 +233,15 @@ export default function Accounts() {
       .reduce((sum, e) => sum + (parseFloat(e.amount) || 0), 0);
     return opening + received - paid;
   };
+
+  const adminRecipientAccounts = useMemo(() => {
+    return accounts
+      .filter(a => a.module_type === 'Admin Recipient')
+      .map(acc => ({
+        ...acc,
+        calculated_balance: getAdminBankBalance(acc)
+      }));
+  }, [accounts, generalExpenses]);
 
   const getSourceBalance = (method) => {
     if (!method) return 0;
@@ -399,7 +402,7 @@ export default function Accounts() {
     }
     setLoading(true);
     try {
-      const selectedBank = displayAccounts.find(acc => acc.id === closeoutForm.admin_bank_id || String(acc.id) === String(closeoutForm.admin_bank_id));
+      const selectedBank = adminRecipientAccounts.find(acc => acc.id === closeoutForm.admin_bank_id || String(acc.id) === String(closeoutForm.admin_bank_id));
       const bankDetailsText = selectedBank ? `Recipient Bank: ${selectedBank.bank_name} (A/C: ${selectedBank.account_number}, Title: ${selectedBank.account_title || 'N/A'})` : '';
       const submissionData = {
         ...closeoutForm,
@@ -434,7 +437,7 @@ export default function Accounts() {
     }
     setLoading(true);
     try {
-      const selectedBank = displayAccounts.find(acc => acc.id === adminPaymentForm.admin_bank_id || String(acc.id) === String(adminPaymentForm.admin_bank_id));
+      const selectedBank = adminRecipientAccounts.find(acc => acc.id === adminPaymentForm.admin_bank_id || String(acc.id) === String(adminPaymentForm.admin_bank_id));
       const bankDetailsText = selectedBank ? `Admin Bank: ${selectedBank.bank_name} (A/C: ${selectedBank.account_number}, Title: ${selectedBank.account_title || 'N/A'})` : '';
       const submissionData = {
         amount: parseFloat(adminPaymentForm.amount) || 0,
@@ -2077,15 +2080,15 @@ export default function Accounts() {
                     onChange={e => setCloseoutForm(prev => ({ ...prev, admin_bank_id: e.target.value }))}
                   >
                     <option value="">-- Select Recipient Admin Account --</option>
-                    {displayAccounts.filter(acc => acc.module_type === 'Admin Recipient').map(acc => (
+                    {adminRecipientAccounts.map(acc => (
                       <option key={acc.id} value={acc.id}>{acc.bank_name} - {acc.account_title}</option>
                     ))}
                   </select>
                 </div>
               </div>
 
-              {displayAccounts.find(acc => acc.id === closeoutForm.admin_bank_id || String(acc.id) === String(closeoutForm.admin_bank_id)) && (() => {
-                const selectedRecipientBank = displayAccounts.find(acc => acc.id === closeoutForm.admin_bank_id || String(acc.id) === String(closeoutForm.admin_bank_id));
+              {adminRecipientAccounts.find(acc => acc.id === closeoutForm.admin_bank_id || String(acc.id) === String(closeoutForm.admin_bank_id)) && (() => {
+                const selectedRecipientBank = adminRecipientAccounts.find(acc => acc.id === closeoutForm.admin_bank_id || String(acc.id) === String(closeoutForm.admin_bank_id));
                 return (
                   <div style={{
                     background: '#f8fafc',
@@ -2155,8 +2158,8 @@ export default function Accounts() {
                     onChange={e => setAdminPaymentForm(prev => ({ ...prev, admin_bank_id: e.target.value }))}
                   >
                     <option value="">-- Select Source Admin Bank --</option>
-                    {displayAccounts.filter(acc => acc.module_type === 'Admin Recipient').map(acc => {
-                      const balance = getAdminBankBalance(acc);
+                    {adminRecipientAccounts.map(acc => {
+                      const balance = acc.calculated_balance;
                       return (
                         <option key={acc.id} value={acc.id}>{acc.bank_name} - {acc.account_title} (Rs. {balance.toLocaleString()})</option>
                       );
@@ -2165,9 +2168,9 @@ export default function Accounts() {
                 </div>
               </div>
 
-              {displayAccounts.find(acc => acc.id === adminPaymentForm.admin_bank_id || String(acc.id) === String(adminPaymentForm.admin_bank_id)) && (() => {
-                const selectedSourceBank = displayAccounts.find(acc => acc.id === adminPaymentForm.admin_bank_id || String(acc.id) === String(adminPaymentForm.admin_bank_id));
-                const balance = getAdminBankBalance(selectedSourceBank);
+              {adminRecipientAccounts.find(acc => acc.id === adminPaymentForm.admin_bank_id || String(acc.id) === String(adminPaymentForm.admin_bank_id)) && (() => {
+                const selectedSourceBank = adminRecipientAccounts.find(acc => acc.id === adminPaymentForm.admin_bank_id || String(acc.id) === String(adminPaymentForm.admin_bank_id));
+                const balance = selectedSourceBank.calculated_balance;
                 return (
                   <div style={{
                     background: '#eff6ff',
