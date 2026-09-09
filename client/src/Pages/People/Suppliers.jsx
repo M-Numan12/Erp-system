@@ -76,8 +76,10 @@ export default function Suppliers({ type }) {
   const [ledgerOpeningBalance, setLedgerOpeningBalance] = useState(0);
   const [adjForm, setAdjForm] = useState({ type: "Debit", amount: "", notes: "" });
   const [undoLoading, setUndoLoading] = useState(false);
-  const [pendingEdits, setPendingEdits] = useState({}); // { [purchaseId]: { qty, rate } }
+  const [changedIds, setChangedIds] = useState(new Set()); // row ids that have unsaved edits
   const [isSavingEdits, setIsSavingEdits] = useState(false);
+  const qtyRefs = React.useRef({});  // { [rowId]: inputElement }
+  const rateRefs = React.useRef({}); // { [rowId]: inputElement }
 
   const sortedLedgerData = useMemo(() => {
     const sorted = [...ledgerData].sort((a, b) => new Date(a.purchase_date) - new Date(b.purchase_date));
@@ -382,32 +384,39 @@ export default function Suppliers({ type }) {
     setLoading(false);
   };
 
-  // Store a pending change locally (does NOT call API yet)
-  const handleEntryUpdate = (purchaseId, newQty, newRate) => {
-    setPendingEdits(prev => ({
-      ...prev,
-      [purchaseId]: { qty: newQty, rate: newRate }
-    }));
+  // Mark a row as changed (input is uncontrolled — value stays in DOM)
+  const markChanged = (purchaseId, originalQty, originalRate) => {
+    const currentQty  = qtyRefs.current[purchaseId]?.value;
+    const currentRate = rateRefs.current[purchaseId]?.value;
+    const hasQtyChange  = currentQty  !== undefined && currentQty  !== String(originalQty);
+    const hasRateChange = currentRate !== undefined && currentRate !== String(originalRate);
+    setChangedIds(prev => {
+      const next = new Set(prev);
+      if (hasQtyChange || hasRateChange) next.add(purchaseId);
+      else next.delete(purchaseId);
+      return next;
+    });
   };
 
-  // Save ALL pending edits to the server in one go
+  // Save ALL changed rows to the server in one go (reads values from DOM refs)
   const handleSavePendingEdits = async () => {
-    if (Object.keys(pendingEdits).length === 0) return;
+    if (changedIds.size === 0) return;
     setIsSavingEdits(true);
     try {
-      const savePromises = Object.entries(pendingEdits).map(([purchaseId, { qty, rate }]) =>
-        fetch((API_BASE_URL + "/purchases/update-ledger-entry"), {
+      const savePromises = Array.from(changedIds).map(purchaseId => {
+        const qty  = qtyRefs.current[purchaseId]?.value;
+        const rate = rateRefs.current[purchaseId]?.value;
+        return fetch((API_BASE_URL + "/purchases/update-ledger-entry"), {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
             "Authorization": `Bearer ${localStorage.getItem('token')}`
           },
           body: JSON.stringify({ purchase_id: purchaseId, new_qty: qty, new_rate: rate }),
-        })
-      );
+        });
+      });
       await Promise.all(savePromises);
-      // Clear pending edits
-      setPendingEdits({});
+      setChangedIds(new Set());
       // Refresh records & ledger
       const updatedRecords = await fetchRecords();
       const updatedSup = (updatedRecords || []).find(s => s.id === selectedSupplier.id);
@@ -686,7 +695,7 @@ export default function Suppliers({ type }) {
         ];
 
         return (
-        <div className="modal-overlay" onClick={() => { setShowLedgerModal(false); setIsLedgerMaximized(false); setPendingEdits({}); }}>
+        <div className="modal-overlay" onClick={() => { setShowLedgerModal(false); setIsLedgerMaximized(false); setChangedIds(new Set()); qtyRefs.current = {}; rateRefs.current = {}; }}>
           <div className="modal" onClick={(e) => e.stopPropagation()} style={{
             maxWidth: isLedgerMaximized ? '100vw' : '1280px',
             width: isLedgerMaximized ? '100vw' : '96%',
@@ -702,7 +711,7 @@ export default function Suppliers({ type }) {
                 <h3>Supplier Ledger: {selectedSupplier.company || selectedSupplier.name}</h3>
               </div>
               <div style={{display:'flex', gap:'10px', alignItems: 'center'}}>
-                {Object.keys(pendingEdits).length > 0 && (
+                {changedIds.size > 0 && (
                   <button
                     onClick={handleSavePendingEdits}
                     disabled={isSavingEdits}
@@ -722,7 +731,7 @@ export default function Suppliers({ type }) {
                       animation: 'pulse-green 1.5s infinite'
                     }}
                   >
-                    💾 {isSavingEdits ? 'Saving...' : `Save Changes (${Object.keys(pendingEdits).length})`}
+                    💾 {isSavingEdits ? 'Saving...' : `Save Changes (${changedIds.size})`}
                   </button>
                 )}
                 <button className="btn-secondary" onClick={() => window.print()} style={{padding: '6px 12px', display:'flex', alignItems:'center', gap:'6px'}}>
@@ -736,7 +745,7 @@ export default function Suppliers({ type }) {
                 >
                   {isLedgerMaximized ? <Minimize2 size={18} color="#475569" /> : <Maximize2 size={18} color="#475569" />}
                 </button>
-                <button className="modal-close" onClick={() => { setShowLedgerModal(false); setIsLedgerMaximized(false); setPendingEdits({}); }}><X size={20} /></button>
+                <button className="modal-close" onClick={() => { setShowLedgerModal(false); setIsLedgerMaximized(false); setChangedIds(new Set()); qtyRefs.current = {}; rateRefs.current = {}; }}><X size={20} /></button>
               </div>
             </div>
 
@@ -989,19 +998,16 @@ export default function Suppliers({ type }) {
                             <div style={{display: 'flex', alignItems: 'center', gap: '4px'}}>
                               {user?.role === 'admin' ? (
                                 <input 
-                                  key={`qty-${row.id}`}
                                   type="number" 
-                                  value={pendingEdits[row.id]?.qty !== undefined ? pendingEdits[row.id].qty : row.quantity}
+                                  defaultValue={row.quantity}
+                                  ref={el => { if (el) qtyRefs.current[row.id] = el; }}
                                   style={{
                                     width: '50px', padding: '2px 4px', fontSize: '0.8rem',
-                                    border: pendingEdits[row.id]?.qty !== undefined ? '1.5px solid #16a34a' : '1px solid #cbd5e1',
+                                    border: changedIds.has(row.id) ? '1.5px solid #16a34a' : '1px solid #cbd5e1',
                                     borderRadius: '4px',
-                                    background: pendingEdits[row.id]?.qty !== undefined ? '#f0fdf4' : 'white'
+                                    background: changedIds.has(row.id) ? '#f0fdf4' : 'white'
                                   }}
-                                  onChange={(e) => {
-                                    const currentRate = pendingEdits[row.id]?.rate !== undefined ? pendingEdits[row.id].rate : row.rate;
-                                    handleEntryUpdate(row.id, e.target.value, currentRate);
-                                  }}
+                                  onChange={() => markChanged(row.id, row.quantity, row.rate)}
                                   onClick={(e)=>e.stopPropagation()}
                                 />
                               ) : <span>{row.quantity}</span>}
@@ -1020,19 +1026,16 @@ export default function Suppliers({ type }) {
                         if (row.product_name) {
                           return user?.role === 'admin' ? (
                             <input 
-                              key={`rate-${row.id}`}
                               type="number" 
-                              value={pendingEdits[row.id]?.rate !== undefined ? pendingEdits[row.id].rate : row.rate}
+                              defaultValue={row.rate}
+                              ref={el => { if (el) rateRefs.current[row.id] = el; }}
                               style={{
                                 width: '60px', padding: '2px 4px', fontSize: '0.8rem',
-                                border: pendingEdits[row.id]?.rate !== undefined ? '1.5px solid #16a34a' : '1px solid #cbd5e1',
+                                border: changedIds.has(row.id) ? '1.5px solid #16a34a' : '1px solid #cbd5e1',
                                 borderRadius: '4px',
-                                background: pendingEdits[row.id]?.rate !== undefined ? '#f0fdf4' : 'white'
+                                background: changedIds.has(row.id) ? '#f0fdf4' : 'white'
                               }}
-                              onChange={(e) => {
-                                const currentQty = pendingEdits[row.id]?.qty !== undefined ? pendingEdits[row.id].qty : row.quantity;
-                                handleEntryUpdate(row.id, currentQty, e.target.value);
-                              }}
+                              onChange={() => markChanged(row.id, row.quantity, row.rate)}
                               onClick={(e)=>e.stopPropagation()}
                             />
                           ) : <span>Rs. {row.rate}</span>;
