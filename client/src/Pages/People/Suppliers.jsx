@@ -76,6 +76,8 @@ export default function Suppliers({ type }) {
   const [ledgerOpeningBalance, setLedgerOpeningBalance] = useState(0);
   const [adjForm, setAdjForm] = useState({ type: "Debit", amount: "", notes: "" });
   const [undoLoading, setUndoLoading] = useState(false);
+  const [pendingEdits, setPendingEdits] = useState({}); // { [purchaseId]: { qty, rate } }
+  const [isSavingEdits, setIsSavingEdits] = useState(false);
 
   const sortedLedgerData = useMemo(() => {
     const sorted = [...ledgerData].sort((a, b) => new Date(a.purchase_date) - new Date(b.purchase_date));
@@ -380,31 +382,41 @@ export default function Suppliers({ type }) {
     setLoading(false);
   };
 
-  const handleEntryUpdate = async (purchaseId, newQty, newRate) => {
+  // Store a pending change locally (does NOT call API yet)
+  const handleEntryUpdate = (purchaseId, newQty, newRate) => {
+    setPendingEdits(prev => ({
+      ...prev,
+      [purchaseId]: { qty: newQty, rate: newRate }
+    }));
+  };
+
+  // Save ALL pending edits to the server in one go
+  const handleSavePendingEdits = async () => {
+    if (Object.keys(pendingEdits).length === 0) return;
+    setIsSavingEdits(true);
     try {
-      const res = await fetch((API_BASE_URL + "/purchases/update-ledger-entry"), {
-        method: "POST",
-        headers: { 
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${localStorage.getItem('token')}`
-        },
-        body: JSON.stringify({ 
-          purchase_id: purchaseId, 
-          new_qty: newQty, 
-          new_rate: newRate 
-        }),
-      });
-      if (res.ok) {
-        const updatedRecords = await fetchRecords(); // Refresh main balances
-        // Find updated supplier and refresh selected state
-        const updatedSup = (updatedRecords || []).find(s => s.id === selectedSupplier.id);
-        if (updatedSup) setSelectedSupplier(updatedSup);
-        
-        openLedger(updatedSup || selectedSupplier, ledgerFrom, ledgerTo, ledgerFilter); // Refresh ledger
-      }
+      const savePromises = Object.entries(pendingEdits).map(([purchaseId, { qty, rate }]) =>
+        fetch((API_BASE_URL + "/purchases/update-ledger-entry"), {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${localStorage.getItem('token')}`
+          },
+          body: JSON.stringify({ purchase_id: purchaseId, new_qty: qty, new_rate: rate }),
+        })
+      );
+      await Promise.all(savePromises);
+      // Clear pending edits
+      setPendingEdits({});
+      // Refresh records & ledger
+      const updatedRecords = await fetchRecords();
+      const updatedSup = (updatedRecords || []).find(s => s.id === selectedSupplier.id);
+      if (updatedSup) setSelectedSupplier(updatedSup);
+      openLedger(updatedSup || selectedSupplier, ledgerFilter);
     } catch (err) {
-      console.error("Failed to update entry", err);
+      console.error("Failed to save ledger edits", err);
     }
+    setIsSavingEdits(false);
   };
 
   const handleUndoTransaction = async (purchaseId) => {
@@ -674,7 +686,7 @@ export default function Suppliers({ type }) {
         ];
 
         return (
-        <div className="modal-overlay" onClick={() => { setShowLedgerModal(false); setIsLedgerMaximized(false); }}>
+        <div className="modal-overlay" onClick={() => { setShowLedgerModal(false); setIsLedgerMaximized(false); setPendingEdits({}); }}>
           <div className="modal" onClick={(e) => e.stopPropagation()} style={{
             maxWidth: isLedgerMaximized ? '100vw' : '1280px',
             width: isLedgerMaximized ? '100vw' : '96%',
@@ -690,6 +702,29 @@ export default function Suppliers({ type }) {
                 <h3>Supplier Ledger: {selectedSupplier.company || selectedSupplier.name}</h3>
               </div>
               <div style={{display:'flex', gap:'10px', alignItems: 'center'}}>
+                {Object.keys(pendingEdits).length > 0 && (
+                  <button
+                    onClick={handleSavePendingEdits}
+                    disabled={isSavingEdits}
+                    style={{
+                      padding: '6px 16px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      background: isSavingEdits ? '#94a3b8' : '#16a34a',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '8px',
+                      fontWeight: 700,
+                      fontSize: '0.88rem',
+                      cursor: isSavingEdits ? 'not-allowed' : 'pointer',
+                      boxShadow: '0 2px 8px rgba(22,163,74,0.25)',
+                      animation: 'pulse-green 1.5s infinite'
+                    }}
+                  >
+                    💾 {isSavingEdits ? 'Saving...' : `Save Changes (${Object.keys(pendingEdits).length})`}
+                  </button>
+                )}
                 <button className="btn-secondary" onClick={() => window.print()} style={{padding: '6px 12px', display:'flex', alignItems:'center', gap:'6px'}}>
                   <ClipboardList size={16} /> Print Ledger
                 </button>
@@ -701,7 +736,7 @@ export default function Suppliers({ type }) {
                 >
                   {isLedgerMaximized ? <Minimize2 size={18} color="#475569" /> : <Maximize2 size={18} color="#475569" />}
                 </button>
-                <button className="modal-close" onClick={() => { setShowLedgerModal(false); setIsLedgerMaximized(false); }}><X size={20} /></button>
+                <button className="modal-close" onClick={() => { setShowLedgerModal(false); setIsLedgerMaximized(false); setPendingEdits({}); }}><X size={20} /></button>
               </div>
             </div>
 
@@ -956,9 +991,17 @@ export default function Suppliers({ type }) {
                                 <input 
                                   key={`qty-${row.id}`}
                                   type="number" 
-                                  defaultValue={row.quantity} 
-                                  style={{width: '50px', padding: '2px 4px', fontSize: '0.8rem', border: '1px solid #cbd5e1', borderRadius: '4px'}}
-                                  onBlur={(e) => { if (e.target.value !== String(row.quantity)) handleEntryUpdate(row.id, e.target.value, row.rate); }}
+                                  value={pendingEdits[row.id]?.qty !== undefined ? pendingEdits[row.id].qty : row.quantity}
+                                  style={{
+                                    width: '50px', padding: '2px 4px', fontSize: '0.8rem',
+                                    border: pendingEdits[row.id]?.qty !== undefined ? '1.5px solid #16a34a' : '1px solid #cbd5e1',
+                                    borderRadius: '4px',
+                                    background: pendingEdits[row.id]?.qty !== undefined ? '#f0fdf4' : 'white'
+                                  }}
+                                  onChange={(e) => {
+                                    const currentRate = pendingEdits[row.id]?.rate !== undefined ? pendingEdits[row.id].rate : row.rate;
+                                    handleEntryUpdate(row.id, e.target.value, currentRate);
+                                  }}
                                   onClick={(e)=>e.stopPropagation()}
                                 />
                               ) : <span>{row.quantity}</span>}
@@ -979,9 +1022,17 @@ export default function Suppliers({ type }) {
                             <input 
                               key={`rate-${row.id}`}
                               type="number" 
-                              defaultValue={row.rate} 
-                              style={{width: '60px', padding: '2px 4px', fontSize: '0.8rem', border: '1px solid #cbd5e1', borderRadius: '4px'}}
-                              onBlur={(e) => { if (e.target.value !== String(row.rate)) handleEntryUpdate(row.id, row.quantity, e.target.value); }}
+                              value={pendingEdits[row.id]?.rate !== undefined ? pendingEdits[row.id].rate : row.rate}
+                              style={{
+                                width: '60px', padding: '2px 4px', fontSize: '0.8rem',
+                                border: pendingEdits[row.id]?.rate !== undefined ? '1.5px solid #16a34a' : '1px solid #cbd5e1',
+                                borderRadius: '4px',
+                                background: pendingEdits[row.id]?.rate !== undefined ? '#f0fdf4' : 'white'
+                              }}
+                              onChange={(e) => {
+                                const currentQty = pendingEdits[row.id]?.qty !== undefined ? pendingEdits[row.id].qty : row.quantity;
+                                handleEntryUpdate(row.id, currentQty, e.target.value);
+                              }}
                               onClick={(e)=>e.stopPropagation()}
                             />
                           ) : <span>Rs. {row.rate}</span>;
