@@ -83,7 +83,7 @@ export default function Retail3Billing({ type }) {
 
   const handleConfirmWhatsAppSend = async () => {
     if (!whatsappCustomer) return;
-    
+
     let rawPhone = whatsappCustomer.phone || '';
     // Convert Urdu/Arabic digits to English digits
     const urduDigits = [/۰/g, /۱/g, /۲/g, /۳/g, /۴/g, /۵/g, /۶/g, /۷/g, /۸/g, /۹/g];
@@ -91,7 +91,7 @@ export default function Retail3Billing({ type }) {
     for (let i = 0; i < 10; i++) {
       rawPhone = rawPhone.replace(urduDigits[i], englishDigits[i]);
     }
-    
+
     let phone = rawPhone.replace(/[^0-9]/g, '');
     if (phone.startsWith('00')) {
       phone = phone.substring(2);
@@ -142,7 +142,7 @@ export default function Retail3Billing({ type }) {
   };
 
   const activeTab = "Retail 2";
-  const setActiveTab = () => {};
+  const setActiveTab = () => { };
   const [view, setView] = useState("POS");
   const [products, setProducts] = useState([]);
   const [customers, setCustomers] = useState([]);
@@ -697,8 +697,8 @@ export default function Retail3Billing({ type }) {
         }
 
         const isWalkIn = !custObj && (!custName || custName.trim().toLowerCase() === 'walk-in customer');
-        const finalBal = isWalkIn 
-          ? balance 
+        const finalBal = isWalkIn
+          ? balance
           : (result.customer_balance !== undefined ? parseFloat(result.customer_balance) : (custObj ? parseFloat(custObj.balance) + balance : balance));
         const prevBal = isWalkIn ? 0 : finalBal - balance;
 
@@ -794,12 +794,12 @@ export default function Retail3Billing({ type }) {
     const hasPendingBalance = (roundedNet - roundedPaid) > 0.01;
 
     if (!selectedCustomer && hasPendingBalance) {
-      const isGenericWalkIn = !customerName || 
-                              customerName.trim().toLowerCase() === 'walk-in customer' || 
-                              customerName.trim().toLowerCase() === 'walking customer' || 
-                              customerName.trim().toLowerCase() === 'walk-in' ||
-                              customerName.trim().toLowerCase() === 'walking' ||
-                              customerName.trim() === '';
+      const isGenericWalkIn = !customerName ||
+        customerName.trim().toLowerCase() === 'walk-in customer' ||
+        customerName.trim().toLowerCase() === 'walking customer' ||
+        customerName.trim().toLowerCase() === 'walk-in' ||
+        customerName.trim().toLowerCase() === 'walking' ||
+        customerName.trim() === '';
 
       setRegModalName(isGenericWalkIn ? '' : customerName.trim());
       setRegModalPhone(customerPhone || '');
@@ -826,7 +826,7 @@ export default function Retail3Billing({ type }) {
     setRegModalLoading(true);
     try {
       const cleanPhone = regModalPhone.trim();
-      let matchedCust = customers.find(c => 
+      let matchedCust = customers.find(c =>
         (c.name || '').toLowerCase() === regModalName.trim().toLowerCase() ||
         (c.phone || '') === cleanPhone
       );
@@ -1710,9 +1710,9 @@ export default function Retail3Billing({ type }) {
               <>
                 <h2 style={{ fontSize: '15px', fontWeight: 'normal', margin: '2px 0 8px 0' }}>RETAIL 2</h2>
                 <div className="contact-info">
-                  <p>Waqar Butt: 0311-4105840</p>
+                  <p>Hassam Ahmad: 0334-4294300</p>
                   <p>Mhd Aiss: 0335-1430216</p>
-                  <p>Main Hassam Ahmad: 0334-4294300</p>
+                  <p>Tariq Mehmood: 0300-4269347</p>
                 </div>
                 <p className="address">
                   Ada Treadywali Stop Main Jaranwala Road,<br />
@@ -2508,38 +2508,38 @@ export default function Retail3Billing({ type }) {
           </p>
           <div className="field mb-3">
             <label htmlFor="reg-name" style={{ fontWeight: 600, display: 'block', marginBottom: '6px' }}>Customer Name *</label>
-            <InputText 
-              id="reg-name" 
-              placeholder="e.g. Muhammad Ahmad" 
-              value={regModalName} 
-              onChange={(e) => setRegModalName(e.target.value)} 
+            <InputText
+              id="reg-name"
+              placeholder="e.g. Muhammad Ahmad"
+              value={regModalName}
+              onChange={(e) => setRegModalName(e.target.value)}
             />
           </div>
           <div className="field mb-3">
             <label htmlFor="reg-phone" style={{ fontWeight: 600, display: 'block', marginBottom: '6px' }}>Phone Number *</label>
             <div className="p-inputgroup">
               <span className="p-inputgroup-addon">+92</span>
-              <InputText 
-                id="reg-phone" 
-                placeholder="e.g. 3334746064" 
-                value={regModalPhone} 
+              <InputText
+                id="reg-phone"
+                placeholder="e.g. 3334746064"
+                value={regModalPhone}
                 onChange={(e) => {
                   let val = e.target.value;
                   if (val.startsWith('0')) {
                     val = val.substring(1);
                   }
                   setRegModalPhone(val);
-                }} 
+                }}
               />
             </div>
           </div>
           <div className="field mb-3">
             <label htmlFor="reg-address" style={{ fontWeight: 600, display: 'block', marginBottom: '6px' }}>Address (Optional)</label>
-            <InputText 
-              id="reg-address" 
-              placeholder="e.g. Kot Abdul Malik, Lahore" 
-              value={regModalAddress} 
-              onChange={(e) => setRegModalAddress(e.target.value)} 
+            <InputText
+              id="reg-address"
+              placeholder="e.g. Kot Abdul Malik, Lahore"
+              value={regModalAddress}
+              onChange={(e) => setRegModalAddress(e.target.value)}
             />
           </div>
         </div>
