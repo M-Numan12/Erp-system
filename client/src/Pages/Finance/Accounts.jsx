@@ -124,12 +124,20 @@ export default function Accounts() {
   }, [user]);
 
   const filteredAccounts = useMemo(() => {
+    const recipientAccounts = accounts.filter(a => a.module_type === 'Admin Recipient');
     const targetModule = user?.role === 'admin' ? activeTab : (user?.module_type || 'Wholesale');
-    return accounts.filter(a => {
-      if (a.module_type === 'Admin Recipient') return false;
-      if (targetModule === 'Wholesale') return !a.module_type || a.module_type === 'Wholesale';
-      return a.module_type === targetModule;
-    });
+    const isRetailModule = targetModule === 'Retail 1' || targetModule === 'Retail 2' || targetModule === 'Retail 3';
+    // Admin bank card should show ONLY in admin role and in Wholesale (HD / Head Office)
+    const includeRecipients = user?.role === 'admin' && !isRetailModule;
+
+    return [
+      ...accounts.filter(a => {
+        if (a.module_type === 'Admin Recipient') return false;
+        if (targetModule === 'Wholesale') return !a.module_type || a.module_type === 'Wholesale';
+        return a.module_type === targetModule;
+      }),
+      ...(includeRecipients ? recipientAccounts : [])
+    ];
   }, [accounts, activeTab, user]);
 
   const filteredSales = useMemo(() => {
@@ -249,7 +257,7 @@ export default function Accounts() {
     if (cleanPT.startsWith('cash') || cleanPT.startsWith('credit') || cleanPT === '') {
       return totalCash;
     }
-    const match = filteredAccounts.find(b => checkAccountMatch(method, b));
+    const match = filteredAccounts.find(b => checkAccountMatch(method, b) && b.module_type !== 'Admin Recipient');
     if (match) return parseFloat(match.current_balance) || 0;
     const summaryKey = Object.keys(paymentSummary).find(k => k.toLowerCase() === method.toLowerCase());
     return summaryKey ? (paymentSummary[summaryKey] || 0) : 0;
@@ -829,7 +837,7 @@ export default function Accounts() {
       if (isCash) {
         targetKey = 'Cash';
       } else {
-        const match = filteredAccounts.find(b => checkAccountMatch(method, b));
+        const match = filteredAccounts.find(b => checkAccountMatch(method, b) && b.module_type !== 'Admin Recipient');
         if (match) targetKey = match.id;
       }
 
@@ -904,6 +912,8 @@ export default function Accounts() {
   const allAccountTransactions = useMemo(() => {
     if (!selectedLedgerAccount) return [];
 
+    const expensesSource = selectedLedgerAccount?.module_type === 'Admin Recipient' ? generalExpenses : filteredGeneralExpenses;
+
     return [
       ...filteredSales,
       ...filteredSupplierPayments.map(p => ({ ...p, isExpense: true, customer_name: p.supplier_name || 'Supplier', amount: p.paid_amount, created_at: p.created_at || p.purchase_date })),
@@ -911,7 +921,7 @@ export default function Accounts() {
         ...p, isExpense: true, isTransportFare: true, amount: p.delivery_charges, payment_type: p.fare_payment_type || 'Cash',
         created_at: p.created_at || p.purchase_date, isTransportFare: true
       })),
-      ...filteredGeneralExpenses.filter(e => e.expense_type !== 'Sale Return' && e.expense_type !== 'Sale Return Refund').map(e => {
+      ...expensesSource.filter(e => e.expense_type !== 'Sale Return' && e.expense_type !== 'Sale Return Refund').map(e => {
         if (e.expense_type === 'Admin Payment' || e.expense_type === 'Transfer In') {
           return {
             ...e,
@@ -995,7 +1005,7 @@ export default function Accounts() {
       const accountMatch = checkAccountMatch(s.payment_type || 'Cash', selectedLedgerAccount);
       return accountMatch;
     }).sort((a, b) => new Date(a.created_at || a.purchase_date || a.date) - new Date(b.created_at || b.purchase_date || b.date));
-  }, [filteredSales, filteredSupplierPayments, filteredGeneralExpenses, filteredSalaries, filteredRents, filteredOtherExpenses, filteredInvestments, selectedLedgerAccount]);
+  }, [filteredSales, filteredSupplierPayments, filteredGeneralExpenses, generalExpenses, filteredSalaries, filteredRents, filteredOtherExpenses, filteredInvestments, selectedLedgerAccount]);
 
   const allCalculatedTransactions = useMemo(() => {
     let currentBal = parseFloat(selectedLedgerAccount?.opening_balance || 0);
@@ -1074,6 +1084,7 @@ export default function Accounts() {
 
   const getRecentTransactionsForAccount = (acc) => {
     const isCash = checkIsCash(acc);
+    const expensesSource = acc?.module_type === 'Admin Recipient' ? generalExpenses : filteredGeneralExpenses;
     const accountTransactions = [
       ...filteredSales,
       ...filteredSupplierPayments.map(p => ({ ...p, isExpense: true, customer_name: p.supplier_name || 'Supplier', amount: p.paid_amount, created_at: p.created_at || p.purchase_date })),
@@ -1082,7 +1093,7 @@ export default function Accounts() {
         amount: p.delivery_charges, payment_type: p.fare_payment_type || 'Cash',
         created_at: p.created_at || p.purchase_date, isTransportFare: true
       })),
-      ...filteredGeneralExpenses.filter(e => e.expense_type !== 'Sale Return' && e.expense_type !== 'Sale Return Refund').map(e => {
+      ...expensesSource.filter(e => e.expense_type !== 'Sale Return' && e.expense_type !== 'Sale Return Refund').map(e => {
         if (e.expense_type === 'Admin Payment') {
           return {
             ...e,
