@@ -130,13 +130,25 @@ export default function Accounts() {
     // Admin bank card should show ONLY in admin role and in Wholesale (HD / Head Office)
     const includeRecipients = user?.role === 'admin' && !isRetailModule;
 
+    const baseRecipients = recipientAccounts.length > 0 ? recipientAccounts : [
+      {
+        id: 'admin-bank-default',
+        bank_name: 'Admin Bank',
+        account_title: 'Head Office',
+        account_number: 'Admin A/C',
+        module_type: 'Admin Recipient',
+        isDefaultAdmin: true,
+        opening_balance: 0
+      }
+    ];
+
     return [
       ...accounts.filter(a => {
         if (a.module_type === 'Admin Recipient') return false;
         if (targetModule === 'Wholesale') return !a.module_type || a.module_type === 'Wholesale';
         return a.module_type === targetModule;
       }),
-      ...(includeRecipients ? recipientAccounts : [])
+      ...(includeRecipients ? baseRecipients : [])
     ];
   }, [accounts, activeTab, user]);
 
@@ -233,22 +245,42 @@ export default function Accounts() {
 
   const getAdminBankBalance = (acc) => {
     const opening = parseFloat(acc.opening_balance) || 0;
+    const isDefault = acc.id === 'admin-bank-default' || acc.isDefaultAdmin;
     const received = generalExpenses
-      .filter(e => (e.expense_type === 'Galla Closeout' || e.title === 'Galla Closeout' || e.description?.includes('Galla Closeout') || e.notes?.includes('Recipient Bank')) && e.notes?.includes(acc.bank_name) && e.notes?.includes(acc.account_number))
+      .filter(e => {
+        const isCloseout = e.expense_type === 'Galla Closeout' || e.title === 'Galla Closeout' || e.description?.includes('Galla Closeout') || e.notes?.includes('Recipient Bank');
+        if (!isCloseout) return false;
+        if (isDefault) return true;
+        return e.notes?.includes(acc.bank_name) && e.notes?.includes(acc.account_number);
+      })
       .reduce((sum, e) => sum + (parseFloat(e.amount) || 0), 0);
     const paid = generalExpenses
-      .filter(e => e.expense_type === 'Admin Payment' && e.notes?.includes(acc.bank_name) && e.notes?.includes(acc.account_number))
+      .filter(e => {
+        if (e.expense_type !== 'Admin Payment') return false;
+        if (isDefault) return true;
+        return e.notes?.includes(acc.bank_name) && e.notes?.includes(acc.account_number);
+      })
       .reduce((sum, e) => sum + (parseFloat(e.amount) || 0), 0);
     return opening + received - paid;
   };
 
   const adminRecipientAccounts = useMemo(() => {
-    return accounts
-      .filter(a => a.module_type === 'Admin Recipient')
-      .map(acc => ({
-        ...acc,
-        calculated_balance: getAdminBankBalance(acc)
-      }));
+    const realRecipients = accounts.filter(a => a.module_type === 'Admin Recipient');
+    const base = realRecipients.length > 0 ? realRecipients : [
+      {
+        id: 'admin-bank-default',
+        bank_name: 'Admin Bank',
+        account_title: 'Head Office',
+        account_number: 'Admin A/C',
+        module_type: 'Admin Recipient',
+        isDefaultAdmin: true,
+        opening_balance: 0
+      }
+    ];
+    return base.map(acc => ({
+      ...acc,
+      calculated_balance: getAdminBankBalance(acc)
+    }));
   }, [accounts, generalExpenses]);
 
   const getSourceBalance = (method) => {
@@ -963,8 +995,10 @@ export default function Accounts() {
       ...filteredInvestments.map(i => ({ ...i, isIncome: true, customer_name: `Invest: ${i.investor}`, payment_type: 'Cash', created_at: i.created_at || i.date }))
     ].map(s => {
       if (selectedLedgerAccount?.module_type === 'Admin Recipient') {
+        const isDefault = selectedLedgerAccount.id === 'admin-bank-default' || selectedLedgerAccount.isDefaultAdmin;
+        const matchBank = isDefault || (s.notes?.includes(selectedLedgerAccount.bank_name) && s.notes?.includes(selectedLedgerAccount.account_number));
         const isAdminPayment = s.expense_type === 'Admin Payment' || s.title?.includes('Admin Payment') || s.customer_name?.includes('Admin Payment');
-        if (isAdminPayment && s.notes?.includes(selectedLedgerAccount.bank_name) && s.notes?.includes(selectedLedgerAccount.account_number)) {
+        if (isAdminPayment && matchBank) {
           return {
             ...s,
             isExpense: true,
@@ -978,7 +1012,7 @@ export default function Accounts() {
           };
         }
         const isGallaCloseout = s.expense_type === 'Galla Closeout' || s.customer_name?.includes('Galla Closeout') || s.title?.includes('Galla Closeout') || s.notes?.includes('Recipient Bank');
-        if (isGallaCloseout && s.notes?.includes(selectedLedgerAccount.bank_name) && s.notes?.includes(selectedLedgerAccount.account_number)) {
+        if (isGallaCloseout && matchBank) {
           return {
             ...s,
             isExpense: false,
@@ -997,9 +1031,11 @@ export default function Accounts() {
       if (!selectedLedgerAccount) return false;
 
       if (selectedLedgerAccount.module_type === 'Admin Recipient') {
+        const isDefault = selectedLedgerAccount.id === 'admin-bank-default' || selectedLedgerAccount.isDefaultAdmin;
+        const matchBank = isDefault || (s.notes?.includes(selectedLedgerAccount.bank_name) && s.notes?.includes(selectedLedgerAccount.account_number));
         const isAdminPayment = s.expense_type === 'Admin Payment' || s.title?.includes('Admin Payment') || s.customer_name?.includes('Admin Payment');
         const isGallaCloseout = s.expense_type === 'Galla Closeout' || s.customer_name?.includes('Galla Closeout') || s.title?.includes('Galla Closeout') || s.notes?.includes('Recipient Bank');
-        return (isAdminPayment || isGallaCloseout) && s.notes?.includes(selectedLedgerAccount.bank_name) && s.notes?.includes(selectedLedgerAccount.account_number);
+        return (isAdminPayment || isGallaCloseout) && matchBank;
       }
 
       const accountMatch = checkAccountMatch(s.payment_type || 'Cash', selectedLedgerAccount);
@@ -1135,8 +1171,10 @@ export default function Accounts() {
       ...filteredInvestments.map(i => ({ ...i, isIncome: true, customer_name: `Invest: ${i.investor}`, payment_type: 'Cash', created_at: i.created_at || i.date }))
     ].map(s => {
       if (acc.module_type === 'Admin Recipient') {
+        const isDefault = acc.id === 'admin-bank-default' || acc.isDefaultAdmin;
+        const matchBank = isDefault || (s.notes?.includes(acc.bank_name) && s.notes?.includes(acc.account_number));
         const isGallaCloseout = s.expense_type === 'Galla Closeout' || s.customer_name?.includes('Galla Closeout') || s.title?.includes('Galla Closeout') || s.notes?.includes('Recipient Bank');
-        if (isGallaCloseout && s.notes?.includes(acc.bank_name) && s.notes?.includes(acc.account_number)) {
+        if (isGallaCloseout && matchBank) {
           return {
             ...s,
             isExpense: false,
@@ -1150,7 +1188,7 @@ export default function Accounts() {
           };
         }
         const isAdminPayment = s.expense_type === 'Admin Payment';
-        if (isAdminPayment && s.notes?.includes(acc.bank_name) && s.notes?.includes(acc.account_number)) {
+        if (isAdminPayment && matchBank) {
           return {
             ...s,
             isExpense: true,
@@ -1167,9 +1205,11 @@ export default function Accounts() {
       return s;
     }).filter(s => {
       if (acc.module_type === 'Admin Recipient') {
+        const isDefault = acc.id === 'admin-bank-default' || acc.isDefaultAdmin;
+        const matchBank = isDefault || (s.notes?.includes(acc.bank_name) && s.notes?.includes(acc.account_number));
         const isGallaCloseout = s.expense_type === 'Galla Closeout' || s.customer_name?.includes('Galla Closeout') || s.title?.includes('Galla Closeout') || s.notes?.includes('Recipient Bank');
         const isAdminPayment = s.expense_type === 'Admin Payment';
-        return (isGallaCloseout || isAdminPayment) && s.notes?.includes(acc.bank_name) && s.notes?.includes(acc.account_number);
+        return (isGallaCloseout || isAdminPayment) && matchBank;
       }
       return checkAccountMatch(s.payment_type || 'Cash', acc);
     }).sort((a, b) => new Date(b.created_at || b.purchase_date || b.date) - new Date(a.created_at || a.purchase_date || a.date));
@@ -1381,7 +1421,7 @@ export default function Accounts() {
                   background: 'white',
                   borderRadius: '20px',
                   padding: '20px',
-                  border: isAdminRecipient ? '1px dashed #f59e0b' : '1px solid #e2e8f0',
+                  border: '1px solid #e2e8f0',
                   boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)',
                   cursor: 'pointer',
                   transition: 'transform 0.2s, box-shadow 0.2s',
@@ -1402,19 +1442,24 @@ export default function Accounts() {
                 <div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                      <div style={{ padding: '8px', borderRadius: '10px', background: checkIsCash(acc) ? '#f0fdf4' : (isAdminRecipient ? '#fef3c7' : '#eff6ff'), color: checkIsCash(acc) ? '#16a34a' : (isAdminRecipient ? '#d97706' : '#2563eb') }}>
+                      <div style={{
+                        padding: '8px',
+                        borderRadius: '10px',
+                        background: checkIsCash(acc) ? '#f0fdf4' : (isAdminRecipient ? '#eff6ff' : '#eff6ff'),
+                        color: checkIsCash(acc) ? '#16a34a' : (isAdminRecipient ? '#2563eb' : '#2563eb')
+                      }}>
                         {checkIsCash(acc) ? <CreditCard size={18} /> : <Landmark size={18} />}
                       </div>
                       <div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                           <h4 style={{ margin: 0, fontWeight: 800, color: '#1e293b', fontSize: '1rem' }}>{acc.bank_name}</h4>
                           {isAdminRecipient && (
                             <span style={{
                               background: '#fef3c7',
                               color: '#d97706',
-                              fontSize: '0.6rem',
+                              fontSize: '0.62rem',
                               fontWeight: 800,
-                              padding: '2px 6px',
+                              padding: '2px 7px',
                               borderRadius: '20px',
                               textTransform: 'uppercase',
                               border: '1px solid #fde68a'
@@ -1430,7 +1475,7 @@ export default function Accounts() {
                   </div>
 
                   <div style={{ marginBottom: '15px' }}>
-                    <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>{isAdminRecipient ? 'Total Handovers Received' : 'Current Balance'}</span>
+                    <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>Current Balance</span>
                     <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#0f172a', marginTop: '2px' }}>
                       Rs. {bal.toLocaleString()}
                     </div>
@@ -1499,8 +1544,8 @@ export default function Accounts() {
             const isAdmin = user?.role === 'admin';
             return (
               <ActionMenu
-                onEdit={checkIsCash(acc) || !isAdmin ? null : () => handleEdit(acc)}
-                onDelete={checkIsCash(acc) || !isAdmin ? null : () => {
+                onEdit={checkIsCash(acc) || acc.isDefaultAdmin || !isAdmin ? null : () => handleEdit(acc)}
+                onDelete={checkIsCash(acc) || acc.isDefaultAdmin || !isAdmin ? null : () => {
                   if (window.confirm(`Are you sure you want to delete ${acc.bank_name}?`)) {
                     handleDelete(acc.id);
                   }
