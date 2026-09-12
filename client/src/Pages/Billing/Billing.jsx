@@ -72,7 +72,7 @@ export default function Billing({ type }) {
             ))}
           </div>
         </div>
-        <div style={{ flex: 1 }}>
+        <div className="admin-billing-content" style={{ flex: 1 }}>
           {renderContent()}
         </div>
       </div>
