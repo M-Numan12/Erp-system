@@ -1710,9 +1710,9 @@ export default function Retail2Billing({ type }) {
               <>
                 <h2 style={{ fontSize: '15px', fontWeight: 'normal', margin: '2px 0 8px 0' }}>RETAIL 2</h2>
                 <div className="contact-info">
-                  <p>Waqar Butt: 0311-4105840</p>
-                  <p>Mhd Aiss: 0335-1430216</p>
                   <p>Main Hassam Ahmad: 0334-4294300</p>
+                  <p>Mhd Aiss: 0335-1430216</p>
+                  <p>Tariq Mehmood: 0300-4269347</p>
                 </div>
                 <p className="address">
                   Ada Treadywali Stop Main Jaranwala Road,<br />
@@ -1826,7 +1826,7 @@ export default function Retail2Billing({ type }) {
 
           <div className="receipt-footer">
             <p>For Any Query:</p>
-            <p>{receiptData.saleType === 'Retail 2' ? '0311-4105840' : '0322-4295106'}</p>
+            <p>{receiptData.saleType === 'Retail 2' ? 'Hassam Ahmad: 0334-4294300' : '0322-4295106'}</p>
             <div className="dashed-line mt-10"></div>
             <p className="terms" style={{ fontWeight: 'bold', fontSize: '11px', textTransform: 'uppercase', marginTop: '5px' }}>Thank you for coming</p>
             <p className="terms" style={{ fontWeight: 'bold', fontSize: '11px', textTransform: 'uppercase' }}>have a good day sir</p>
@@ -1858,9 +1858,9 @@ export default function Retail2Billing({ type }) {
                     <h2 style={{ margin: 0 }}>DATA WALEY</h2>
                     <h3 style={{ fontSize: '15px', fontWeight: 'normal', margin: '2px 0 8px 0' }}>RETAIL 2</h3>
                     <div style={{ fontSize: '12px', margin: '5px 0' }}>
-                      <p style={{ margin: '2px 0' }}>Waqar Butt: 0311-4105840</p>
+                      <p style={{ margin: '2px 0' }}>Main Hassam Ahmad: 0334-4294300</p>
                       <p style={{ margin: '2px 0' }}>Mhd Aiss: 0335-1430216</p>
-                      <p style={{ margin: '2px 0' }}>Saifullah: 0333-4714628</p>
+                      <p style={{ margin: '2px 0' }}>Tariq Mehmood: 0300-4269347</p>
                     </div>
                     <p style={{ fontSize: '11px', margin: '5px 0' }}>
                       Ada Treadywali Stop Main Jaranwala Road,<br />
