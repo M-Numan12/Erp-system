@@ -44,11 +44,14 @@ export default function Accounts() {
     const digits = bankAccount.account_number ? bankAccount.account_number.slice(-4) : '';
     const starDigitsMatch = cl.match(/\*\*\*\*(\d+)/);
     const generalDigitsMatch = cl.match(/\d{4,}/);
-    const paymentDigits = starDigitsMatch ? starDigitsMatch[1] : (generalDigitsMatch ? generalDigitsMatch[1] : null);
+    const paymentDigits = starDigitsMatch ? starDigitsMatch[1] : (generalDigitsMatch ? generalDigitsMatch[0] : null);
 
-    if (paymentDigits) {
+    if (paymentDigits && digits) {
       return digits === paymentDigits;
     }
+
+    // If clean method is just generic "bank" or "bank account", don't match arbitrary specific bank
+    if (cl === 'bank' || cl === 'bank account') return false;
 
     const bl = (bankAccount.bank_name || '').toLowerCase().trim();
 
@@ -889,13 +892,6 @@ export default function Accounts() {
     return res;
   }, [filteredSales, filteredInvestments, filteredCloseouts, filteredSupplierPayments, filteredGeneralExpenses, filteredSalaries, filteredRents, filteredOtherExpenses, filteredAccounts, activeTab]);
 
-  const paymentSummary = useMemo(() => {
-    if (!isFreshDataLoaded && cachedSummary) {
-      return cachedSummary;
-    }
-    return calculatedPaymentSummary;
-  }, [calculatedPaymentSummary, cachedSummary, isFreshDataLoaded]);
-
   const totalCash = useMemo(() => {
     const cashAcc = filteredAccounts.find(acc => checkIsCash(acc) && acc.module_type !== 'Admin Recipient');
     return cashAcc ? (parseFloat(cashAcc.current_balance) || 0) : 0;
@@ -1043,26 +1039,50 @@ export default function Accounts() {
     }).sort((a, b) => new Date(a.created_at || a.purchase_date || a.date) - new Date(b.created_at || b.purchase_date || b.date));
   }, [filteredSales, filteredSupplierPayments, filteredGeneralExpenses, generalExpenses, filteredSalaries, filteredRents, filteredOtherExpenses, filteredInvestments, selectedLedgerAccount]);
 
-  const allCalculatedTransactions = useMemo(() => {
-    let currentBal = parseFloat(selectedLedgerAccount?.opening_balance || 0);
-    const thresholdIdx = allAccountTransactions.findIndex(t =>
-      Number(t.id) === 218
-    );
+  const targetLedgerBalance = useMemo(() => {
+    if (!selectedLedgerAccount) return 0;
+    const found = displayAccounts.find(a => a.id === selectedLedgerAccount.id);
+    if (found && found.calculated_balance !== undefined) {
+      return found.calculated_balance;
+    }
+    return selectedLedgerAccount.calculated_balance !== undefined
+      ? selectedLedgerAccount.calculated_balance
+      : (parseFloat(selectedLedgerAccount.current_balance) || 0);
+  }, [selectedLedgerAccount, displayAccounts]);
 
-    return allAccountTransactions.map((t, idx) => {
+  const allCalculatedTransactions = useMemo(() => {
+    if (!selectedLedgerAccount) return [];
+    if (allAccountTransactions.length === 0) return [];
+
+    const n = allAccountTransactions.length;
+    const result = new Array(n);
+    let running = targetLedgerBalance;
+
+    // Backward pass: the latest transaction (at index n - 1) ends at targetLedgerBalance
+    for (let i = n - 1; i >= 0; i--) {
+      const t = allAccountTransactions[i];
+      result[i] = { ...t, running_balance: running };
       const amt = getTransactionAmount(t);
       if (t.isExpense) {
-        currentBal -= amt;
-        const shouldClamp = (thresholdIdx !== -1 && idx < thresholdIdx);
-        if (selectedLedgerAccount?.module_type !== 'Admin Recipient' && currentBal < 0 && shouldClamp) {
-          currentBal = 0;
-        }
+        running += amt;
       } else {
-        currentBal += amt;
+        running -= amt;
       }
-      return { ...t, running_balance: currentBal };
-    });
-  }, [allAccountTransactions, selectedLedgerAccount, activeTab]);
+    }
+
+    return result;
+  }, [allAccountTransactions, selectedLedgerAccount, targetLedgerBalance]);
+
+  // Base opening balance before the earliest transaction
+  const baseLedgerOpeningBalance = useMemo(() => {
+    if (!selectedLedgerAccount) return 0;
+    if (allCalculatedTransactions.length === 0) return targetLedgerBalance;
+    const firstTx = allCalculatedTransactions[0];
+    const amt = getTransactionAmount(firstTx);
+    return firstTx.isExpense
+      ? firstTx.running_balance + amt
+      : firstTx.running_balance - amt;
+  }, [allCalculatedTransactions, selectedLedgerAccount, targetLedgerBalance]);
 
   // Filter calculated transactions by date range for display
   const calculatedTransactions = useMemo(() => {
@@ -1093,16 +1113,14 @@ export default function Accounts() {
       }
     });
 
-    let opening = parseFloat(selectedLedgerAccount?.opening_balance || 0);
+    let opening = baseLedgerOpeningBalance;
     if (calculatedTransactions.length > 0) {
       const firstTx = calculatedTransactions[0];
       const idx = allCalculatedTransactions.findIndex(t => t === firstTx || (t.id === firstTx.id && t.created_at === firstTx.created_at && t.customer_name === firstTx.customer_name));
       if (idx > 0) {
         opening = allCalculatedTransactions[idx - 1].running_balance;
-      }
-    } else {
-      if (allCalculatedTransactions.length > 0) {
-        opening = allCalculatedTransactions[allCalculatedTransactions.length - 1].running_balance;
+      } else {
+        opening = baseLedgerOpeningBalance;
       }
     }
 
@@ -1116,7 +1134,7 @@ export default function Accounts() {
       totalOut,
       closing
     };
-  }, [calculatedTransactions, allCalculatedTransactions, selectedLedgerAccount]);
+  }, [calculatedTransactions, allCalculatedTransactions, selectedLedgerAccount, baseLedgerOpeningBalance]);
 
   const getRecentTransactionsForAccount = (acc) => {
     const isCash = checkIsCash(acc);
@@ -1130,12 +1148,12 @@ export default function Accounts() {
         created_at: p.created_at || p.purchase_date, isTransportFare: true
       })),
       ...expensesSource.filter(e => e.expense_type !== 'Sale Return' && e.expense_type !== 'Sale Return Refund').map(e => {
-        if (e.expense_type === 'Admin Payment') {
+        if (e.expense_type === 'Admin Payment' || e.expense_type === 'Transfer In') {
           return {
             ...e,
             isExpense: false,
             isIncome: true,
-            customer_name: e.description || `Received Admin Payment`,
+            customer_name: e.description || (e.expense_type === 'Transfer In' ? `Received Transfer` : `Received Admin Payment`),
             created_at: e.created_at || e.expense_date
           };
         }
@@ -1331,13 +1349,30 @@ export default function Accounts() {
       ...filteredAccounts
     ];
     return baseAccounts.map(acc => {
-      let bal = acc.current_balance !== undefined ? (parseFloat(acc.current_balance) || 0) : (checkIsCash(acc) ? (paymentSummary['Cash'] || 0) : (paymentSummary[acc.id] || 0));
+      let bal = acc.current_balance !== undefined ? (parseFloat(acc.current_balance) || 0) : (checkIsCash(acc) ? totalCash : (parseFloat(acc.opening_balance) || 0));
       if (acc.module_type === 'Admin Recipient') {
         bal = getAdminBankBalance(acc);
       }
       return { ...acc, calculated_balance: bal };
     });
-  }, [filteredAccounts, paymentSummary, generalExpenses, activeTab]);
+  }, [filteredAccounts, totalCash, generalExpenses, activeTab]);
+
+  const paymentSummary = useMemo(() => {
+    const summary = { 'Cash': totalCash };
+    displayAccounts.forEach(acc => {
+      const b = acc.calculated_balance !== undefined ? acc.calculated_balance : (parseFloat(acc.current_balance) || 0);
+      summary[acc.id] = b;
+      if (acc.bank_name) {
+        summary[acc.bank_name] = b;
+        const digits = acc.account_number ? acc.account_number.slice(-4) : '';
+        if (digits) {
+          summary[`${acc.bank_name} (****${digits})`] = b;
+          summary[`${acc.bank_name} ${digits}`] = b;
+        }
+      }
+    });
+    return summary;
+  }, [displayAccounts, totalCash]);
 
   const filtered = displayAccounts.filter(acc => acc.bank_name.toLowerCase().includes(search.toLowerCase()));
 
@@ -1976,7 +2011,7 @@ export default function Accounts() {
                   <option value="Cash">Cash Account (Rs. {totalCash.toLocaleString()})</option>
                   {displayAccounts.filter(acc => acc.module_type !== 'Admin Recipient').map(acc => {
                     if (acc.bank_name.toLowerCase() === 'cash' || acc.bank_name.toLowerCase() === 'cash account') return null;
-                    const bal = paymentSummary[acc.id] || 0;
+                    const bal = acc.calculated_balance !== undefined ? acc.calculated_balance : (paymentSummary[acc.id] || 0);
                     const digits = acc.account_number ? acc.account_number.slice(-4) : '';
                     const optionValue = `${acc.bank_name}${digits ? ` (****${digits})` : ''}`;
                     return (
@@ -2021,7 +2056,7 @@ export default function Accounts() {
                   <option value="Cash">Cash Account (Rs. {totalCash.toLocaleString()})</option>
                   {displayAccounts.filter(acc => acc.module_type !== 'Admin Recipient').map(acc => {
                     if (acc.bank_name.toLowerCase() === 'cash' || acc.bank_name.toLowerCase() === 'cash account') return null;
-                    const bal = paymentSummary[acc.id] || 0;
+                    const bal = acc.calculated_balance !== undefined ? acc.calculated_balance : (paymentSummary[acc.id] || 0);
                     const digits = acc.account_number ? acc.account_number.slice(-4) : '';
                     const optionValue = `${acc.bank_name}${digits ? ` (****${digits})` : ''}`;
                     return (
@@ -2083,7 +2118,7 @@ export default function Accounts() {
                     {displayAccounts.filter(acc => acc.module_type !== 'Admin Recipient').map(acc => {
                       const cleanName = acc.bank_name.replace(' Account', '');
                       if (cleanName.toLowerCase() === 'cash') return null;
-                      const bal = paymentSummary[acc.id] || 0;
+                      const bal = acc.calculated_balance !== undefined ? acc.calculated_balance : (paymentSummary[acc.id] || 0);
                       return (
                         <option key={acc.id} value={acc.bank_name}>
                           {acc.bank_name} - {acc.account_title || 'Bank'} (Rs. {bal.toLocaleString()})
@@ -2265,7 +2300,7 @@ export default function Accounts() {
                     {displayAccounts.filter(acc => acc.module_type !== 'Admin Recipient').map(acc => {
                       const cleanName = acc.bank_name.replace(' Account', '');
                       if (cleanName.toLowerCase() === 'cash') return null;
-                      const bal = paymentSummary[acc.id] || 0;
+                      const bal = acc.calculated_balance !== undefined ? acc.calculated_balance : (paymentSummary[acc.id] || 0);
                       return (
                         <option key={acc.id} value={acc.bank_name}>
                           {acc.bank_name} - {acc.account_title || 'Bank'} (Rs. {bal.toLocaleString()})
