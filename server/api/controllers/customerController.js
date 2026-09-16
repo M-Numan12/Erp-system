@@ -8,7 +8,8 @@ exports.getCustomers = async (req, res) => {
     const { type } = req.query;
     let query = `
       SELECT c.*,
-      (SELECT MAX(created_at) FROM sales WHERE customer_id = c.id) as last_transaction_date
+      (SELECT MAX(created_at) FROM sales WHERE customer_id = c.id) as last_transaction_date,
+      (SELECT MAX(created_at) FROM sales WHERE customer_id = c.id AND paid_amount > 0) as last_payment_date
       FROM customers c
     `;
     let params = [];

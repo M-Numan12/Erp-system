@@ -34,6 +34,32 @@ const formatItemName = (brand, name) => {
   return `${b} ${n}`;
 };
 
+// Check if customer has outstanding dues with no payment in 10+ days
+export const checkCustomerOverdue = (customer) => {
+  const balance = parseFloat(customer.balance || 0);
+  if (balance <= 0) return { isOverdue: false, days: 0 };
+
+  const now = new Date();
+  let refDateStr = customer.last_payment_date;
+  if (!refDateStr) {
+    refDateStr = customer.created_at || customer.last_transaction_date;
+  }
+
+  if (!refDateStr) {
+    return { isOverdue: true, days: 10, neverPaid: true };
+  }
+
+  const refDate = new Date(refDateStr);
+  const diffTime = now.getTime() - refDate.getTime();
+  const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+
+  return {
+    isOverdue: diffDays >= 10,
+    days: diffDays,
+    neverPaid: !customer.last_payment_date
+  };
+};
+
 const emptyForm = {
   name: "",
   phone: "",
@@ -489,8 +515,11 @@ export default function Customers({ type }) {
     if (balanceFilter === "creditors" && bal >= 0) return false;
     if (balanceFilter === "zero" && bal !== 0) return false;
 
-    // 3. Last Transaction Activity Date Filter (Today / Yesterday / Older)
-    if (activityFilter !== "all") {
+    // 3. Last Transaction Activity / Overdue Date Filter
+    if (activityFilter === "overdue10") {
+      const overdueInfo = checkCustomerOverdue(r);
+      if (!overdueInfo.isOverdue) return false;
+    } else if (activityFilter !== "all") {
       if (r.last_transaction_date) {
         const txDate = new Date(r.last_transaction_date);
         const today = new Date();
@@ -514,6 +543,7 @@ export default function Customers({ type }) {
 
   const totalReceivable = filtered.filter(r => parseFloat(r.balance) > 0).reduce((sum, r) => sum + parseFloat(r.balance), 0);
   const totalPayable = filtered.filter(r => parseFloat(r.balance) < 0).reduce((sum, r) => sum + Math.abs(parseFloat(r.balance)), 0);
+  const totalOverdueCustomers = records.filter(r => checkCustomerOverdue(r).isOverdue).length;
 
   return (
     <div className="module-page">
@@ -556,6 +586,27 @@ export default function Customers({ type }) {
               <span className="value">{filtered.length} Users</span>
             </div>
           </div>
+          {totalOverdueCustomers > 0 && (
+            <div
+              className="pos-stat-card"
+              style={{
+                cursor: 'pointer',
+                border: activityFilter === 'overdue10' ? '2px solid #ef4444' : '1px solid #fee2e2',
+                background: activityFilter === 'overdue10' ? '#fef2f2' : '#fff5f5',
+                transition: 'all 0.2s'
+              }}
+              onClick={() => setActivityFilter(activityFilter === 'overdue10' ? 'all' : 'overdue10')}
+              title="Click to toggle 10+ days overdue filter"
+            >
+              <div className="icon red" style={{ background: '#fee2e2', color: '#dc2626' }}>
+                <span style={{ fontSize: '1.25rem' }}>⚠️</span>
+              </div>
+              <div className="info">
+                <span className="label" style={{ color: '#b91c1c', fontWeight: 600 }}>10+ Din Overdue</span>
+                <span className="value" style={{ color: '#dc2626' }}>{totalOverdueCustomers} Users</span>
+              </div>
+            </div>
+          )}
           {user?.role === 'admin' && (
             <>
               <div className="pos-stat-card">
@@ -609,6 +660,7 @@ export default function Customers({ type }) {
                 style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', outline: 'none', background: 'white', fontSize: '0.85rem', fontWeight: 500, color: '#334155', cursor: 'pointer' }}
               >
                 <option value="all">All Activity</option>
+                <option value="overdue10">🚨 10+ Din Se Payment Nahi Aayi</option>
                 <option value="today">Active Today</option>
                 <option value="yesterday">Active Yesterday</option>
                 <option value="older">Older / Inactive</option>
@@ -622,9 +674,28 @@ export default function Customers({ type }) {
             emptyMessage="No customers found." className="p-datatable-sm" stripedRows>
             <Column field="id" header="ID" body={(rec) => <span style={{ fontWeight: 600, color: '#64748b' }}>#{rec.id}</span>} sortable style={{ width: '80px' }} />
 
-            <Column field="name" header="Customer Name" body={(rec) => (
-              <span style={{ fontWeight: 700, fontSize: '1rem', color: '#1e293b' }}>{rec.name}</span>
-            )} sortable />
+            <Column field="name" header="Customer Name" body={(rec) => {
+              const overdueInfo = checkCustomerOverdue(rec);
+              return (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                  <span style={{ fontWeight: 700, fontSize: '1rem', color: '#1e293b' }}>{rec.name}</span>
+                  {overdueInfo.isOverdue && (
+                    <button
+                      type="button"
+                      className="blinking-overdue-btn"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        openPayment(rec);
+                      }}
+                      title={`Alert: ${overdueInfo.days} din se koi payment nahi aayi! Click karke payment receive karein.`}
+                    >
+                      <span className="blink-dot"></span>
+                      10+ Din Overdue
+                    </button>
+                  )}
+                </div>
+              );
+            }} sortable />
 
             <Column header="Contact Details" body={(rec) => (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
@@ -692,7 +763,14 @@ export default function Customers({ type }) {
               return (
                 <tr key={rec.id} style={{ borderBottom: '1px solid #e2e8f0' }}>
                   <td style={{ padding: '8px', border: '1px solid #cbd5e1' }}>#{rec.id}</td>
-                  <td style={{ padding: '8px', border: '1px solid #cbd5e1', fontWeight: 'bold' }}>{rec.name}</td>
+                  <td style={{ padding: '8px', border: '1px solid #cbd5e1', fontWeight: 'bold' }}>
+                    {rec.name}
+                    {checkCustomerOverdue(rec).isOverdue && (
+                      <span style={{ marginLeft: '6px', fontSize: '0.7rem', color: '#b91c1c', background: '#fee2e2', padding: '1px 5px', borderRadius: '4px', border: '1px solid #fca5a5' }}>
+                        10+ Days Overdue
+                      </span>
+                    )}
+                  </td>
                   <td style={{ padding: '8px', border: '1px solid #cbd5e1' }}>{rec.phone || '—'}</td>
                   <td style={{ padding: '8px', border: '1px solid #cbd5e1' }}>{rec.address || '—'}</td>
                   <td style={{ padding: '8px', border: '1px solid #cbd5e1', textAlign: 'right', fontWeight: 'bold', color: bal > 0 ? '#b91c1c' : bal < 0 ? '#15803d' : '#64748b' }}>
