@@ -9,7 +9,21 @@ exports.getCustomers = async (req, res) => {
     let query = `
       SELECT c.*,
       (SELECT MAX(created_at) FROM sales WHERE customer_id = c.id) as last_transaction_date,
-      (SELECT MAX(created_at) FROM sales WHERE customer_id = c.id AND paid_amount > 0) as last_payment_date
+      (SELECT MAX(created_at) FROM sales WHERE customer_id = c.id AND paid_amount > 0) as last_payment_date,
+      CASE 
+        WHEN c.balance > 0 AND (
+          (SELECT MAX(created_at) FROM sales WHERE customer_id = c.id AND paid_amount > 0) <= NOW() - INTERVAL '10 days'
+          OR (
+            (SELECT MAX(created_at) FROM sales WHERE customer_id = c.id AND paid_amount > 0) IS NULL 
+            AND (
+              c.created_at <= NOW() - INTERVAL '10 days'
+              OR (SELECT MIN(created_at) FROM sales WHERE customer_id = c.id) <= NOW() - INTERVAL '10 days'
+              OR c.created_at IS NULL
+            )
+          )
+        ) THEN true
+        ELSE false
+      END as is_payment_overdue
       FROM customers c
     `;
     let params = [];

@@ -36,28 +36,44 @@ const formatItemName = (brand, name) => {
 
 // Check if customer has outstanding dues with no payment in 10+ days
 export const checkCustomerOverdue = (customer) => {
-  const balance = parseFloat(customer.balance || 0);
+  const balance = parseFloat(customer?.balance || 0);
   if (balance <= 0) return { isOverdue: false, days: 0 };
 
+  // 1. Direct server flag if calculated by DB query
+  if (customer.is_payment_overdue === true || customer.is_payment_overdue === 'true') {
+    return { isOverdue: true, days: 10 };
+  }
+
   const now = new Date();
-  let refDateStr = customer.last_payment_date;
-  if (!refDateStr) {
-    refDateStr = customer.created_at || customer.last_transaction_date;
+
+  // 2. If customer has a recorded last_payment_date
+  if (customer.last_payment_date) {
+    const pDate = new Date(customer.last_payment_date);
+    const diffTime = now.getTime() - pDate.getTime();
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+    return {
+      isOverdue: diffDays >= 10,
+      days: Math.max(0, diffDays),
+      neverPaid: false
+    };
   }
 
-  if (!refDateStr) {
-    return { isOverdue: true, days: 10, neverPaid: true };
+  // 3. If customer has NEVER made a payment:
+  // Check created_at
+  if (customer.created_at) {
+    const cDate = new Date(customer.created_at);
+    const diffTime = now.getTime() - cDate.getTime();
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+    return {
+      isOverdue: diffDays >= 10,
+      days: Math.max(0, diffDays),
+      neverPaid: true
+    };
   }
 
-  const refDate = new Date(refDateStr);
-  const diffTime = now.getTime() - refDate.getTime();
-  const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-
-  return {
-    isOverdue: diffDays >= 10,
-    days: diffDays,
-    neverPaid: !customer.last_payment_date
-  };
+  // 4. Default for any customer who has positive balance with 0 recorded payments:
+  // Since they owe money and no payment is logged, mark as overdue
+  return { isOverdue: true, days: 10, neverPaid: true };
 };
 
 const emptyForm = {
@@ -678,6 +694,12 @@ export default function Customers({ type }) {
               const overdueInfo = checkCustomerOverdue(rec);
               return (
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                  {overdueInfo.isOverdue && (
+                    <span
+                      className="pulsing-live-dot"
+                      title={`Alert: ${overdueInfo.days || '10+'} din se koi payment nahi aayi`}
+                    />
+                  )}
                   <span style={{ fontWeight: 700, fontSize: '1rem', color: '#1e293b' }}>{rec.name}</span>
                   {overdueInfo.isOverdue && (
                     <button
@@ -687,7 +709,7 @@ export default function Customers({ type }) {
                         e.stopPropagation();
                         openPayment(rec);
                       }}
-                      title={`Alert: ${overdueInfo.days} din se koi payment nahi aayi! Click karke payment receive karein.`}
+                      title={`Alert: ${overdueInfo.days || '10+'} din se koi payment nahi aayi! Click karke payment receive karein.`}
                     >
                       <span className="blink-dot"></span>
                       10+ Din Overdue
