@@ -214,7 +214,7 @@ export default function Transport({ type }) {
   }, [activeCounter]);
 
   const fetchSteelLabourLedger = async () => {
-    if (!activeCounter) return;
+    if (!activeCounter || activeCounter === 'Wholesale') return;
     setSteelLabourLoading(true);
     try {
       const res = await api.get(`/transport/steel-labour/ledger/${activeCounter}`);
@@ -224,7 +224,13 @@ export default function Transport({ type }) {
   };
 
   useEffect(() => {
-    if (activeTab === 'SteelLabour' && activeCounter) {
+    if (activeCounter === 'Wholesale' && activeTab === 'SteelLabour') {
+      setActiveTab('Personal');
+    }
+  }, [activeCounter, activeTab]);
+
+  useEffect(() => {
+    if (activeTab === 'SteelLabour' && activeCounter && activeCounter !== 'Wholesale') {
       fetchSteelLabourLedger();
     }
   }, [activeTab, activeCounter]);
@@ -508,7 +514,7 @@ export default function Transport({ type }) {
             <Plus size={18} /> Add New Vehicle
           </button>
         )}
-        {activeTab === 'SteelLabour' && (
+        {activeTab === 'SteelLabour' && activeCounter !== 'Wholesale' && (
           <button className="btn-primary" style={{ background: '#16a34a', borderColor: '#16a34a' }} onClick={() => { setSteelPaymentForm({ amount: '', notes: 'Steel Labour Payment Sent' }); setSteelSelectedBank(''); setSteelPaymentSource('Cash'); setShowSteelPaymentModal(true); }}>
             <Plus size={18} /> Make Payment
           </button>
@@ -527,11 +533,13 @@ export default function Transport({ type }) {
            <button className={`tab-btn ${activeTab === 'Rent' ? 'active' : ''}`} onClick={() => setActiveTab('Rent')}>
              Rent Vehicles
            </button>
-           <button className={`tab-btn ${activeTab === 'SteelLabour' ? 'active' : ''}`}
-             onClick={() => setActiveTab('SteelLabour')}
-             style={activeTab === 'SteelLabour' ? { background: '#16a34a', color: 'white', borderColor: '#16a34a' } : { borderColor: '#bbf7d0', color: '#166534' }}>
-             🔩 Steel Labour
-           </button>
+           {activeCounter !== 'Wholesale' && (
+             <button className={`tab-btn ${activeTab === 'SteelLabour' ? 'active' : ''}`}
+               onClick={() => setActiveTab('SteelLabour')}
+               style={activeTab === 'SteelLabour' ? { background: '#16a34a', color: 'white', borderColor: '#16a34a' } : { borderColor: '#bbf7d0', color: '#166534' }}>
+               🔩 Steel Labour
+             </button>
+           )}
         </div>
       </div>
 
