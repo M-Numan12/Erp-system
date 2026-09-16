@@ -286,6 +286,55 @@ export default function Accounts() {
     }));
   }, [accounts, generalExpenses]);
 
+  const totalCash = useMemo(() => {
+    const cashAcc = filteredAccounts.find(acc => checkIsCash(acc) && acc.module_type !== 'Admin Recipient');
+    return cashAcc ? (parseFloat(cashAcc.current_balance) || 0) : 0;
+  }, [filteredAccounts]);
+
+  const totalBank = useMemo(() => {
+    return filteredAccounts
+      .filter(acc => !checkIsCash(acc) && acc.module_type !== 'Admin Recipient')
+      .reduce((sum, acc) => sum + Math.max(0, parseFloat(acc.current_balance) || 0), 0);
+  }, [filteredAccounts]);
+
+  // Combine Bank Accounts with a virtual "Cash" account ONLY if no real Cash account exists
+  const displayAccounts = useMemo(() => {
+    const hasRealCash = filteredAccounts.some(a => {
+      const bName = (a.bank_name || '').toLowerCase().trim();
+      const accNum = (a.account_number || '').toLowerCase().trim();
+      const accTitle = (a.account_title || '').toLowerCase().trim();
+      return (bName === 'cash' || bName === 'cash account' || accNum === 'cash' || accNum === 'cash account' || accTitle === 'main counter' || accTitle === 'cash' || accTitle === 'cash account') && a.module_type !== 'Admin Recipient';
+    });
+    const baseAccounts = hasRealCash ? filteredAccounts : [
+      { id: 'cash-id', bank_name: 'Cash Account', account_title: 'Main Counter', account_number: 'N/A', isCash: true, opening_balance: 0 },
+      ...filteredAccounts
+    ];
+    return baseAccounts.map(acc => {
+      let bal = acc.current_balance !== undefined ? (parseFloat(acc.current_balance) || 0) : (checkIsCash(acc) ? totalCash : (parseFloat(acc.opening_balance) || 0));
+      if (acc.module_type === 'Admin Recipient') {
+        bal = getAdminBankBalance(acc);
+      }
+      return { ...acc, calculated_balance: bal };
+    });
+  }, [filteredAccounts, totalCash, generalExpenses, activeTab]);
+
+  const paymentSummary = useMemo(() => {
+    const summary = { 'Cash': totalCash };
+    displayAccounts.forEach(acc => {
+      const b = acc.calculated_balance !== undefined ? acc.calculated_balance : (parseFloat(acc.current_balance) || 0);
+      summary[acc.id] = b;
+      if (acc.bank_name) {
+        summary[acc.bank_name] = b;
+        const digits = acc.account_number ? acc.account_number.slice(-4) : '';
+        if (digits) {
+          summary[`${acc.bank_name} (****${digits})`] = b;
+          summary[`${acc.bank_name} ${digits}`] = b;
+        }
+      }
+    });
+    return summary;
+  }, [displayAccounts, totalCash]);
+
   const getSourceBalance = (method) => {
     if (!method) return 0;
     const cleanPT = method.replace(/^Bank - /i, '').toLowerCase().trim();
@@ -892,16 +941,7 @@ export default function Accounts() {
     return res;
   }, [filteredSales, filteredInvestments, filteredCloseouts, filteredSupplierPayments, filteredGeneralExpenses, filteredSalaries, filteredRents, filteredOtherExpenses, filteredAccounts, activeTab]);
 
-  const totalCash = useMemo(() => {
-    const cashAcc = filteredAccounts.find(acc => checkIsCash(acc) && acc.module_type !== 'Admin Recipient');
-    return cashAcc ? (parseFloat(cashAcc.current_balance) || 0) : 0;
-  }, [filteredAccounts]);
 
-  const totalBank = useMemo(() => {
-    return filteredAccounts
-      .filter(acc => !checkIsCash(acc) && acc.module_type !== 'Admin Recipient')
-      .reduce((sum, acc) => sum + Math.max(0, parseFloat(acc.current_balance) || 0), 0);
-  }, [filteredAccounts]);
 
   const calculatedAdminReceived = useMemo(() => {
     const isToday = (dateStr) => {
@@ -1336,43 +1376,7 @@ export default function Accounts() {
 
   // Access guard removed - Backend now handles isolation
 
-  // Combine Bank Accounts with a virtual "Cash" account ONLY if no real Cash account exists
-  const displayAccounts = useMemo(() => {
-    const hasRealCash = filteredAccounts.some(a => {
-      const bName = (a.bank_name || '').toLowerCase().trim();
-      const accNum = (a.account_number || '').toLowerCase().trim();
-      const accTitle = (a.account_title || '').toLowerCase().trim();
-      return (bName === 'cash' || bName === 'cash account' || accNum === 'cash' || accNum === 'cash account' || accTitle === 'main counter' || accTitle === 'cash' || accTitle === 'cash account') && a.module_type !== 'Admin Recipient';
-    });
-    const baseAccounts = hasRealCash ? filteredAccounts : [
-      { id: 'cash-id', bank_name: 'Cash Account', account_title: 'Main Counter', account_number: 'N/A', isCash: true, opening_balance: 0 },
-      ...filteredAccounts
-    ];
-    return baseAccounts.map(acc => {
-      let bal = acc.current_balance !== undefined ? (parseFloat(acc.current_balance) || 0) : (checkIsCash(acc) ? totalCash : (parseFloat(acc.opening_balance) || 0));
-      if (acc.module_type === 'Admin Recipient') {
-        bal = getAdminBankBalance(acc);
-      }
-      return { ...acc, calculated_balance: bal };
-    });
-  }, [filteredAccounts, totalCash, generalExpenses, activeTab]);
 
-  const paymentSummary = useMemo(() => {
-    const summary = { 'Cash': totalCash };
-    displayAccounts.forEach(acc => {
-      const b = acc.calculated_balance !== undefined ? acc.calculated_balance : (parseFloat(acc.current_balance) || 0);
-      summary[acc.id] = b;
-      if (acc.bank_name) {
-        summary[acc.bank_name] = b;
-        const digits = acc.account_number ? acc.account_number.slice(-4) : '';
-        if (digits) {
-          summary[`${acc.bank_name} (****${digits})`] = b;
-          summary[`${acc.bank_name} ${digits}`] = b;
-        }
-      }
-    });
-    return summary;
-  }, [displayAccounts, totalCash]);
 
   const filtered = displayAccounts.filter(acc => acc.bank_name.toLowerCase().includes(search.toLowerCase()));
 
