@@ -2024,6 +2024,7 @@ export default function Retail2Billing({ type }) {
                       <th style={{ width: '50px' }}>S.No.</th>
                       <th>Date</th>
                       <th>Bill Details</th>
+                      <th style={{ color: '#166534', background: '#f0fdf4' }}>Steel Labour</th>
                       <th>Debit (+)</th>
                       <th>Credit (-)</th>
                       <th>Balance</th>
@@ -2031,7 +2032,7 @@ export default function Retail2Billing({ type }) {
                   </thead>
                   <tbody>
                     {filteredLedgerData.length === 0 ? (
-                      <tr><td colSpan="6" className="empty-msg">No sales history found for this customer.</td></tr>
+                      <tr><td colSpan="7" className="empty-msg">No sales history found for this customer.</td></tr>
                     ) : (
                       filteredLedgerData.map((row, index) => (
                         <tr key={row.id}>
@@ -2098,6 +2099,9 @@ export default function Retail2Billing({ type }) {
                                 <br /><small style={{ color: '#64748b' }}>{row.payment_type || 'Cash'}</small>
                               </div>
                             )}
+                          </td>
+                          <td style={{ color: parseFloat(row.steel_labour || 0) > 0 ? '#16a34a' : '#94a3b8', fontWeight: parseFloat(row.steel_labour || 0) > 0 ? 700 : 400, background: parseFloat(row.steel_labour || 0) > 0 ? '#f0fdf4' : 'transparent' }}>
+                            {parseFloat(row.steel_labour || 0) > 0 ? `Rs. ${parseFloat(row.steel_labour).toLocaleString()}` : '—'}
                           </td>
                           <td className="bold">Rs. {parseFloat(row.net_amount).toLocaleString()}</td>
                           <td className="text-green">Rs. {parseFloat(row.paid_amount).toLocaleString()}</td>
