@@ -42,7 +42,19 @@ export default function Transport({ type }) {
     } catch (e) {}
     return "Wholesale";
   });
-  const [activeTab, setActiveTab] = useState("Personal"); // Personal or Rent
+  const [activeTab, setActiveTab] = useState("Personal"); // Personal, Rent, or SteelLabour
+
+  // ── Steel Labour State ──
+  const [steelLabourData, setSteelLabourData] = useState({ records: [], totalEarnings: 0, totalPaid: 0, balance: 0 });
+  const [steelLabourLoading, setSteelLabourLoading] = useState(false);
+  const [showSteelPaymentModal, setShowSteelPaymentModal] = useState(false);
+  const [steelPaymentForm, setSteelPaymentForm] = useState({ amount: '', notes: 'Steel Labour Payment Sent' });
+  const [steelPaymentSource, setSteelPaymentSource] = useState('Cash');
+  const [steelSelectedBank, setSteelSelectedBank] = useState('');
+  const [steelLiveBalances, setSteelLiveBalances] = useState({});
+  const [steelLedgerFilter, setSteelLedgerFilter] = useState('all');
+  const [steelLedgerFrom, setSteelLedgerFrom] = useState('');
+  const [steelLedgerTo, setSteelLedgerTo] = useState('');
 
   useEffect(() => {
     if (type) {
@@ -200,6 +212,76 @@ export default function Transport({ type }) {
     const interval = setInterval(fetchRecords, 15000);
     return () => clearInterval(interval);
   }, [activeCounter]);
+
+  const fetchSteelLabourLedger = async () => {
+    if (!activeCounter) return;
+    setSteelLabourLoading(true);
+    try {
+      const res = await api.get(`/transport/steel-labour/ledger/${activeCounter}`);
+      setSteelLabourData(res.data || { records: [], totalEarnings: 0, totalPaid: 0, balance: 0 });
+    } catch (err) { console.error(err); }
+    setSteelLabourLoading(false);
+  };
+
+  useEffect(() => {
+    if (activeTab === 'SteelLabour' && activeCounter) {
+      fetchSteelLabourLedger();
+    }
+  }, [activeTab, activeCounter]);
+
+  useEffect(() => {
+    if (showSteelPaymentModal) {
+      const fetchBals = async () => {
+        try {
+          const res = await api.get(`/banks/balances?type=${activeCounter}`);
+          setSteelLiveBalances(res.data || {});
+        } catch(e) { console.error(e); }
+      };
+      fetchBals();
+    }
+  }, [showSteelPaymentModal]);
+
+  const handleSteelPayment = async (e) => {
+    e.preventDefault();
+    const amt = parseFloat(steelPaymentForm.amount || 0);
+    const accKey = steelPaymentSource === 'Bank' ? steelSelectedBank : 'Cash';
+    const avail = steelLiveBalances[accKey] || 0;
+    if (amt > avail) {
+      alert(`Insufficient balance in ${accKey}! Available: Rs. ${avail.toLocaleString()}`);
+      return;
+    }
+    setLoading(true);
+    try {
+      const finalType = steelPaymentSource === 'Bank' ? `Bank - ${steelSelectedBank}` : 'Cash';
+      await api.post('/transport/steel-labour/payment', {
+        paid_amount: amt,
+        notes: steelPaymentForm.notes,
+        payment_type: finalType,
+        module_type: activeCounter
+      });
+      setShowSteelPaymentModal(false);
+      setSteelPaymentForm({ amount: '', notes: 'Steel Labour Payment Sent' });
+      fetchSteelLabourLedger();
+    } catch (err) { console.error(err); }
+    setLoading(false);
+  };
+
+  const steelFilteredRecords = useMemo(() => {
+    const arr = Array.isArray(steelLabourData.records) ? steelLabourData.records : [];
+    if (steelLedgerFilter === 'all') return arr;
+    const today = new Date();
+    const todayStr = today.toLocaleDateString('en-CA');
+    return arr.filter(row => {
+      if (!row.date) return false;
+      const rowStr = new Date(row.date).toLocaleDateString('en-CA');
+      if (steelLedgerFilter === 'today') return rowStr === todayStr;
+      if (steelLedgerFilter === 'yesterday') { const y = new Date(); y.setDate(today.getDate()-1); return rowStr === y.toLocaleDateString('en-CA'); }
+      if (steelLedgerFilter === 'week') { const w = new Date(); w.setDate(today.getDate()-7); return rowStr >= w.toLocaleDateString('en-CA') && rowStr <= todayStr; }
+      if (steelLedgerFilter === 'month') { const m = new Date(today.getFullYear(), today.getMonth(), 1); return rowStr >= m.toLocaleDateString('en-CA') && rowStr <= todayStr; }
+      if (steelLedgerFilter === 'custom' && steelLedgerFrom && steelLedgerTo) return rowStr >= steelLedgerFrom && rowStr <= steelLedgerTo;
+      return true;
+    });
+  }, [steelLabourData.records, steelLedgerFilter, steelLedgerFrom, steelLedgerTo]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -421,9 +503,16 @@ export default function Transport({ type }) {
           </div>
         )}
 
-        <button className="btn-primary" onClick={() => { setForm({...emptyForm, ownership_type: activeTab}); setEditId(null); setShowModal(true); }}>
-          <Plus size={18} /> Add New Vehicle
-        </button>
+        {activeTab !== 'SteelLabour' && (
+          <button className="btn-primary" onClick={() => { setForm({...emptyForm, ownership_type: activeTab}); setEditId(null); setShowModal(true); }}>
+            <Plus size={18} /> Add New Vehicle
+          </button>
+        )}
+        {activeTab === 'SteelLabour' && (
+          <button className="btn-primary" style={{ background: '#16a34a', borderColor: '#16a34a' }} onClick={() => { setSteelPaymentForm({ amount: '', notes: 'Steel Labour Payment Sent' }); setSteelSelectedBank(''); setSteelPaymentSource('Cash'); setShowSteelPaymentModal(true); }}>
+            <Plus size={18} /> Make Payment
+          </button>
+        )}
       </div>
 
       <div className="pos-table-actions">
@@ -438,49 +527,146 @@ export default function Transport({ type }) {
            <button className={`tab-btn ${activeTab === 'Rent' ? 'active' : ''}`} onClick={() => setActiveTab('Rent')}>
              Rent Vehicles
            </button>
+           <button className={`tab-btn ${activeTab === 'SteelLabour' ? 'active' : ''}`}
+             onClick={() => setActiveTab('SteelLabour')}
+             style={activeTab === 'SteelLabour' ? { background: '#16a34a', color: 'white', borderColor: '#16a34a' } : { borderColor: '#bbf7d0', color: '#166534' }}>
+             🔩 Steel Labour
+           </button>
         </div>
       </div>
 
-      <div className="module-table-container">
-        <table className="module-table">
-          <thead>
-            <tr>
-              <th>Vehicle Number</th>
-              <th>Driver Name</th>
-              <th>Driver CNIC</th>
-              <th>Driver Phone</th>
-              <th>Total Revenue</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filtered.length > 0 ? filtered.map(rec => (
-              <tr key={rec.id}>
-                <td className="bold">{rec.vehicle_number}</td>
-                <td>{rec.driver_name}</td>
-                <td>{rec.driver_cnic || 'N/A'}</td>
-                <td>{rec.driver_phone || 'N/A'}</td>
-                <td className="bold text-green">Rs. {parseFloat(rec.total_earnings || 0).toLocaleString()}</td>
-                <td>
-                    <ActionMenu 
-                      onEdit={() => openEdit(rec)} 
-                      onDelete={() => handleDelete(rec.id)} 
-                      extraItems={[
-                        { label: 'View Ledger', icon: 'pi pi-book', command: () => openLedger(rec) },
-                        ...(activeTab === 'Rent' ? [
-                          { label: 'Make Payment', icon: 'pi pi-money-bill', command: () => openPayment(rec) },
-                          { label: 'Less Payment', icon: 'pi pi-minus-circle', command: () => { setSelectedVehicle(rec); setLessForm({ amount: '', notes: 'Adjustment/Deduction' }); setShowLessModal(true); } }
-                        ] : [])
-                      ]}
-                    />
-                </td>
+      {activeTab !== 'SteelLabour' ? (
+        <div className="module-table-container">
+          <table className="module-table">
+            <thead>
+              <tr>
+                <th>Vehicle Number</th>
+                <th>Driver Name</th>
+                <th>Driver CNIC</th>
+                <th>Driver Phone</th>
+                <th>Total Revenue</th>
+                <th>Actions</th>
               </tr>
-            )) : (
-              <tr><td colSpan="6" className="empty-state">No vehicles found in {activeTab}</td></tr>
+            </thead>
+            <tbody>
+              {filtered.length > 0 ? filtered.map(rec => (
+                <tr key={rec.id}>
+                  <td className="bold">{rec.vehicle_number}</td>
+                  <td>{rec.driver_name}</td>
+                  <td>{rec.driver_cnic || 'N/A'}</td>
+                  <td>{rec.driver_phone || 'N/A'}</td>
+                  <td className="bold text-green">Rs. {parseFloat(rec.total_earnings || 0).toLocaleString()}</td>
+                  <td>
+                      <ActionMenu 
+                        onEdit={() => openEdit(rec)} 
+                        onDelete={() => handleDelete(rec.id)} 
+                        extraItems={[
+                          { label: 'View Ledger', icon: 'pi pi-book', command: () => openLedger(rec) },
+                          ...(activeTab === 'Rent' ? [
+                            { label: 'Make Payment', icon: 'pi pi-money-bill', command: () => openPayment(rec) },
+                            { label: 'Less Payment', icon: 'pi pi-minus-circle', command: () => { setSelectedVehicle(rec); setLessForm({ amount: '', notes: 'Adjustment/Deduction' }); setShowLessModal(true); } }
+                          ] : [])
+                        ]}
+                      />
+                  </td>
+                </tr>
+              )) : (
+                <tr><td colSpan="6" className="empty-state">No vehicles found in {activeTab}</td></tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        /* ─── Steel Labour Ledger View ─── */
+        <div>
+          {/* Summary Cards */}
+          <div style={{ display: 'flex', gap: '16px', margin: '0 0 20px 0', flexWrap: 'wrap' }}>
+            <div style={{ flex: 1, minWidth: '180px', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '12px', padding: '16px' }}>
+              <div style={{ fontSize: '0.75rem', color: '#166534', fontWeight: 700, textTransform: 'uppercase', marginBottom: '6px' }}>Total Earnings (Bills)</div>
+              <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#15803d' }}>Rs. {parseFloat(steelLabourData.totalEarnings || 0).toLocaleString()}</div>
+            </div>
+            <div style={{ flex: 1, minWidth: '180px', background: '#fff1f2', border: '1px solid #fecdd3', borderRadius: '12px', padding: '16px' }}>
+              <div style={{ fontSize: '0.75rem', color: '#9f1239', fontWeight: 700, textTransform: 'uppercase', marginBottom: '6px' }}>Total Paid</div>
+              <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#be123c' }}>Rs. {parseFloat(steelLabourData.totalPaid || 0).toLocaleString()}</div>
+            </div>
+            <div style={{ flex: 1, minWidth: '180px', background: parseFloat(steelLabourData.balance || 0) > 0 ? '#fef9c3' : '#f0fdf4', border: '1px solid ' + (parseFloat(steelLabourData.balance || 0) > 0 ? '#fde68a' : '#bbf7d0'), borderRadius: '12px', padding: '16px' }}>
+              <div style={{ fontSize: '0.75rem', color: '#92400e', fontWeight: 700, textTransform: 'uppercase', marginBottom: '6px' }}>Balance Due</div>
+              <div style={{ fontSize: '1.4rem', fontWeight: 800, color: parseFloat(steelLabourData.balance || 0) > 0 ? '#b45309' : '#15803d' }}>Rs. {parseFloat(steelLabourData.balance || 0).toLocaleString()}</div>
+            </div>
+          </div>
+
+          {/* Date Filter Bar */}
+          <div style={{ background: '#f8fafc', borderRadius: '8px', padding: '10px 14px', marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+            <span style={{ fontWeight: 600, color: '#64748b', fontSize: '0.85rem' }}>📅 Period:</span>
+            {[{ key: 'all', label: 'All Time' }, { key: 'today', label: 'Today' }, { key: 'week', label: '7 Days' }, { key: 'month', label: 'Month' }, { key: 'custom', label: 'Custom' }].map(f => (
+              <button key={f.key} onClick={() => setSteelLedgerFilter(f.key)}
+                style={{ padding: '4px 12px', borderRadius: '6px', border: '1px solid #e2e8f0', fontSize: '0.85rem', cursor: 'pointer',
+                  background: steelLedgerFilter === f.key ? '#16a34a' : 'white',
+                  color: steelLedgerFilter === f.key ? 'white' : '#64748b' }}>
+                {f.label}
+              </button>
+            ))}
+            {steelLedgerFilter === 'custom' && (
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+                <input type="date" value={steelLedgerFrom} onChange={e => setSteelLedgerFrom(e.target.value)} style={{ padding: '4px 8px', borderRadius: '4px', border: '1px solid #cbd5e1' }} />
+                <span>→</span>
+                <input type="date" value={steelLedgerTo} onChange={e => setSteelLedgerTo(e.target.value)} style={{ padding: '4px 8px', borderRadius: '4px', border: '1px solid #cbd5e1' }} />
+              </div>
             )}
-          </tbody>
-        </table>
-      </div>
+          </div>
+
+          {/* Ledger Table */}
+          <div className="module-table-container">
+            {steelLabourLoading ? (
+              <div style={{ textAlign: 'center', padding: '40px', color: '#64748b' }}>Loading steel labour records...</div>
+            ) : (
+              <table className="module-table">
+                <thead>
+                  <tr>
+                    <th style={{ width: '50px' }}>S.No</th>
+                    <th>Date</th>
+                    <th>Description</th>
+                    <th>Type</th>
+                    <th style={{ color: '#16a34a' }}>Earnings (+)</th>
+                    <th style={{ color: '#dc2626' }}>Payments (-)</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {steelFilteredRecords.length === 0 ? (
+                    <tr><td colSpan="6" className="empty-state">No steel labour records found.</td></tr>
+                  ) : (
+                    steelFilteredRecords.map((row, idx) => (
+                      <tr key={row.id}>
+                        <td style={{ fontWeight: 700, color: '#64748b' }}>{idx + 1}</td>
+                        <td>{row.date ? new Date(row.date).toLocaleDateString('en-GB') : 'N/A'}</td>
+                        <td>
+                          <strong>{row.party_name || 'N/A'}</strong>
+                          {row.payment_type && <div style={{ fontSize: '0.75rem', color: '#64748b' }}>Method: {row.payment_type}</div>}
+                        </td>
+                        <td>
+                          <span style={{
+                            fontSize: '0.75rem', padding: '2px 8px', borderRadius: '4px', fontWeight: 700,
+                            background: row.is_earning ? '#dcfce7' : '#fee2e2',
+                            color: row.is_earning ? '#15803d' : '#dc2626'
+                          }}>
+                            {row.is_earning ? '📦 Bill Earning' : '💸 Payment Made'}
+                          </span>
+                        </td>
+                        <td className="bold" style={{ color: '#16a34a' }}>
+                          {row.is_earning ? `Rs. ${parseFloat(row.amount || 0).toLocaleString()}` : '—'}
+                        </td>
+                        <td className="bold" style={{ color: '#dc2626' }}>
+                          {!row.is_earning ? `Rs. ${parseFloat(row.amount || 0).toLocaleString()}` : '—'}
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            )}
+          </div>
+        </div>
+      )}
 
       {showModal && (
         <div className="modal-overlay" onClick={() => setShowModal(false)}>
@@ -968,6 +1154,96 @@ export default function Transport({ type }) {
                 <button type="button" className="btn-secondary" onClick={() => setShowLessModal(false)}>Cancel</button>
                 <button type="submit" className="btn-primary" style={{background: '#f97316', borderColor: '#f97316'}} disabled={loading}>
                   {loading ? "Processing..." : "Apply Deduction"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Steel Labour Payment Modal */}
+      {showSteelPaymentModal && (
+        <div className="modal-overlay" onClick={() => setShowSteelPaymentModal(false)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '420px' }}>
+            <div className="modal-header">
+              <h3>🔩 Pay Steel Labour — {activeCounter}</h3>
+              <button className="modal-close" onClick={() => setShowSteelPaymentModal(false)}><X size={20} /></button>
+            </div>
+
+            <form onSubmit={handleSteelPayment} className="custom-form">
+              {/* Balance Summary */}
+              <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', padding: '12px 16px', borderRadius: '8px', marginBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div>
+                  <div style={{ fontSize: '0.75rem', color: '#166534', fontWeight: 600 }}>Balance Due</div>
+                  <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#15803d' }}>Rs. {parseFloat(steelLabourData.balance || 0).toLocaleString()}</div>
+                </div>
+                <div style={{ textAlign: 'right' }}>
+                  <div style={{ fontSize: '0.75rem', color: '#64748b' }}>Total Earned</div>
+                  <div style={{ fontWeight: 700, color: '#15803d' }}>Rs. {parseFloat(steelLabourData.totalEarnings || 0).toLocaleString()}</div>
+                  <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '2px' }}>Total Paid: Rs. {parseFloat(steelLabourData.totalPaid || 0).toLocaleString()}</div>
+                </div>
+              </div>
+
+              <div className="form-group" style={{ marginBottom: '15px' }}>
+                <label>Amount (Rs.) *</label>
+                <div className="input-wrapper">
+                  <Hash size={18} />
+                  <input type="number" step="0.01" required value={steelPaymentForm.amount} placeholder="e.g. 5000"
+                    onChange={(e) => setSteelPaymentForm({ ...steelPaymentForm, amount: e.target.value })} />
+                </div>
+              </div>
+
+              <div className="form-group" style={{ marginBottom: '15px' }}>
+                <label>Payment Source *</label>
+                <select value={steelPaymentSource} style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #cbd5e1', outline: 'none' }}
+                  onChange={(e) => { setSteelPaymentSource(e.target.value); if (e.target.value === 'Cash') setSteelSelectedBank(''); }}>
+                  <option value="Cash">Main Cash (Counter)</option>
+                  {bankAccounts.some(b => {
+                    const name = b.bank_name.toLowerCase().trim();
+                    if (name === 'cash' || name === 'cash account') return false;
+                    return (b.module_type || 'Wholesale') === activeCounter;
+                  }) && <option value="Bank">Bank / Online Account</option>}
+                </select>
+              </div>
+
+              {steelPaymentSource === 'Bank' && (
+                <div className="form-group" style={{ marginBottom: '15px' }}>
+                  <label>Select Bank *</label>
+                  <select value={steelSelectedBank} onChange={(e) => setSteelSelectedBank(e.target.value)}
+                    style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #3b82f6', background: '#f0f9ff', outline: 'none' }} required>
+                    <option value="">-- Choose Account --</option>
+                    {bankAccounts.filter(b => {
+                      const name = b.bank_name.toLowerCase().trim();
+                      if (name === 'cash' || name === 'cash account') return false;
+                      return (b.module_type || 'Wholesale') === activeCounter;
+                    }).map(b => {
+                      const digits = b.account_number ? b.account_number.slice(-4) : '';
+                      return <option key={b.id} value={`${b.bank_name} ${digits ? `(****${digits})` : ''}`}>{b.bank_name} - {b.account_number}</option>;
+                    })}
+                  </select>
+                </div>
+              )}
+
+              {parseFloat(steelPaymentForm.amount || 0) > (steelLiveBalances[steelPaymentSource === 'Bank' ? steelSelectedBank : 'Cash'] || 0) && (
+                <div style={{ color: '#ef4444', background: '#fef2f2', border: '1px solid #fee2e2', padding: '10px 14px', borderRadius: '8px', fontSize: '0.9rem', fontWeight: 600, marginBottom: '15px' }}>
+                  ⚠️ Insufficient Balance! Available: Rs. {(steelLiveBalances[steelPaymentSource === 'Bank' ? steelSelectedBank : 'Cash'] || 0).toLocaleString()}
+                </div>
+              )}
+
+              <div className="form-group" style={{ marginBottom: '20px' }}>
+                <label>Payment Notes *</label>
+                <div className="input-wrapper">
+                  <FileText size={18} />
+                  <input type="text" required value={steelPaymentForm.notes} placeholder="e.g. Monthly Steel Labour Payment"
+                    onChange={(e) => setSteelPaymentForm({ ...steelPaymentForm, notes: e.target.value })} />
+                </div>
+              </div>
+
+              <div className="form-actions" style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+                <button type="button" className="btn-secondary" onClick={() => setShowSteelPaymentModal(false)}>Cancel</button>
+                <button type="submit" className="btn-primary" style={{ background: '#16a34a', borderColor: '#16a34a' }}
+                  disabled={loading || (parseFloat(steelPaymentForm.amount || 0) > (steelLiveBalances[steelPaymentSource === 'Bank' ? steelSelectedBank : 'Cash'] || 0))}>
+                  {loading ? 'Processing...' : 'Confirm Payment ✓'}
                 </button>
               </div>
             </form>
