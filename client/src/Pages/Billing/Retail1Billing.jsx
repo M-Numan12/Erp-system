@@ -218,9 +218,10 @@ export default function Retail1Billing({ type }) {
     });
     return withRunning;
   }, [ledgerData]);
-  const [ledgerFrom, setLedgerFrom] = useState("");
-  const [ledgerTo, setLedgerTo] = useState("");
-  const [ledgerFilter, setLedgerFilter] = useState("all");
+  const retail1TodayStr = new Date().toLocaleDateString('en-CA');
+  const [ledgerFrom, setLedgerFrom] = useState(retail1TodayStr);
+  const [ledgerTo, setLedgerTo] = useState(retail1TodayStr);
+  const [ledgerFilter, setLedgerFilter] = useState("today");
   const [selectedCustForLedger, setSelectedCustForLedger] = useState(null);
   const [ledgerSearch, setLedgerSearch] = useState("");
 
