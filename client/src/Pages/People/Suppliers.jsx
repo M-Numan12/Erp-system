@@ -69,9 +69,10 @@ export default function Suppliers({ type }) {
   const [bankAccounts, setBankAccounts] = useState([]);
   const [selectedBank, setSelectedBank] = useState("");
   const [paymentSource, setPaymentSource] = useState("Cash");
-  const [ledgerFrom, setLedgerFrom] = useState("");
-  const [ledgerTo, setLedgerTo] = useState("");
-  const [ledgerFilter, setLedgerFilter] = useState("all");
+  const supplierTodayStr = new Date().toLocaleDateString('en-CA');
+  const [ledgerFrom, setLedgerFrom] = useState(supplierTodayStr);
+  const [ledgerTo, setLedgerTo] = useState(supplierTodayStr);
+  const [ledgerFilter, setLedgerFilter] = useState("today");
    const [ledgerData, setLedgerData] = useState([]);
   const [ledgerOpeningBalance, setLedgerOpeningBalance] = useState(0);
   const [adjForm, setAdjForm] = useState({ 
@@ -245,9 +246,12 @@ export default function Suppliers({ type }) {
     setShowModal(true);
   };
 
-  const openLedger = async (supplier, filter = "all") => {
+  const openLedger = async (supplier, filter = "today") => {
+    const todayDate = new Date().toLocaleDateString('en-CA');
     setSelectedSupplier(supplier);
     setLedgerFilter(filter);
+    if (filter === 'today') { setLedgerFrom(todayDate); setLedgerTo(todayDate); }
+    else if (filter === 'all') { setLedgerFrom(''); setLedgerTo(''); }
     setShowLedgerModal(true);
     setLoading(true);
     try {

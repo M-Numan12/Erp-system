@@ -217,9 +217,10 @@ export default function WholesaleBilling({ type }) {
     });
     return withRunning;
   }, [ledgerData]);
-  const [ledgerFrom, setLedgerFrom] = useState("");
-  const [ledgerTo, setLedgerTo] = useState("");
-  const [ledgerFilter, setLedgerFilter] = useState("all");
+  const wholesaleTodayStr = new Date().toLocaleDateString('en-CA');
+  const [ledgerFrom, setLedgerFrom] = useState(wholesaleTodayStr);
+  const [ledgerTo, setLedgerTo] = useState(wholesaleTodayStr);
+  const [ledgerFilter, setLedgerFilter] = useState("today");
   const [selectedCustForLedger, setSelectedCustForLedger] = useState(null);
   const [ledgerSearch, setLedgerSearch] = useState("");
 

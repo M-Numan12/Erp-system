@@ -61,9 +61,10 @@ export default function Labours({ type }) {
   const [showGlobalPayModal, setShowGlobalPayModal] = useState(false);
   const [globalPayForm, setGlobalPayForm] = useState({ group_name: "", bill_id: "", amount: "", notes: "", payment_type: "Cash" });
 
-  const [ledgerFilter, setLedgerFilter] = useState("all");
-  const [ledgerFrom, setLedgerFrom] = useState("");
-  const [ledgerTo, setLedgerTo] = useState("");
+  const [ledgerFilter, setLedgerFilter] = useState("today");
+  const labourTodayStr = new Date().toLocaleDateString('en-CA');
+  const [ledgerFrom, setLedgerFrom] = useState(labourTodayStr);
+  const [ledgerTo, setLedgerTo] = useState(labourTodayStr);
 
   useEffect(() => {
     if (type) {

@@ -132,9 +132,10 @@ export default function Customers({ type }) {
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState(null);
   const [ledgerData, setLedgerData] = useState([]);
-  const [ledgerFrom, setLedgerFrom] = useState("");
-  const [ledgerTo, setLedgerTo] = useState("");
-  const [ledgerFilter, setLedgerFilter] = useState("all");
+  const todayStr = new Date().toLocaleDateString('en-CA');
+  const [ledgerFrom, setLedgerFrom] = useState(todayStr);
+  const [ledgerTo, setLedgerTo] = useState(todayStr);
+  const [ledgerFilter, setLedgerFilter] = useState("today");
   const liveBalance = useMemo(() => {
     const bal = parseFloat(selectedCustomer?.balance);
     return isNaN(bal) ? 0 : bal;
@@ -281,11 +282,15 @@ export default function Customers({ type }) {
     setShowModal(true);
   };
 
-  const openLedger = async (customer, filter = "all") => {
+  const openLedger = async (customer, filter = "today") => {
+    const todayDate = new Date().toLocaleDateString('en-CA');
     setSelectedCustomer(customer);
     setLedgerFilter(filter);
-    setLedgerFrom("");
-    setLedgerTo("");
+    // Default to today's date range when opening
+    if (filter === 'today' || filter === 'all') {
+      setLedgerFrom(filter === 'today' ? todayDate : "");
+      setLedgerTo(filter === 'today' ? todayDate : "");
+    }
     setShowLedgerModal(true);
     setLoading(true);
     try {

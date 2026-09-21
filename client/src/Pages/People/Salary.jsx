@@ -60,9 +60,10 @@ export default function Salary({ type }) {
   const [showModal, setShowModal] = useState(false);
   const [showLedgerModal, setShowLedgerModal] = useState(false);
   const [ledgerData, setLedgerData] = useState([]);
-  const [ledgerFilter, setLedgerFilter] = useState("all");
-  const [ledgerFrom, setLedgerFrom] = useState("");
-  const [ledgerTo, setLedgerTo] = useState("");
+  const [ledgerFilter, setLedgerFilter] = useState("today");
+  const salaryTodayStr = new Date().toLocaleDateString('en-CA');
+  const [ledgerFrom, setLedgerFrom] = useState(salaryTodayStr);
+  const [ledgerTo, setLedgerTo] = useState(salaryTodayStr);
   const [selectedStaff, setSelectedStaff] = useState(null);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(false);
@@ -320,7 +321,11 @@ export default function Salary({ type }) {
   };
 
   const openLedger = async (staff) => {
+    const todayDate = new Date().toLocaleDateString('en-CA');
     setSelectedStaff(staff);
+    setLedgerFilter('today');
+    setLedgerFrom(todayDate);
+    setLedgerTo(todayDate);
     setShowLedgerModal(true);
     setLoading(true);
     try {

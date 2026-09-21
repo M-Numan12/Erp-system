@@ -217,9 +217,10 @@ export default function Retail3Billing({ type }) {
     });
     return withRunning;
   }, [ledgerData]);
-  const [ledgerFrom, setLedgerFrom] = useState("");
-  const [ledgerTo, setLedgerTo] = useState("");
-  const [ledgerFilter, setLedgerFilter] = useState("all");
+  const retail3TodayStr = new Date().toLocaleDateString('en-CA');
+  const [ledgerFrom, setLedgerFrom] = useState(retail3TodayStr);
+  const [ledgerTo, setLedgerTo] = useState(retail3TodayStr);
+  const [ledgerFilter, setLedgerFilter] = useState("today");
   const [selectedCustForLedger, setSelectedCustForLedger] = useState(null);
   const [ledgerSearch, setLedgerSearch] = useState("");
 

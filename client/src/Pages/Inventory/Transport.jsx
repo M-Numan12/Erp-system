@@ -52,9 +52,10 @@ export default function Transport({ type }) {
   const [steelPaymentSource, setSteelPaymentSource] = useState('Cash');
   const [steelSelectedBank, setSteelSelectedBank] = useState('');
   const [steelLiveBalances, setSteelLiveBalances] = useState({});
-  const [steelLedgerFilter, setSteelLedgerFilter] = useState('all');
-  const [steelLedgerFrom, setSteelLedgerFrom] = useState('');
-  const [steelLedgerTo, setSteelLedgerTo] = useState('');
+  const transportTodayStr = new Date().toLocaleDateString('en-CA');
+  const [steelLedgerFilter, setSteelLedgerFilter] = useState('today');
+  const [steelLedgerFrom, setSteelLedgerFrom] = useState(transportTodayStr);
+  const [steelLedgerTo, setSteelLedgerTo] = useState(transportTodayStr);
 
   useEffect(() => {
     if (type) {
@@ -71,9 +72,9 @@ export default function Transport({ type }) {
   const [showLedgerModal, setShowLedgerModal] = useState(false);
   const [isLedgerMaximized, setIsLedgerMaximized] = useState(false);
   const [ledgerData, setLedgerData] = useState([]);
-  const [ledgerFilter, setLedgerFilter] = useState("all");
-  const [ledgerFrom, setLedgerFrom] = useState("");
-  const [ledgerTo, setLedgerTo] = useState("");
+  const [ledgerFilter, setLedgerFilter] = useState("today");
+  const [ledgerFrom, setLedgerFrom] = useState(transportTodayStr);
+  const [ledgerTo, setLedgerTo] = useState(transportTodayStr);
   const [ledgerOpeningBalance, setLedgerOpeningBalance] = useState(0);
   const [selectedVehicle, setSelectedVehicle] = useState(null);
   const [search, setSearch] = useState("");
