@@ -712,7 +712,7 @@ export default function Customers({ type }) {
                       title={`Alert: ${overdueInfo.days || '10+'} din se koi payment nahi aayi! Click karke payment receive karein.`}
                     >
                       <span className="blink-dot"></span>
-                      10+ Din Overdue
+                      {overdueInfo.days >= 10 ? `${overdueInfo.days} Din Overdue` : '10+ Din Overdue'}
                     </button>
                   )}
                 </div>
@@ -787,11 +787,11 @@ export default function Customers({ type }) {
                   <td style={{ padding: '8px', border: '1px solid #cbd5e1' }}>#{rec.id}</td>
                   <td style={{ padding: '8px', border: '1px solid #cbd5e1', fontWeight: 'bold' }}>
                     {rec.name}
-                    {checkCustomerOverdue(rec).isOverdue && (
+                    {(() => { const oi = checkCustomerOverdue(rec); return oi.isOverdue ? (
                       <span style={{ marginLeft: '6px', fontSize: '0.7rem', color: '#b91c1c', background: '#fee2e2', padding: '1px 5px', borderRadius: '4px', border: '1px solid #fca5a5' }}>
-                        10+ Days Overdue
+                        {oi.days >= 10 ? `${oi.days} Din Overdue` : '10+ Din Overdue'}
                       </span>
-                    )}
+                    ) : null; })()}
                   </td>
                   <td style={{ padding: '8px', border: '1px solid #cbd5e1' }}>{rec.phone || '—'}</td>
                   <td style={{ padding: '8px', border: '1px solid #cbd5e1' }}>{rec.address || '—'}</td>
