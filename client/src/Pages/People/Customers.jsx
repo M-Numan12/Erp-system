@@ -39,40 +39,42 @@ export const checkCustomerOverdue = (customer) => {
   const balance = parseFloat(customer?.balance || 0);
   if (balance <= 0) return { isOverdue: false, days: 0 };
 
-  // 1. Direct server flag if calculated by DB query
-  if (customer.is_payment_overdue === true || customer.is_payment_overdue === 'true') {
-    return { isOverdue: true, days: 10 };
-  }
-
   const now = new Date();
 
-  // 2. If customer has a recorded last_payment_date
-  if (customer.last_payment_date) {
-    const pDate = new Date(customer.last_payment_date);
-    const diffTime = now.getTime() - pDate.getTime();
-    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+  // Helper: calculate days from a date string
+  const calcDays = (dateStr) => {
+    if (!dateStr) return null;
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return null;
+    return Math.floor((now.getTime() - d.getTime()) / (1000 * 60 * 60 * 24));
+  };
+
+  // 1. Try last_payment_date first (most accurate — actual last payment)
+  const paymentDays = calcDays(customer.last_payment_date);
+  if (paymentDays !== null) {
     return {
-      isOverdue: diffDays >= 10,
-      days: Math.max(0, diffDays),
+      isOverdue: paymentDays >= 10,
+      days: Math.max(0, paymentDays),
       neverPaid: false
     };
   }
 
-  // 3. If customer has NEVER made a payment:
-  // Check created_at
-  if (customer.created_at) {
-    const cDate = new Date(customer.created_at);
-    const diffTime = now.getTime() - cDate.getTime();
-    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+  // 2. No payment ever — calculate from account creation date
+  const createdDays = calcDays(customer.created_at);
+  if (createdDays !== null) {
     return {
-      isOverdue: diffDays >= 10,
-      days: Math.max(0, diffDays),
+      isOverdue: createdDays >= 10,
+      days: Math.max(0, createdDays),
       neverPaid: true
     };
   }
 
-  // 4. Default for any customer who has positive balance with 0 recorded payments:
-  // Since they owe money and no payment is logged, mark as overdue
+  // 3. Server flag fallback (when no date info available at all)
+  if (customer.is_payment_overdue === true || customer.is_payment_overdue === 'true') {
+    return { isOverdue: true, days: 10 };
+  }
+
+  // 4. Default: positive balance, no date info — mark as overdue
   return { isOverdue: true, days: 10, neverPaid: true };
 };
 
