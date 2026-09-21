@@ -217,7 +217,7 @@ export default function Accounts() {
   // State for Ledger view
   const [showLedger, setShowLedger] = useState(false);
   const [selectedLedgerAccount, setSelectedLedgerAccount] = useState(null);
-  const [dateFilter, setDateFilter] = useState('All'); // 'Today', 'Week', 'Month', 'All'
+  const [dateFilter, setDateFilter] = useState('Today'); // 'Today', 'Week', 'Month', 'All'
 
   // State for Bill Viewer
   const [showBill, setShowBill] = useState(false);
@@ -1469,7 +1469,7 @@ export default function Accounts() {
 
             return (
               <div key={acc.id}
-                onClick={() => { setSelectedLedgerAccount(acc); setDateFilter('All'); setShowLedger(true); }}
+                onClick={() => { setSelectedLedgerAccount(acc); setDateFilter('Today'); setShowLedger(true); }}
                 style={{
                   background: 'white',
                   borderRadius: '20px',
@@ -1570,7 +1570,7 @@ export default function Accounts() {
 
       <div className="module-table-container no-print" style={{ padding: '20px', background: 'white', borderRadius: '16px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
         <DataTable value={filtered} emptyMessage="No accounts found." className="p-datatable-sm" stripedRows
-          onRowClick={(e) => { setSelectedLedgerAccount(e.data); setDateFilter('All'); setShowLedger(true); }} rowHover style={{ cursor: 'pointer' }}>
+          onRowClick={(e) => { setSelectedLedgerAccount(e.data); setDateFilter('Today'); setShowLedger(true); }} rowHover style={{ cursor: 'pointer' }}>
           <Column field="bank_name" header="Account Name" body={acc => (
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <div style={{ padding: '6px', borderRadius: '8px', background: checkIsCash(acc) ? '#f0fdf4' : '#eff6ff', color: checkIsCash(acc) ? '#16a34a' : '#2563eb' }}>
@@ -1608,7 +1608,7 @@ export default function Accounts() {
                   {
                     label: 'View Ledger',
                     icon: 'pi pi-book',
-                    command: () => { setSelectedLedgerAccount(acc); setDateFilter('All'); setShowLedger(true); }
+                    command: () => { setSelectedLedgerAccount(acc); setDateFilter('Today'); setShowLedger(true); }
                   }
                 ]}
               />
