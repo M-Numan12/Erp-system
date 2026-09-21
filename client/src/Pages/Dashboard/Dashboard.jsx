@@ -89,8 +89,24 @@ export default function Dashboard() {
       }
     };
     fetchStats();
-    const interval = setInterval(fetchStats, 15000);
-    return () => clearInterval(interval);
+    // Smart polling: only when tab is visible
+    const interval = setInterval(() => {
+      if (!document.hidden) {
+        fetchStats();
+      }
+    }, 30000);
+
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        fetchStats();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
   }, [user]);
 
   const modules = [

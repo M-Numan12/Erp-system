@@ -2,29 +2,39 @@ const pool = require('../config/db');
 
 const isAdmin = (req) => req.user.role === 'admin';
 
-// Get all customers (with isolation)
+// Get all customers (with isolation & high-speed aggregated join)
 exports.getCustomers = async (req, res) => {
   try {
     const { type } = req.query;
     let query = `
       SELECT c.*,
-      (SELECT MAX(created_at) FROM sales WHERE customer_id = c.id) as last_transaction_date,
-      (SELECT MAX(created_at) FROM sales WHERE customer_id = c.id AND paid_amount > 0) as last_payment_date,
-      CASE 
-        WHEN c.balance > 0 AND (
-          (SELECT MAX(created_at) FROM sales WHERE customer_id = c.id AND paid_amount > 0) <= NOW() - INTERVAL '10 days'
-          OR (
-            (SELECT MAX(created_at) FROM sales WHERE customer_id = c.id AND paid_amount > 0) IS NULL 
-            AND (
-              c.created_at <= NOW() - INTERVAL '10 days'
-              OR (SELECT MIN(created_at) FROM sales WHERE customer_id = c.id) <= NOW() - INTERVAL '10 days'
-              OR c.created_at IS NULL
+        s_agg.last_transaction_date,
+        s_agg.last_payment_date,
+        CASE 
+          WHEN c.balance > 0 AND (
+            s_agg.last_payment_date <= NOW() - INTERVAL '10 days'
+            OR (
+              s_agg.last_payment_date IS NULL 
+              AND (
+                c.created_at <= NOW() - INTERVAL '10 days'
+                OR s_agg.first_transaction_date <= NOW() - INTERVAL '10 days'
+                OR c.created_at IS NULL
+              )
             )
-          )
-        ) THEN true
-        ELSE false
-      END as is_payment_overdue
+          ) THEN true
+          ELSE false
+        END as is_payment_overdue
       FROM customers c
+      LEFT JOIN (
+        SELECT 
+          customer_id,
+          MAX(created_at) as last_transaction_date,
+          MAX(CASE WHEN paid_amount > 0 THEN created_at END) as last_payment_date,
+          MIN(created_at) as first_transaction_date
+        FROM sales
+        WHERE customer_id IS NOT NULL
+        GROUP BY customer_id
+      ) s_agg ON s_agg.customer_id = c.id
     `;
     let params = [];
 

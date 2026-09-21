@@ -7,6 +7,10 @@ const fs = require('fs');
 
 const app = express();
 
+// High-speed response compression for JSON APIs (gzip/deflate)
+const compression = require('compression');
+app.use(compression());
+
 // Ensure temp directory exists for PDF uploads
 const tempDir = path.join(__dirname, 'public', 'temp');
 if (!fs.existsSync(tempDir)) {
