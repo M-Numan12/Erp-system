@@ -746,11 +746,25 @@ export default function Accounts() {
     };
 
     loadData();
-    const interval = setInterval(loadData, 15000);
+
+    // Smart polling: Only refresh when tab is visible
+    const interval = setInterval(() => {
+      if (!document.hidden) {
+        loadData();
+      }
+    }, 45000);
+
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        loadData();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
 
     return () => {
       isMounted = false;
       clearInterval(interval);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, [activeTab]);
 

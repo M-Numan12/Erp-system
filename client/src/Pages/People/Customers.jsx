@@ -233,8 +233,25 @@ export default function Customers({ type }) {
   useEffect(() => {
     if (!activeTab) return;
     fetchRecords();
-    const interval = setInterval(fetchRecords, 15000);
-    return () => clearInterval(interval);
+
+    // Smart polling: only poll when tab is active
+    const interval = setInterval(() => {
+      if (!document.hidden) {
+        fetchRecords();
+      }
+    }, 30000);
+
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        fetchRecords();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
   }, [activeTab]);
 
   // If Admin and no counter selected, show selection screen
