@@ -62,9 +62,21 @@ exports.createSale = async (req, res) => {
 
     const finalModule = isAdmin(req) ? (sale_type || 'Wholesale') : (req.user.module_type || 'Retail 1');
 
-    // 0. Auto-Create or find Customer
+    // 0. Walk-in Customer Credit Restriction Check
+    const genericWalkInNames = ['walk-in customer', 'walking customer', 'walk-in', 'walking'];
+    const cleanCustomerName = (customer_name || '').trim().toLowerCase();
+    const isWalkInName = !customer_name || cleanCustomerName === '' || genericWalkInNames.includes(cleanCustomerName);
+
+    if (isWalkInName && parseFloat(balance_amount || 0) > 0.01) {
+      await client.query('ROLLBACK');
+      return res.status(400).json({
+        error: "Walking/Walk-in customers cannot have a pending balance (credit). Full payment is required or register the customer."
+      });
+    }
+
+    // Auto-Create or find Customer
     let finalCustomerId = null;
-    if (customer_name && customer_name.trim().toLowerCase() !== 'walk-in customer') {
+    if (customer_name && !genericWalkInNames.includes(cleanCustomerName)) {
       let cQuery = 'SELECT id FROM customers WHERE name=$1 AND module_type=$2';
       let cParams = [customer_name, finalModule];
       if (customer_phone) { cQuery += ' AND phone=$3'; cParams.push(customer_phone); }
@@ -525,7 +537,18 @@ exports.updateSale = async (req, res) => {
     const finalModule = isAdmin(req) ? (req.body.sale_type || req.body.module_type || 'Wholesale') : (req.user.module_type || 'Retail 1');
     let newCustomerId = oldSale?.customer_id || null;
 
-    if (customer_name && customer_name.trim().toLowerCase() !== 'walk-in customer') {
+    const genericWalkInNames = ['walk-in customer', 'walking customer', 'walk-in', 'walking'];
+    const cleanCustomerName = (customer_name || '').trim().toLowerCase();
+    const isWalkInName = !customer_name || cleanCustomerName === '' || genericWalkInNames.includes(cleanCustomerName);
+
+    if (isWalkInName && parseFloat(balance_amount || 0) > 0.01) {
+      await client.query('ROLLBACK');
+      return res.status(400).json({
+        error: "Walking/Walk-in customers cannot have a pending balance (credit). Full payment is required or register the customer."
+      });
+    }
+
+    if (customer_name && !genericWalkInNames.includes(cleanCustomerName)) {
       let cQuery = 'SELECT id FROM customers WHERE name=$1 AND module_type=$2';
       let cParams = [customer_name.trim(), finalModule];
       if (customer_phone) { cQuery += ' AND phone=$3'; cParams.push(customer_phone); }
