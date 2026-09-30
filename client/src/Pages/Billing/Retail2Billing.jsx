@@ -635,6 +635,15 @@ export default function Retail2Billing({ type }) {
       finalPaymentType = `Bank - ${selectedBank}`;
     }
 
+    const genericWalkInNames = ['walk-in customer', 'walking customer', 'walk-in', 'walking'];
+    const cleanCustName = (custName || '').trim().toLowerCase();
+    const isWalkInSale = !custObj || !custName || cleanCustName === '' || genericWalkInNames.includes(cleanCustName);
+
+    if (isWalkInSale && balance > 0.01) {
+      alert("⚠️ Restricted: Walk-in / Unregistered customers cannot have a pending balance (credit). Full payment is required or register the customer.");
+      return;
+    }
+
     setLoading(true);
     try {
       const saleData = {
@@ -744,6 +753,7 @@ export default function Retail2Billing({ type }) {
         setCustomerName('');
         setCustomerPhone('');
         setCustomerAddress('');
+        setSelectedCustomer(null);
         setTransportType('');
         setSelectedVehicleIds([]);
         setSupplierVehicleNumber('');
@@ -791,17 +801,16 @@ export default function Retail2Billing({ type }) {
       return;
     }
 
-    // Unregistered customer credit validation
+    // Unregistered / Walk-in customer credit validation
     const hasPendingBalance = (roundedNet - roundedPaid) > 0.01;
 
-    if (!selectedCustomer && hasPendingBalance) {
-      const isGenericWalkIn = !customerName || 
-                              customerName.trim().toLowerCase() === 'walk-in customer' || 
-                              customerName.trim().toLowerCase() === 'walking customer' || 
-                              customerName.trim().toLowerCase() === 'walk-in' ||
-                              customerName.trim().toLowerCase() === 'walking' ||
-                              customerName.trim() === '';
+    const genericWalkInNames = ['walk-in customer', 'walking customer', 'walk-in', 'walking'];
+    const cleanCustName = (customerName || '').trim().toLowerCase();
+    const isGenericWalkIn = !customerName || cleanCustName === '' || genericWalkInNames.includes(cleanCustName);
+    const isSelectedWalkIn = selectedCustomer && genericWalkInNames.includes(((selectedCustomer.name || '')).trim().toLowerCase());
+    const isUnregisteredOrWalkIn = !selectedCustomer || isGenericWalkIn || isSelectedWalkIn;
 
+    if (isUnregisteredOrWalkIn && hasPendingBalance) {
       setRegModalName(isGenericWalkIn ? '' : customerName.trim());
       setRegModalPhone(customerPhone || '');
       setRegModalAddress(customerAddress || '');
@@ -809,7 +818,7 @@ export default function Retail2Billing({ type }) {
       return;
     }
 
-    await proceedWithCheckout(selectedCustomer, customerName, customerPhone, customerAddress);
+    await proceedWithCheckout(isGenericWalkIn ? null : selectedCustomer, isGenericWalkIn ? '' : customerName, customerPhone, customerAddress);
   };
 
   const handleRegisterAndCheckout = async () => {
@@ -1067,6 +1076,7 @@ export default function Retail2Billing({ type }) {
               setDelivery(0);
               setSteelLabour(0);
               setPaidAmount(0);
+              setSelectedCustomer(null);
             }}><X size={18} /> Cancel Edit</button>
           )}
         </div>
