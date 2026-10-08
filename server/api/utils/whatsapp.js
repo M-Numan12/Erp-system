@@ -256,6 +256,12 @@ async function sendWhatsAppBill(sale, items) {
   const adminPhone = process.env.ADMIN_PHONE || '923214294301'; // Default fallback admin phone
   const isWholesale = !sale.sale_type || String(sale.sale_type).toLowerCase() === 'wholesale';
 
+  // Format Date and Time (Pakistan Standard Time)
+  const dateObj = sale.created_at ? new Date(sale.created_at) : (sale.date ? new Date(sale.date) : new Date());
+  const validDate = (dateObj && !isNaN(dateObj.getTime())) ? dateObj : new Date();
+  const dateStr = validDate.toLocaleDateString('en-GB', { timeZone: 'Asia/Karachi' });
+  const timeStr = validDate.toLocaleTimeString('en-US', { timeZone: 'Asia/Karachi', hour: '2-digit', minute: '2-digit', hour12: true });
+
   // 1. Build Items List for Admin (always has rates)
   let adminItemsList = '';
   items.forEach((item, idx) => {
@@ -278,6 +284,8 @@ async function sendWhatsAppBill(sale, items) {
     `-----------------------------------------\n` +
     `🧾 *NEW BILL GENERATED*\n\n` +
     `*Bill No:* #00${sale.id}\n` +
+    `*Date:* ${dateStr}\n` +
+    `*Time:* ${timeStr}\n` +
     `*Customer:* ${sale.customer_name || 'Walk-in Customer'}\n` +
     `*Phone:* ${sale.customer_phone || 'N/A'}\n` +
     `*Payment Mode:* ${sale.payment_type || 'Cash'}\n` +
@@ -300,6 +308,8 @@ async function sendWhatsAppBill(sale, items) {
       `-----------------------------------------\n` +
       `🧾 *NEW BILL GENERATED*\n\n` +
       `*Bill No:* #00${sale.id}\n` +
+      `*Date:* ${dateStr}\n` +
+      `*Time:* ${timeStr}\n` +
       `*Customer:* ${sale.customer_name || 'Walk-in Customer'}\n` +
       `*Phone:* ${sale.customer_phone || 'N/A'}\n` +
       `*Payment Mode:* ${sale.payment_type || 'Cash'}\n` +
@@ -312,6 +322,8 @@ async function sendWhatsAppBill(sale, items) {
       `-----------------------------------------\n` +
       `🧾 *NEW BILL GENERATED*\n\n` +
       `*Bill No:* #00${sale.id}\n` +
+      `*Date:* ${dateStr}\n` +
+      `*Time:* ${timeStr}\n` +
       `*Customer:* ${sale.customer_name || 'Walk-in Customer'}\n` +
       `*Phone:* ${sale.customer_phone || 'N/A'}\n` +
       `*Payment Mode:* ${sale.payment_type || 'Cash'}\n` +
