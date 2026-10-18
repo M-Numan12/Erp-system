@@ -1,5 +1,6 @@
 import React, { createContext, useState, useEffect } from 'react';
 import api from '../services/api';
+import { getDeviceId } from '../services/deviceIdentity';
 
 export const AuthContext = createContext();
 
@@ -42,7 +43,7 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   const login = async (email, password, rememberMe, isAdminLogin = false, coords = null) => {
-    const res = await api.post('/auth/login', { email, password, isAdminLogin, coords });
+    const res = await api.post('/auth/login', { email, password, isAdminLogin, coords, deviceId: getDeviceId() });
     localStorage.setItem('token', res.data.token);
     sessionStorage.setItem('token', res.data.token);
     setUser(sanitizeUser(res.data.user));
