@@ -127,29 +127,37 @@ exports.createSale = async (req, res) => {
     const saleId = saleResult.rows[0].id;
     const saleCreatedAt = saleResult.rows[0].created_at;
 
-    // 2. Inventory Pre-check
-    const productIds = [...new Set(items.map(item => item.product_id || item.id))];
-    if (productIds.length > 0) {
-      const placeholders = productIds.map((_, i) => `$${i + 1}`).join(', ');
-      const productsCheck = await client.query(
-        `SELECT id, name, stock_quantity FROM products WHERE id IN (${placeholders})`,
-        productIds
-      );
-
-      const productMap = {};
-      productsCheck.rows.forEach(p => { productMap[p.id] = p; });
-
-      for (const item of items) {
-        const prodId = item.product_id || item.id;
-        const requestedQty = parseFloat(item.qty || 0);
-        const pData = productMap[prodId];
-
-        if (pData) {
-          const currentInv = parseFloat(pData.stock_quantity || 0);
-          if (requestedQty > currentInv) {
-            throw new Error(`OUT OF STOCK PREVENTED: Available: ${currentInv}, Requested: ${requestedQty} for "${pData.name}". Transaction blocked.`);
-          }
-        }
+    // 2. Inventory validation and row locks prevent concurrent overselling.
+    if (!Array.isArray(items) || items.length === 0) {
+      throw new Error('A bill must contain at least one item');
+    }
+    const requestedByProduct = new Map();
+    for (const item of items) {
+      const id = Number(item.product_id || item.id);
+      const qty = Number(item.qty);
+      if (!Number.isSafeInteger(id) || id <= 0 || !Number.isFinite(qty) || qty <= 0) {
+        throw new Error('Each item must have a valid product and a positive quantity');
+      }
+      requestedByProduct.set(id, (requestedByProduct.get(id) || 0) + qty);
+    }
+    const productIds = [...requestedByProduct.keys()].sort((a, b) => a - b);
+    const placeholders = productIds.map((_, i) => `$${i + 1}`).join(', ');
+    // Locks are held until COMMIT/ROLLBACK, serializing sales of shared products.
+    const productsCheck = await client.query(
+      `SELECT id, name, module_type, stock_quantity FROM products
+       WHERE id IN (${placeholders}) ORDER BY id FOR UPDATE`,
+      productIds
+    );
+    const productMap = new Map(productsCheck.rows.map(p => [Number(p.id), p]));
+    for (const id of productIds) {
+      const product = productMap.get(id);
+      if (!product || product.module_type !== finalModule) {
+        throw new Error('Product not found in this billing module');
+      }
+      const requested = requestedByProduct.get(id);
+      const available = Number(product.stock_quantity || 0);
+      if (!Number.isFinite(available) || requested > available) {
+        throw new Error(`OUT OF STOCK: Available ${available}, requested ${requested} for "${product.name}"`);
       }
     }
 
