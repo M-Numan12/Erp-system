@@ -1,0 +1,6 @@
+# Local configuration and secrets: never commit these
+.env
+.env.*
+!.env.example
+node_modules/
+public/temp/
