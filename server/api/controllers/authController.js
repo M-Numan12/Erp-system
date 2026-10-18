@@ -689,7 +689,7 @@ exports.checkDeviceStatus = async (req, res) => {
           email: user.email,
           role: user.role,
           module_type: finalModuleType,
-          passwordHash: user.password
+          credentialFingerprint: credentialFingerprint(user.password)
         }
       };
 
