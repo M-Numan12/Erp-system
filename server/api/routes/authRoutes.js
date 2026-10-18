@@ -33,7 +33,7 @@ router.post('/reset-password', authController.resetPassword);
 // @access  Public
 // Device approvals must use the authenticated admin API: PUT /api/users/devices/:deviceId/approve.
 // Public GET approval links were unsafe and have been disabled.
-router.get('/debug-devices', authController.debugDevices);
+// Unauthenticated device debugging endpoint disabled (exposed device records).
 router.get('/check-device-status', authController.checkDeviceStatus);
 
 // @route   GET api/auth/me
