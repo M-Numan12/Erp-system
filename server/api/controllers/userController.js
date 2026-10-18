@@ -1,10 +1,11 @@
 const pool = require('../config/db');
+const { hashPassword } = require('../utils/passwordSecurity');
 
 // GET all users (Admin only)
 exports.getUsers = async (req, res) => {
   try {
     // Include password in the SELECT query so admin can see it
-    const result = await pool.query('SELECT id, name, email, password, role, module_type, permissions, created_at FROM users ORDER BY created_at DESC');
+    const result = await pool.query('SELECT id, name, email, role, module_type, permissions, created_at FROM users ORDER BY created_at DESC');
     res.json(result.rows);
   } catch (err) {
     console.error(err.message);
@@ -21,9 +22,10 @@ exports.createUser = async (req, res) => {
       return res.status(400).json({ msg: 'User already exists' });
     }
 
+    const passwordDigest = await hashPassword(password);
     const result = await pool.query(
-      'INSERT INTO users (name, email, password, role, module_type, permissions) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id, name, email, password, role, module_type, permissions',
-      [name, email, password, role || 'user', module_type || null, JSON.stringify(permissions || [])]
+      'INSERT INTO users (name, email, password, role, module_type, permissions) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id, name, email, role, module_type, permissions',
+      [name, email, passwordDigest, role || 'user', module_type || null, JSON.stringify(permissions || [])]
     );
 
     res.json(result.rows[0]);
@@ -41,13 +43,14 @@ exports.updateUser = async (req, res) => {
   try {
     let result;
     if (password) {
+      const passwordDigest = await hashPassword(password);
       result = await pool.query(
-        'UPDATE users SET name = $1, email = $2, password = $3, role = $4, module_type = $5, permissions = $6 WHERE id = $7 RETURNING id, name, email, password, role, module_type, permissions',
-        [name, email, password, role || 'user', module_type || null, JSON.stringify(permissions || []), id]
+        'UPDATE users SET name = $1, email = $2, password = $3, role = $4, module_type = $5, permissions = $6 WHERE id = $7 RETURNING id, name, email, role, module_type, permissions',
+        [name, email, passwordDigest, role || 'user', module_type || null, JSON.stringify(permissions || []), id]
       );
     } else {
       result = await pool.query(
-        'UPDATE users SET name = $1, email = $2, role = $3, module_type = $4, permissions = $5 WHERE id = $6 RETURNING id, name, email, password, role, module_type, permissions',
+        'UPDATE users SET name = $1, email = $2, role = $3, module_type = $4, permissions = $5 WHERE id = $6 RETURNING id, name, email, role, module_type, permissions',
         [name, email, role || 'user', module_type || null, JSON.stringify(permissions || []), id]
       );
     }
