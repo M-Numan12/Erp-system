@@ -602,102 +602,28 @@ exports.debugDevices = async (req, res) => {
 // @access  Public
 exports.checkDeviceStatus = async (req, res) => {
   try {
-    const { email } = req.query;
-    if (!email) {
-      return res.status(400).json({ msg: 'Email is required' });
-    }
+    const email = String(req.query.email || '').toLowerCase().trim();
+    if (!email) return res.status(400).json({ msg: 'Email is required' });
 
-    // Find user
-    const userResult = await pool.query('SELECT * FROM users WHERE LOWER(email) = LOWER($1)', [email.toLowerCase().trim()]);
-    if (userResult.rows.length === 0) {
-      return res.status(404).json({ msg: 'User not found' });
-    }
-    const user = userResult.rows[0];
-    const isUserAdmin = (user.role || '').toLowerCase().includes('admin') || (user.email || '').toLowerCase().trim() === 'datawaley.support@gmail.com' || (user.email || '').toLowerCase().trim() === 'hassam4288@gmail.com';
+    const userResult = await pool.query('SELECT id FROM users WHERE LOWER(email) = $1', [email]);
+    if (!userResult.rows.length) return res.json({ approved: false });
 
-    // Extract IP and UA
-    const rawIp = req.headers['x-forwarded-for'] 
-      ? req.headers['x-forwarded-for'].split(',')[0].trim() 
+    const rawIp = req.headers['x-forwarded-for']
+      ? req.headers['x-forwarded-for'].split(',')[0].trim()
       : req.ip || req.connection.remoteAddress;
-    const ip = rawIp.replace('::ffff:', '');
-    const userAgent = req.headers['user-agent'] || '';
-    const normalizedUA = normalizeUserAgent(userAgent);
+    const ip = String(rawIp || '').replace('::ffff:', '');
+    const normalizedUA = normalizeUserAgent(req.headers['user-agent'] || '');
 
-    let isApproved = false;
-    // Flexible matching: check if device is approved by UA, IP, or if user has any approved device
-      const approvedDeviceResult = await pool.query(
-        'SELECT * FROM user_devices WHERE user_id = $1 AND is_approved = true AND (user_agent = $2 OR user_agent = $3 OR ip_address = $4) ORDER BY last_login_at DESC',
-        [user.id, normalizedUA, userAgent, ip]
-      );
-      if (approvedDeviceResult.rows.length > 0) {
-        isApproved = true;
-      } else {
-        // Fallback: Check if ANY device for user was approved by admin
-        const anyApproved = await pool.query(
-          'SELECT * FROM user_devices WHERE user_id = $1 AND is_approved = true ORDER BY last_login_at DESC LIMIT 1',
-          [user.id]
-        );
-        if (anyApproved.rows.length > 0) {
-          isApproved = true;
-          // Update approved device with current IP/UA so future checks are instant
-          const activeDev = anyApproved.rows[0];
-          pool.query(
-            'UPDATE user_devices SET ip_address = $1, user_agent = $2, last_login_at = CURRENT_TIMESTAMP WHERE id = $3',
-            [ip, normalizedUA, activeDev.id]
-          ).catch(() => {});
-        }
-      }
+    const approvedDevice = await pool.query(
+      'SELECT id FROM user_devices WHERE user_id = $1 AND ip_address = $2 AND user_agent = $3 AND is_approved = true LIMIT 1',
+      [userResult.rows[0].id, ip, normalizedUA]
+    );
 
-    if (isApproved) {
-      const getModuleType = (email, role, currentType) => {
-        if (currentType) return currentType;
-        const r = (role || '').toLowerCase();
-        const em = (email || '').toLowerCase();
-        if (r.includes('wholesale') || em.includes('wholesale')) return 'Wholesale';
-        if (r.includes('retail 1') || r.includes('retail1') || em.includes('retail1') || em.includes('retailsaller1')) return 'Retail 1';
-        if (r.includes('retail 2') || r.includes('retail2') || em.includes('retail2') || em.includes('retailseller2') || em.includes('wali2022')) return 'Retail 2';
-        if (r.includes('retail 3') || r.includes('retail3') || em.includes('retail3') || em.includes('retailseller3')) return 'Retail 3';
-        if (r.includes('admin') || em === 'datawaley.support@gmail.com') return 'admin';
-        return null;
-      };
-
-      const finalModuleType = getModuleType(user.email, user.role, user.module_type);
-
-      const payload = {
-        user: {
-          id: user.id,
-          email: user.email,
-          role: user.role,
-          module_type: finalModuleType,
-          passwordHash: user.password
-        }
-      };
-
-      jwt.sign(
-        payload,
-        process.env.JWT_SECRET || 'secret123',
-        { expiresIn: '5 days' },
-        (err, token) => {
-          if (err) throw err;
-          return res.json({ 
-            approved: true,
-            token, 
-            user: { 
-              id: user.id, 
-              name: user.name, 
-              email: user.email, 
-              role: user.role,
-              module_type: finalModuleType,
-              permissions: user.permissions || [] 
-            } 
-          });
-        }
-      );
-    } else {
-      return res.json({ approved: false });
-    }
+    // Never mint access tokens from an unauthenticated status polling endpoint.
+    // After approval, the user must submit their password through /auth/login again.
+    return res.json({ approved: approvedDevice.rows.length > 0 });
   } catch (err) {
     console.error('Check device status error:', err.message);
-    res.status(500).send('Server error');
+    return res.status(500).json({ msg: 'Unable to check device approval' });
   }
 };
