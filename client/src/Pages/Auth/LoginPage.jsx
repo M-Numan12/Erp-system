@@ -14,7 +14,7 @@ const LoginPage = () => {
   const [isPendingApproval, setIsPendingApproval] = useState(false);
   const [pollEmail, setPollEmail] = useState('');
 
-  const { login, autoLogin } = useContext(AuthContext);
+  const { login } = useContext(AuthContext);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -25,8 +25,8 @@ const LoginPage = () => {
           const res = await api.get(`/auth/check-device-status?email=${encodeURIComponent(pollEmail)}`);
           if (res.data && res.data.approved) {
             clearInterval(intervalId);
-            autoLogin(res.data.token, res.data.user, rememberMe);
-            navigate('/dashboard');
+            setIsPendingApproval(false);
+            setError('Device approved. Please log in again with your password.');
           }
         } catch (err) {
           console.error("Polling device status failed", err);
@@ -36,7 +36,7 @@ const LoginPage = () => {
     return () => {
       if (intervalId) clearInterval(intervalId);
     };
-  }, [isPendingApproval, pollEmail, rememberMe, autoLogin, navigate]);
+  }, [isPendingApproval, pollEmail]);
 
   const getCoordinates = () => {
     return new Promise((resolve) => {
