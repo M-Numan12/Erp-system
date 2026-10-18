@@ -58,11 +58,12 @@ module.exports = async function (req, res, next) {
 
       // Device approval check for all users (including Admin)
       const deviceResult = await pool.query(
-        'SELECT * FROM user_devices WHERE user_id = $1 AND is_approved = true AND (user_agent = $2 OR user_agent = $3 OR ip_address = $4)',
-        [parseInt(req.user.id, 10), normalizedUA, userAgent, ip]
+        'SELECT * FROM user_devices WHERE user_id = $1 AND is_approved = true AND ip_address = $2 AND (user_agent = $3 OR user_agent = $4)',
+        [parseInt(req.user.id, 10), ip, normalizedUA, userAgent]
       );
 
-        let finalDevices = deviceResult.rows;
+        const finalDevices = deviceResult.rows;
+
         if (finalDevices.length === 0) {
           const fallbackApproved = await pool.query(
             'SELECT * FROM user_devices WHERE user_id = $1 AND is_approved = true LIMIT 1',
