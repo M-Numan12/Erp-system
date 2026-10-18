@@ -89,8 +89,9 @@ exports.receiveStock = async (req, res) => {
     await client.query('BEGIN');
     const { quantity, vehicle_number, module_type } = req.body;
     const parsedQty = parseFloat(quantity);
-    if (isNaN(parsedQty)) {
-      return res.status(400).json({ error: "Invalid quantity provided" });
+    if (!Number.isFinite(parsedQty) || parsedQty <= 0) {
+      await client.query('ROLLBACK');
+      return res.status(400).json({ error: "Quantity must be a positive finite number" });
     }
     
     // Update product stock
