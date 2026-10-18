@@ -1,6 +1,9 @@
 process.env.TZ = 'Asia/Karachi'; // Enforce local time for all application logic
 const path = require('path');
 require('dotenv').config({ path: path.join(__dirname, '.env') });
+if (!process.env.JWT_SECRET || process.env.JWT_SECRET.length < 32) {
+  throw new Error('JWT_SECRET must be set to a secure value of at least 32 characters');
+}
 const express = require('express');
 const cors = require('cors');
 const fs = require('fs');
