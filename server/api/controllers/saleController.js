@@ -309,7 +309,8 @@ exports.receivePayment = async (req, res) => {
     await client.query('BEGIN');
     const { customer_id, amount, payment_reference, payment_type, module_type } = req.body;
     const parsedAmount = parseFloat(amount);
-    if (isNaN(parsedAmount) || parsedAmount <= 0) {
+    if (!Number.isFinite(parsedAmount) || parsedAmount <= 0) {
+      await client.query('ROLLBACK');
       return res.status(400).json({ error: 'Invalid payment amount' });
     }
 
@@ -340,6 +341,8 @@ exports.receivePayment = async (req, res) => {
 
     await client.query('COMMIT');
 
+    // Messaging errors must not report a committed payment as failed.
+    try {
     const custPhoneRes = await pool.query('SELECT phone FROM customers WHERE id = $1', [customer_id]);
     const custPhone = custPhoneRes.rows[0]?.phone;
     const paymentMessage = `💰 *PAYMENT RECEIPT*\n` +
@@ -358,6 +361,9 @@ exports.receivePayment = async (req, res) => {
     const adminMessage = `🚨 *ADMIN COPY: PAYMENT RECEIPT*\n\n${paymentMessage}`;
     await sendWhatsAppMessage(adminPhone, adminMessage);
 
+    } catch (notificationError) {
+      console.error('Payment committed, notification failed:', notificationError);
+    }
     res.json({ success: true, recordId: insertRes.rows[0].id });
   } catch (err) {
     await client.query('ROLLBACK');
