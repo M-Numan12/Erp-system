@@ -367,7 +367,7 @@ exports.forgotPassword = async (req, res) => {
     await emailService.sendResetCode(email.trim(), user.name, code);
 
     // 5. Always log the code to server console for testing/verification safety
-    console.log(`🔑 PASSWORD RESET CODE GENERATED: [${code}] for email: <${email.trim()}>`);
+    // Do not log password reset OTPs or authentication secrets.
 
     res.json({ success: true, msg: 'Verification code sent to your email.' });
   } catch (err) {
