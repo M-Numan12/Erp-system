@@ -23,7 +23,7 @@ module.exports = async function (req, res, next) {
 
   // Verify token
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secret123');
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
     req.user = decoded.user;
     if (req.user) {
       // Check if user's password has changed since the token was issued
@@ -33,7 +33,7 @@ module.exports = async function (req, res, next) {
       }
       
       const dbUser = userResult.rows[0];
-      if (!req.user.credentialVersion || req.user.credentialVersion !== credentialVersion(dbUser.password, process.env.JWT_SECRET || 'secret123')) {
+      if (!req.user.credentialVersion || req.user.credentialVersion !== credentialVersion(dbUser.password, process.env.JWT_SECRET)) {
         return res.status(401).json({ msg: 'Password changed or session expired. Please log in again.' });
       }
 
