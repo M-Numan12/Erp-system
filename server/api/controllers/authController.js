@@ -1,4 +1,5 @@
 const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
 const pool = require('../config/db');
 const axios = require('axios');
 
@@ -61,10 +62,10 @@ const checkAndAlertNewDevice = async (user, ip, userAgent, coords = null) => {
 
     const normalizedUA = normalizeUserAgent(userAgent);
 
-    // Register/update device entry safely using ON CONFLICT
+    // Approved state must never be silently elevated by background login alerts.
     await pool.query(
       `INSERT INTO user_devices (user_id, ip_address, user_agent, device_name, is_approved, location, latitude, longitude, last_login_at) 
-       VALUES ($1, $2, $3, $4, true, $5, $6, $7, CURRENT_TIMESTAMP)
+       VALUES ($1, $2, $3, $4, false, $5, $6, $7, CURRENT_TIMESTAMP)
        ON CONFLICT (user_id, ip_address, user_agent)
        DO UPDATE SET 
          last_login_at = CURRENT_TIMESTAMP, 
@@ -121,7 +122,11 @@ exports.register = async (req, res) => {
 };
 
 exports.login = async (req, res) => {
-  const { email, password, isAdminLogin, coords } = req.body;
+  const { email, password, isAdminLogin, coords, deviceId } = req.body;
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(deviceId || ''))) {
+    return res.status(400).json({ msg: 'A valid device identity is required to sign in.' });
+  }
+  const deviceKeyHash = crypto.createHash('sha256').update(String(deviceId)).digest('hex');
 
   try {
     const cleanEmail = (email || '').toLowerCase().trim();
@@ -193,19 +198,10 @@ exports.login = async (req, res) => {
 
     const normalizedUA = normalizeUserAgent(userAgent);
 
-    let isApproved = isUserAdmin || process.env.NODE_ENV === 'development';
+    // The first valid login from an unknown device requires admin approval.
+    // Admin portal users bootstrap their own device so they can manage approvals.
+    let isApproved = isUserAdmin;
     let pendingDeviceId = null;
-
-    if (!isApproved) {
-      // Check if user already has ANY approved device, or if this exact device was already approved
-      const approvedDeviceCheck = await pool.query(
-        'SELECT id FROM user_devices WHERE user_id = $1 AND is_approved = true LIMIT 1',
-        [user.id]
-      );
-      if (approvedDeviceCheck.rows.length > 0) {
-        isApproved = true;
-      }
-    }
 
     let locationStr = 'Local / Unknown';
     if (ip && ip !== '127.0.0.1' && ip !== '::1' && !ip.startsWith('192.168.')) {
@@ -225,25 +221,38 @@ exports.login = async (req, res) => {
       deviceName = `${os} / ${browser}`;
     } catch (e) {}
 
-    // Atomic UPSERT using ON CONFLICT (user_id, ip_address, user_agent)
-    const deviceResult = await pool.query(
-      `INSERT INTO user_devices (user_id, ip_address, user_agent, device_name, is_approved, location, latitude, longitude, last_login_at) 
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, CURRENT_TIMESTAMP)
-       ON CONFLICT (user_id, ip_address, user_agent) 
-       DO UPDATE SET 
-         is_approved = user_devices.is_approved OR EXCLUDED.is_approved,
-         location = COALESCE(EXCLUDED.location, user_devices.location),
-         latitude = COALESCE(EXCLUDED.latitude, user_devices.latitude),
-         longitude = COALESCE(EXCLUDED.longitude, user_devices.longitude),
-         last_login_at = CURRENT_TIMESTAMP
-       RETURNING id, is_approved`,
-      [user.id, ip, normalizedUA, deviceName, isApproved, locationStr, lat, lon]
+    // Reuse the same trusted device even if its IP address changes.
+    const knownDevice = await pool.query(
+      'SELECT id, is_approved FROM user_devices WHERE user_id = $1 AND device_key_hash = $2 LIMIT 1',
+      [user.id, deviceKeyHash]
     );
-
-    if (deviceResult.rows.length > 0) {
-      const activeDev = deviceResult.rows[0];
-      pendingDeviceId = activeDev.id;
-      isApproved = activeDev.is_approved || isApproved;
+    if (knownDevice.rows.length) {
+      pendingDeviceId = knownDevice.rows[0].id;
+      isApproved = knownDevice.rows[0].is_approved || isUserAdmin;
+      await pool.query(
+        'UPDATE user_devices SET last_login_at = CURRENT_TIMESTAMP WHERE id = $1',
+        [pendingDeviceId]
+      );
+    } else {
+      // Some old rows use (user_id, ip_address, user_agent) as their unique key.
+      // Reassigning a legacy row to a NEW key always resets approval.
+      const newDevice = await pool.query(
+        `INSERT INTO user_devices
+           (user_id, ip_address, user_agent, device_name, is_approved,
+            device_key_hash, location, latitude, longitude, last_login_at)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, CURRENT_TIMESTAMP)
+         ON CONFLICT (user_id, ip_address, user_agent)
+         DO UPDATE SET
+           device_key_hash = EXCLUDED.device_key_hash,
+           is_approved = false,
+           last_login_at = CURRENT_TIMESTAMP
+         RETURNING id, is_approved`,
+        [user.id, ip, normalizedUA, deviceName, isUserAdmin,
+         deviceKeyHash, locationStr, lat, lon]
+      );
+      pendingDeviceId = newDevice.rows[0].id;
+      isApproved = newDevice.rows[0].is_approved || isUserAdmin;
+      // A prior approved device is NEVER sufficient to approve this key.
     }
 
     if (!isApproved) {
@@ -282,6 +291,7 @@ exports.login = async (req, res) => {
       console.warn("⚠️ Alert notification error:", err.message);
     });
 
+    payload.user.deviceRecordId = pendingDeviceId;
     jwt.sign(
       payload,
       process.env.JWT_SECRET || 'secret123',
@@ -603,20 +613,17 @@ exports.debugDevices = async (req, res) => {
 exports.checkDeviceStatus = async (req, res) => {
   try {
     const email = String(req.query.email || '').toLowerCase().trim();
+    const deviceId = String(req.query.deviceId || '');
+    if (!/^[0-9a-f-]{36}$/i.test(deviceId)) return res.json({ approved: false });
+    const deviceKeyHash = crypto.createHash('sha256').update(deviceId).digest('hex');
     if (!email) return res.status(400).json({ msg: 'Email is required' });
 
     const userResult = await pool.query('SELECT id FROM users WHERE LOWER(email) = $1', [email]);
     if (!userResult.rows.length) return res.json({ approved: false });
 
-    const rawIp = req.headers['x-forwarded-for']
-      ? req.headers['x-forwarded-for'].split(',')[0].trim()
-      : req.ip || req.connection.remoteAddress;
-    const ip = String(rawIp || '').replace('::ffff:', '');
-    const normalizedUA = normalizeUserAgent(req.headers['user-agent'] || '');
-
     const approvedDevice = await pool.query(
-      'SELECT id FROM user_devices WHERE user_id = $1 AND ip_address = $2 AND user_agent = $3 AND is_approved = true LIMIT 1',
-      [userResult.rows[0].id, ip, normalizedUA]
+      'SELECT id FROM user_devices WHERE user_id = $1 AND device_key_hash = $2 AND is_approved = true LIMIT 1',
+      [userResult.rows[0].id, deviceKeyHash]
     );
 
     // Never mint access tokens from an unauthenticated status polling endpoint.
