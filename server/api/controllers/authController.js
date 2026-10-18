@@ -157,7 +157,7 @@ exports.login = async (req, res) => {
         email: user.email,
         role: user.role,
         module_type: finalModuleType,
-        credentialVersion: credentialVersion(user.password, process.env.JWT_SECRET || 'secret123')
+        credentialVersion: credentialVersion(user.password, process.env.JWT_SECRET)
       }
     };
 
@@ -273,7 +273,7 @@ exports.login = async (req, res) => {
     payload.user.deviceRecordId = pendingDeviceId;
     jwt.sign(
       payload,
-      process.env.JWT_SECRET || 'secret123',
+      process.env.JWT_SECRET,
       { expiresIn: '5 days' },
       (err, token) => {
         if (err) throw err;
