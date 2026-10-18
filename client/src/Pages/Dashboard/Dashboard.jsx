@@ -94,7 +94,7 @@ export default function Dashboard() {
       if (!document.hidden) {
         fetchStats();
       }
-    }, 30000);
+    }, 90000);
 
     const handleVisibilityChange = () => {
       if (!document.hidden) {
