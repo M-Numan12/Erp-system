@@ -107,7 +107,7 @@ exports.register = async (req, res) => {
 
     jwt.sign(
       payload,
-      process.env.JWT_SECRET || 'secret123',
+      process.env.JWT_SECRET,
       { expiresIn: '5 days' },
       (err, token) => {
         if (err) throw err;
@@ -284,7 +284,7 @@ exports.login = async (req, res) => {
 
     jwt.sign(
       payload,
-      process.env.JWT_SECRET || 'secret123',
+      process.env.JWT_SECRET,
       { expiresIn: '5 days' },
       (err, token) => {
         if (err) throw err;
@@ -675,7 +675,7 @@ exports.checkDeviceStatus = async (req, res) => {
 
       jwt.sign(
         payload,
-        process.env.JWT_SECRET || 'secret123',
+        process.env.JWT_SECRET,
         { expiresIn: '5 days' },
         (err, token) => {
           if (err) throw err;
