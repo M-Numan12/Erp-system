@@ -22,7 +22,7 @@ module.exports = async function (req, res, next) {
 
   // Verify token
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secret123');
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
     req.user = decoded.user;
     if (req.user) {
       // Check if user's password has changed since the token was issued
