@@ -80,7 +80,7 @@ export default function UsersManager() {
     setFormData({
       name: user.name,
       email: user.email,
-      password: '' // Leave blank to preserve current password, 
+      password: '', // Leave blank to preserve current password
       role: user.role,
       module_type: user.module_type || '',
       permissions: userPermissions
