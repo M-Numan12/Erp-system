@@ -2,6 +2,7 @@ import React, { useState, useEffect, useContext } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { AuthContext } from '../../context/AuthContext';
 import api from '../../services/api';
+import { getDeviceId } from '../../services/deviceIdentity';
 import { Building2, Eye, EyeOff } from 'lucide-react';
 import '../../Styles/LoginPage.scss';
 
@@ -22,7 +23,7 @@ const LoginPage = () => {
     if (isPendingApproval && pollEmail) {
       intervalId = setInterval(async () => {
         try {
-          const res = await api.get(`/auth/check-device-status?email=${encodeURIComponent(pollEmail)}`);
+          const res = await api.get(`/auth/check-device-status?email=${encodeURIComponent(pollEmail)}&deviceId=${encodeURIComponent(getDeviceId())}`);
           if (res.data && res.data.approved) {
             clearInterval(intervalId);
             setIsPendingApproval(false);
@@ -115,7 +116,7 @@ const LoginPage = () => {
             </div>
             <h3 style={{ marginBottom: '10px', color: '#1e293b' }}>Waiting for Admin Approval</h3>
             <p style={{ fontSize: '0.88rem', color: '#64748b', marginBottom: '25px', lineHeight: '1.6' }}>
-              Your device details have been submitted. Once the administrator approves this device, you will be signed in automatically.
+              Your device details have been submitted. Once the administrator approves this device, please sign in again with your password.
             </p>
             <button 
               onClick={() => {

@@ -1,5 +1,6 @@
 import React, { createContext, useState, useEffect } from 'react';
 import api from '../services/api';
+import { getDeviceId } from '../services/deviceIdentity';
 
 export const AuthContext = createContext();
 
@@ -41,8 +42,27 @@ export const AuthProvider = ({ children }) => {
     loadUser();
   }, []);
 
+  // Device revocation is enforced by the API on every request; periodically
+  // revalidate so an already-open dashboard signs out without a page reload.
+  useEffect(() => {
+    if (!user) return undefined;
+    const checkSession = async () => {
+      try {
+        await api.get('/auth/me');
+      } catch (err) {
+        if (err.response?.status === 401) {
+          localStorage.removeItem('token');
+          sessionStorage.removeItem('token');
+          setUser(null);
+        }
+      }
+    };
+    const timer = setInterval(checkSession, 15000);
+    return () => clearInterval(timer);
+  }, [user]);
+
   const login = async (email, password, rememberMe, isAdminLogin = false, coords = null) => {
-    const res = await api.post('/auth/login', { email, password, isAdminLogin, coords });
+    const res = await api.post('/auth/login', { email, password, isAdminLogin, coords, deviceId: getDeviceId() });
     localStorage.setItem('token', res.data.token);
     sessionStorage.setItem('token', res.data.token);
     setUser(sanitizeUser(res.data.user));

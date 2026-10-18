@@ -47,61 +47,19 @@ module.exports = async function (req, res, next) {
 
       const isUserAdmin = (req.user.role || '').toLowerCase().includes('admin') || (req.user.email || '').toLowerCase().trim() === 'datawaley.support@gmail.com' || (req.user.email || '').toLowerCase().trim() === 'hassam4288@gmail.com';
 
-      // Extract IP and User-Agent
-      const rawIp = req.headers['x-forwarded-for'] 
-        ? req.headers['x-forwarded-for'].split(',')[0].trim() 
-        : req.ip || req.connection.remoteAddress;
-      const ip = rawIp.replace('::ffff:', '');
-      const userAgent = req.headers['user-agent'] || '';
-
-      const normalizedUA = normalizeUserAgent(userAgent);
-
-      // Device approval check for all users (including Admin)
-      const deviceResult = await pool.query(
-        'SELECT * FROM user_devices WHERE user_id = $1 AND is_approved = true AND (user_agent = $2 OR user_agent = $3 OR ip_address = $4)',
-        [parseInt(req.user.id, 10), normalizedUA, userAgent, ip]
+      // A JWT is valid only for the device approved at login.
+      // Deleting the device record revokes its token on the next API call.
+      const deviceRecordId = Number(req.user.deviceRecordId);
+      if (!Number.isSafeInteger(deviceRecordId) || deviceRecordId <= 0) {
+        return res.status(401).json({ msg: 'Please sign in again to register this device.' });
+      }
+      const approval = await pool.query(
+        'SELECT id FROM user_devices WHERE id = $1 AND user_id = $2 AND is_approved = true',
+        [deviceRecordId, req.user.id]
       );
-
-        let finalDevices = deviceResult.rows;
-        if (finalDevices.length === 0) {
-          const fallbackApproved = await pool.query(
-            'SELECT * FROM user_devices WHERE user_id = $1 AND is_approved = true LIMIT 1',
-            [parseInt(req.user.id, 10)]
-          );
-          finalDevices = fallbackApproved.rows;
-        }
-
-        if (finalDevices.length === 0) {
-          console.warn(`❌ [Auth Middleware] Access DENIED for user ${req.user.id}. No approved device matching UA: "${userAgent}"`);
-          return res.status(401).json({ msg: 'Session expired or device unauthorized. Please log in again.' });
-        } else {
-          // Find if we have a row that matches the current IP exactly
-          const exactMatch = deviceResult.rows.find(d => d.ip_address === ip);
-          if (exactMatch) {
-            pool.query(
-              'UPDATE user_devices SET last_login_at = CURRENT_TIMESTAMP, user_agent = $1 WHERE id = $2',
-              [normalizedUA, exactMatch.id]
-            ).catch(err => {});
-          } else {
-            pool.query(
-              'SELECT id FROM user_devices WHERE user_id = $1 AND ip_address = $2 AND (user_agent = $3 OR user_agent = $4)',
-              [parseInt(req.user.id, 10), ip, normalizedUA, userAgent]
-            ).then(checkRes => {
-              if (checkRes.rows.length > 0) {
-                pool.query(
-                  'UPDATE user_devices SET last_login_at = CURRENT_TIMESTAMP, user_agent = $1 WHERE id = $2',
-                  [normalizedUA, checkRes.rows[0].id]
-                ).catch(err => {});
-              } else {
-                const activeDevice = deviceResult.rows[0];
-                pool.query(
-                  'UPDATE user_devices SET ip_address = $1, last_login_at = CURRENT_TIMESTAMP, user_agent = $2 WHERE id = $3',
-                  [ip, normalizedUA, activeDevice.id]
-                ).catch(err => {});
-              }
-            }).catch(err => {});
-          }
-        }
+      if (!approval.rows.length) {
+        return res.status(401).json({ msg: 'Device access revoked. Please sign in again.' });
+      }
     }
     next();
   } catch (err) {
