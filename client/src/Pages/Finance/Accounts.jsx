@@ -729,8 +729,13 @@ export default function Accounts() {
   // Initialise data on mount
   useEffect(() => {
     let isMounted = true;
+    let isLoadingData = false;
 
     const loadData = async () => {
+      // A bank balance refresh can be expensive. Never queue another refresh
+      // while the previous batch of eight API requests is still active.
+      if (isLoadingData) return;
+      isLoadingData = true;
       try {
         await loadAllData();
         if (isMounted) {
@@ -739,6 +744,7 @@ export default function Accounts() {
       } catch (err) {
         console.error("Error loading accounts data:", err);
       } finally {
+        isLoadingData = false;
         if (isMounted) {
           setInitialLoading(false);
         }
@@ -752,7 +758,7 @@ export default function Accounts() {
       if (!document.hidden) {
         loadData();
       }
-    }, 45000);
+    }, 180000);
 
     const handleVisibilityChange = () => {
       if (!document.hidden) {
