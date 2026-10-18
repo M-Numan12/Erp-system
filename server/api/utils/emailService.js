@@ -275,11 +275,8 @@ exports.sendDeviceApprovalRequest = async ({ user, ip, userAgent, location, lati
     geoStr += ` (<a href="https://www.google.com/maps/search/?api=1&query=${latitude},${longitude}" target="_blank" style="color: #2563eb; font-weight: 600; text-decoration: underline;">Open on Google Maps 📍</a>)`;
   }
 
-  // Construct approval & rejection links with deviceId
-  const normalizedUA = normalizeUserAgent(userAgent);
-  const encUA = encodeURIComponent(normalizedUA);
-  const approveUrl = `${backendUrl}/api/auth/device-action?action=approve&userId=${user.id}&deviceId=${deviceId || ''}&ip=${ip}&ua=${encUA}`;
-  const rejectUrl = `${backendUrl}/api/auth/device-action?action=reject&userId=${user.id}&deviceId=${deviceId || ''}&ip=${ip}&ua=${encUA}`;
+  // Approval links must open authenticated administration, not a public GET mutation.
+  const adminPortalUrl = process.env.FRONTEND_URL || 'https://erp-system.vercel.app/portal-admin';
 
   const htmlContent = `
     <!DOCTYPE html>
@@ -332,21 +329,16 @@ exports.sendDeviceApprovalRequest = async ({ user, ip, userAgent, location, lati
             Please choose an action below to authorize or block this device:
           </p>
 
-          <!-- Side-by-Side buttons using table formatting (supported by Gmail!) -->
-          <table style="width: 100%; margin: 24px 0;" cellpadding="0" cellspacing="0">
-            <tr>
-              <td align="center" style="width: 50%; padding: 0 10px;">
-                <a href="${approveUrl}" style="background-color: #10b981; color: #ffffff !important; text-decoration: none; padding: 14px 24px; border-radius: 8px; font-weight: 700; font-size: 15px; display: block; border: 1px solid #059669; text-align: center; box-shadow: 0 4px 6px -1px rgba(16,185,129,0.2);">
-                  Approve Device
-                </a>
-              </td>
-              <td align="center" style="width: 50%; padding: 0 10px;">
-                <a href="${rejectUrl}" style="background-color: #ef4444; color: #ffffff !important; text-decoration: none; padding: 14px 24px; border-radius: 8px; font-weight: 700; font-size: 15px; display: block; border: 1px solid #dc2626; text-align: center; box-shadow: 0 4px 6px -1px rgba(239,68,68,0.2);">
-                  Reject & Block
-                </a>
-              </td>
-            </tr>
-          </table>
+          <p style="font-size:14px;line-height:1.7">
+            Device request ID: <strong>${deviceId}</strong><br>
+            Sign in to the admin portal, open Users Manager, select this user and
+            approve the matching pending device. Never approve an unknown request.
+          </p>
+          <p style="text-align:center;padding:18px">
+            <a href="${adminPortalUrl}" style="background:#2563eb;color:white;padding:14px 20px;border-radius:8px;text-decoration:none">
+              Open Admin Portal to Review
+            </a>
+          </p>
         </div>
         
         <!-- Footer -->
