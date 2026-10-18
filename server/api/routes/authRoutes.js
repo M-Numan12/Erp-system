@@ -31,7 +31,7 @@ router.post('/reset-password', authController.resetPassword);
 // @route   GET api/auth/device-action
 // @desc    Approve or reject a login device
 // @access  Public
-router.get('/device-action', authController.deviceAction);
+// Security: device approval actions are only available via authenticated admin routes.
 // Unauthenticated device record diagnostics are disabled.
 router.get('/check-device-status', authController.checkDeviceStatus);
 
