@@ -31,7 +31,8 @@ router.post('/reset-password', authController.resetPassword);
 // @route   GET api/auth/device-action
 // @desc    Approve or reject a login device
 // @access  Public
-router.get('/device-action', authController.deviceAction);
+// Device approvals must use the authenticated admin API: PUT /api/users/devices/:deviceId/approve.
+// Public GET approval links were unsafe and have been disabled.
 router.get('/debug-devices', authController.debugDevices);
 router.get('/check-device-status', authController.checkDeviceStatus);
 
