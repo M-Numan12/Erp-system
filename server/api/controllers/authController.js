@@ -1,4 +1,5 @@
 const jwt = require('jsonwebtoken');
+const { isPasswordHash, hashPassword, verifyPassword, credentialFingerprint } = require('../utils/passwordSecurity');
 const pool = require('../config/db');
 const axios = require('axios');
 
@@ -88,9 +89,10 @@ exports.register = async (req, res) => {
       return res.status(400).json({ msg: 'User already exists' });
     }
 
+    const passwordDigest = await hashPassword(password);
     const newUserResult = await pool.query(
       'INSERT INTO users (name, email, password, permissions) VALUES ($1, $2, $3, $4) RETURNING id, name, email, role, permissions',
-      [name, email, password, JSON.stringify([])]
+      [name, email, passwordDigest, JSON.stringify([])]
     );
 
     const user = newUserResult.rows[0];
@@ -101,7 +103,7 @@ exports.register = async (req, res) => {
         email: user.email,
         role: user.role,
         module_type: user.module_type,
-        passwordHash: password
+        credentialFingerprint: credentialFingerprint(passwordDigest)
       }
     };
 
@@ -134,9 +136,26 @@ exports.login = async (req, res) => {
 
     const user = userResult.rows[0];
 
-    // Password comparison (trimmed)
-    if (cleanPassword !== (user.password || '').trim()) {
+    // Accept legacy plaintext only while migrating accounts on successful login.
+    // The conditional update is safe if two sessions migrate concurrently.
+    if (!await verifyPassword(cleanPassword, user.password)) {
       return res.status(400).json({ msg: 'Invalid Credentials' });
+    }
+    if (!isPasswordHash(user.password)) {
+      const digest = await hashPassword(cleanPassword);
+      const migration = await pool.query(
+        'UPDATE users SET password = $1 WHERE id = $2 AND password = $3 RETURNING password',
+        [digest, user.id, user.password]
+      );
+      if (migration.rows.length > 0) {
+        user.password = migration.rows[0].password;
+      } else {
+        const current = await pool.query('SELECT password FROM users WHERE id = $1', [user.id]);
+        if (!current.rows.length || !await verifyPassword(cleanPassword, current.rows[0].password)) {
+          return res.status(400).json({ msg: 'Invalid Credentials' });
+        }
+        user.password = current.rows[0].password;
+      }
     }
 
     const userRole = (user.role || '').toLowerCase().trim();
@@ -173,7 +192,7 @@ exports.login = async (req, res) => {
         email: user.email,
         role: user.role,
         module_type: finalModuleType,
-        passwordHash: user.password
+        credentialFingerprint: credentialFingerprint(user.password)
       }
     };
 
@@ -424,10 +443,11 @@ exports.resetPassword = async (req, res) => {
       return res.status(400).json({ msg: 'Invalid or expired verification code.' });
     }
 
-    // 2. Update user's password in plain text (as per existing schema)
+    // 2. Store a one-way hash, never the supplied password.
+    const passwordDigest = await hashPassword(password);
     await pool.query(
       'UPDATE users SET password = $1 WHERE LOWER(email) = LOWER($2)',
-      [password, email.trim()]
+      [passwordDigest, email.trim()]
     );
 
     // 3. Cleanup verification code
