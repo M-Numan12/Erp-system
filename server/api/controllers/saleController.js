@@ -262,6 +262,15 @@ exports.getSaleById = async (req, res) => {
 exports.getCustomerLedger = async (req, res) => {
   try {
     const { from, to } = req.query;
+    if (!isAdmin(req)) {
+      const allowedCustomer = await pool.query(
+        'SELECT id FROM customers WHERE id = $1 AND module_type = $2',
+        [req.params.customerId, req.user.module_type || 'Retail 1']
+      );
+      if (allowedCustomer.rows.length === 0) {
+        return res.status(404).json({ error: 'Customer not found' });
+      }
+    }
     let query = `
       SELECT s.*, 
       COALESCE(s.vehicle_number, v1.vehicle_number, '—') as vehicle_number,
