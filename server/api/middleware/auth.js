@@ -1,5 +1,6 @@
 const jwt = require('jsonwebtoken');
 const pool = require('../config/db');
+const { credentialVersion } = require('../utils/passwordSecurity');
 
 const normalizeUserAgent = (ua) => {
   if (!ua) return 'Unknown';
@@ -32,7 +33,7 @@ module.exports = async function (req, res, next) {
       }
       
       const dbUser = userResult.rows[0];
-      if (!req.user.passwordHash || req.user.passwordHash !== dbUser.password) {
+      if (!req.user.credentialVersion || req.user.credentialVersion !== credentialVersion(dbUser.password, process.env.JWT_SECRET || 'secret123')) {
         return res.status(401).json({ msg: 'Password changed or session expired. Please log in again.' });
       }
 
