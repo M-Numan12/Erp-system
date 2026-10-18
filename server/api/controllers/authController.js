@@ -244,7 +244,7 @@ exports.login = async (req, res) => {
          ON CONFLICT (user_id, ip_address, user_agent)
          DO UPDATE SET
            device_key_hash = EXCLUDED.device_key_hash,
-           is_approved = false,
+           is_approved = EXCLUDED.is_approved,
            last_login_at = CURRENT_TIMESTAMP
          RETURNING id, is_approved`,
         [user.id, ip, normalizedUA, deviceName, isUserAdmin,
