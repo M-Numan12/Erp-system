@@ -1,4 +1,5 @@
 const jwt = require('jsonwebtoken');
+const { credentialFingerprint } = require('../utils/passwordSecurity');
 const pool = require('../config/db');
 
 const normalizeUserAgent = (ua) => {
@@ -32,7 +33,7 @@ module.exports = async function (req, res, next) {
       }
       
       const dbUser = userResult.rows[0];
-      if (!req.user.passwordHash || req.user.passwordHash !== dbUser.password) {
+      if (!req.user.credentialFingerprint || req.user.credentialFingerprint !== credentialFingerprint(dbUser.password)) {
         return res.status(401).json({ msg: 'Password changed or session expired. Please log in again.' });
       }
 
