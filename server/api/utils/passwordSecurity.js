@@ -1,7 +1,7 @@
 const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
 
-const isPasswordHash = (value) => /^\\$2[aby]\\$\\d\\d\\$/.test(value || '');
+const isPasswordHash = (value) => /^\$2[aby]\$\d\d\$/.test(value || '');
 const hashPassword = async (password) => bcrypt.hash(String(password), 12);
 const verifyPassword = async (input, stored) => {
   if (isPasswordHash(stored)) return bcrypt.compare(String(input), stored);
