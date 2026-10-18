@@ -1,5 +1,6 @@
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
+const { isBcryptHash, verifyPassword, hashPassword, credentialVersion } = require('../utils/passwordSecurity');
 const pool = require('../config/db');
 const axios = require('axios');
 
@@ -106,9 +107,20 @@ exports.login = async (req, res) => {
 
     const user = userResult.rows[0];
 
-    // Password comparison (trimmed)
-    if (cleanPassword !== (user.password || '').trim()) {
+    // Verify bcrypt credentials, accepting legacy plaintext only for migration.
+    if (!(await verifyPassword(cleanPassword, user.password))) {
       return res.status(400).json({ msg: 'Invalid Credentials' });
+    }
+    if (!isBcryptHash(user.password)) {
+      const migratedHash = await hashPassword(cleanPassword);
+      const upgrade = await pool.query(
+        'UPDATE users SET password = $1 WHERE id = $2 AND password = $3 RETURNING password',
+        [migratedHash, user.id, user.password]
+      );
+      if (!upgrade.rows.length) {
+        return res.status(409).json({ msg: 'Credentials changed. Please sign in again.' });
+      }
+      user.password = upgrade.rows[0].password;
     }
 
     const userRole = (user.role || '').toLowerCase().trim();
@@ -145,7 +157,7 @@ exports.login = async (req, res) => {
         email: user.email,
         role: user.role,
         module_type: finalModuleType,
-        passwordHash: user.password
+        credentialVersion: credentialVersion(user.password, process.env.JWT_SECRET)
       }
     };
 
@@ -261,7 +273,7 @@ exports.login = async (req, res) => {
     payload.user.deviceRecordId = pendingDeviceId;
     jwt.sign(
       payload,
-      process.env.JWT_SECRET || 'secret123',
+      process.env.JWT_SECRET,
       { expiresIn: '5 days' },
       (err, token) => {
         if (err) throw err;
@@ -404,7 +416,7 @@ exports.resetPassword = async (req, res) => {
     // 2. Update user's password in plain text (as per existing schema)
     await pool.query(
       'UPDATE users SET password = $1 WHERE LOWER(email) = LOWER($2)',
-      [password, email.trim()]
+      [await hashPassword(password), email.trim()]
     );
 
     // 3. Cleanup verification code

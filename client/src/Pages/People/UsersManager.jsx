@@ -80,7 +80,7 @@ export default function UsersManager() {
     setFormData({
       name: user.name,
       email: user.email,
-      password: user.password || '', 
+      password: '', // Passwords are write-only; leave blank to keep existing password. 
       role: user.role,
       module_type: user.module_type || '',
       permissions: userPermissions
@@ -171,7 +171,7 @@ export default function UsersManager() {
             <div className="password-input-wrapper" style={{ position: 'relative', display: 'flex', alignItems: 'center', flex: 1 }}>
               <input 
                 type={showPassword ? "text" : "password"} 
-                placeholder={editingId ? "Edit Password" : "Password"} 
+                placeholder={editingId ? "Leave blank to keep password" : "Password"} 
                 value={formData.password} 
                 onChange={e => setFormData({...formData, password: e.target.value})} 
                 required 
