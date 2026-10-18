@@ -61,9 +61,7 @@ app.listen(PORT, (err) => {
   }
   console.log(`Server started on port ${PORT}`);
 
-  // Auto-sync database schema asynchronously in background
-  const syncDatabaseSchema = require('./api/utils/dbInit');
-  syncDatabaseSchema()
-    .then(() => console.log('Database schema initialization completed.'))
-    .catch(err => console.error('Failed to initialize database sync:', err));
-});
+  // Do not execute legacy dbInit.js on startup: it includes DROP TABLE,
+  // data rewriting and role reassignment statements. Apply reviewed,
+  // versioned schema migrations separately from application deployment.
+});
