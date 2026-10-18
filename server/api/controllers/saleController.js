@@ -385,6 +385,17 @@ exports.undoPayment = async (req, res) => {
     const saleRes = await client.query('SELECT * FROM sales WHERE id = $1', [payment_id]);
     if (saleRes.rows.length === 0) throw new Error('Payment record not found');
     const sale = saleRes.rows[0];
+    // Only standalone payment entries can be undone; deleting an actual sale
+    // would otherwise corrupt stock, balances and accounting history.
+    if (Number(sale.total_amount) !== 0 || Number(sale.net_amount) !== 0 ||
+        Number(sale.paid_amount) <= 0 || Number(sale.balance_amount) >= 0) {
+      await client.query('ROLLBACK');
+      return res.status(400).json({ error: 'This record is not a standalone customer payment' });
+    }
+    if (!isAdmin(req) && sale.sale_type !== (req.user.module_type || 'Retail 1')) {
+      await client.query('ROLLBACK');
+      return res.status(403).json({ error: 'Unauthorized payment access' });
+    }
     const { customer_id, paid_amount, payment_type, payment_reference } = sale;
     const parsedPaidAmount = parseFloat(paid_amount);
     if (isNaN(parsedPaidAmount)) {
