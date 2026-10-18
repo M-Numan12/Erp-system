@@ -276,7 +276,7 @@ exports.sendDeviceApprovalRequest = async ({ user, ip, userAgent, location, lati
   }
 
   // Approval links must open authenticated administration, not a public GET mutation.
-  const adminPortalUrl = process.env.FRONTEND_URL || 'https://erp-system.vercel.app/portal-admin';
+  const adminPortalUrl = process.env.FRONTEND_URL ? `${process.env.FRONTEND_URL.replace(/\/$/, '')}/portal-admin` : null;
 
   const htmlContent = `
     <!DOCTYPE html>
@@ -334,11 +334,11 @@ exports.sendDeviceApprovalRequest = async ({ user, ip, userAgent, location, lati
             Sign in to the admin portal, open Users Manager, select this user and
             approve the matching pending device. Never approve an unknown request.
           </p>
-          <p style="text-align:center;padding:18px">
+          ${adminPortalUrl ? `<p style="text-align:center;padding:18px">
             <a href="${adminPortalUrl}" style="background:#2563eb;color:white;padding:14px 20px;border-radius:8px;text-decoration:none">
               Open Admin Portal to Review
             </a>
-          </p>
+          </p>` : '<p>Open your ERP Admin Portal and review this pending device in Users Manager.</p>'}
         </div>
         
         <!-- Footer -->
