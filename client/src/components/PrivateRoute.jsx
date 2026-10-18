@@ -13,9 +13,7 @@ const PrivateRoute = ({ children }) => {
     );
   }
 
-  const token = localStorage.getItem('token') || sessionStorage.getItem('token');
-
-  return (user || token) ? children : <Navigate to="/login" />;
+  return user ? children : <Navigate to="/login" replace />;
 };
 
 export default PrivateRoute;
