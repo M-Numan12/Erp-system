@@ -31,20 +31,16 @@ export default function Dashboard() {
 
         const counterQuery = user?.role === 'admin' ? '' : `?type=${user?.module_type}`;
 
-        const [prodRes, expRes, custRes, supRes, transRes] = await Promise.all([
+        // Only request datasets needed to render the four dashboard counters.
+        const [prodRes, expRes, custRes] = await Promise.all([
           fetch(`${API_BASE_URL}/products${counterQuery}`, { headers }),
           fetch(`${API_BASE_URL}/expenses${counterQuery}`, { headers }),
-          fetch(`${API_BASE_URL}/customers${counterQuery}`, { headers }),
-          fetch(`${API_BASE_URL}/suppliers${counterQuery}`, { headers }),
-          fetch(`${API_BASE_URL}/transport${counterQuery}`, { headers })
+          fetch(`${API_BASE_URL}/customers${counterQuery}`, { headers })
         ]);
-
-        const [products, expenses, customers, suppliers, transport] = await Promise.all([
+        const [products, expenses, customers] = await Promise.all([
           prodRes.ok ? prodRes.json() : [],
           expRes.ok ? expRes.json() : [],
-          custRes.ok ? custRes.json() : [],
-          supRes.ok ? supRes.json() : [],
-          transRes.ok ? transRes.json() : []
+          custRes.ok ? custRes.json() : []
         ]);
 
         // Extract standard stats for Dashboard view rendering
