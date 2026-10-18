@@ -79,45 +79,12 @@ const checkAndAlertNewDevice = async (user, ip, userAgent, coords = null) => {
 };
 
 
+// User accounts must only be created by an authenticated administrator via /api/users.
+// The former public registration endpoint could inherit the database's admin role default.
 exports.register = async (req, res) => {
-  const { name, email, password } = req.body;
-
-  try {
-    const userResult = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
-    if (userResult.rows.length > 0) {
-      return res.status(400).json({ msg: 'User already exists' });
-    }
-
-    const newUserResult = await pool.query(
-      'INSERT INTO users (name, email, password, permissions) VALUES ($1, $2, $3, $4) RETURNING id, name, email, role, permissions',
-      [name, email, password, JSON.stringify([])]
-    );
-
-    const user = newUserResult.rows[0];
-
-    const payload = {
-      user: {
-        id: user.id,
-        email: user.email,
-        role: user.role,
-        module_type: user.module_type,
-        passwordHash: password
-      }
-    };
-
-    jwt.sign(
-      payload,
-      process.env.JWT_SECRET || 'secret123',
-      { expiresIn: '5 days' },
-      (err, token) => {
-        if (err) throw err;
-        res.json({ token, user });
-      }
-    );
-  } catch (err) {
-    console.error(err.message);
-    res.status(500).send('Server error');
-  }
+  return res.status(403).json({
+    msg: 'Public registration is disabled. Contact your ERP administrator to create an account.'
+  });
 };
 
 exports.login = async (req, res) => {
