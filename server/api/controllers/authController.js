@@ -64,7 +64,7 @@ const checkAndAlertNewDevice = async (user, ip, userAgent, coords = null) => {
     // Register/update device entry safely using ON CONFLICT
     await pool.query(
       `INSERT INTO user_devices (user_id, ip_address, user_agent, device_name, is_approved, location, latitude, longitude, last_login_at) 
-       VALUES ($1, $2, $3, $4, true, $5, $6, $7, CURRENT_TIMESTAMP)
+       VALUES ($1, $2, $3, $4, false, $5, $6, $7, CURRENT_TIMESTAMP)
        ON CONFLICT (user_id, ip_address, user_agent)
        DO UPDATE SET 
          last_login_at = CURRENT_TIMESTAMP, 
@@ -197,10 +197,10 @@ exports.login = async (req, res) => {
     let pendingDeviceId = null;
 
     if (!isApproved) {
-      // Check if user already has ANY approved device, or if this exact device was already approved
+      // A previously approved device must not auto-authorize a different device
       const approvedDeviceCheck = await pool.query(
-        'SELECT id FROM user_devices WHERE user_id = $1 AND is_approved = true LIMIT 1',
-        [user.id]
+        'SELECT id FROM user_devices WHERE user_id = $1 AND is_approved = true AND ip_address = $2 AND user_agent = $3 LIMIT 1',
+        [user.id, ip, normalizedUA]
       );
       if (approvedDeviceCheck.rows.length > 0) {
         isApproved = true;
