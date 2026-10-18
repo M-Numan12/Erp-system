@@ -99,7 +99,7 @@ export default function Products({ type }) {
   useEffect(() => { 
     if (!activeTab) return;
     fetchProducts(); 
-    const interval = setInterval(fetchProducts, 15000);
+    const interval = setInterval(() => { if (!document.hidden) fetchProducts(); }, 60000);
     return () => clearInterval(interval);
   }, [activeTab]);
 

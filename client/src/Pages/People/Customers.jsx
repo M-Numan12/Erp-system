@@ -239,7 +239,7 @@ export default function Customers({ type }) {
       if (!document.hidden) {
         fetchRecords();
       }
-    }, 30000);
+    }, 90000);
 
     const handleVisibilityChange = () => {
       if (!document.hidden) {
