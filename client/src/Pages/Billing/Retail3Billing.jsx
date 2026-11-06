@@ -718,6 +718,7 @@ export default function Retail3Billing({ type }) {
         setReceiptData({
           saleId: result.saleId,
           date: formatDate(new Date()),
+          cashierName: user?.name || user?.username || (user?.email ? user.email.split('@')[0] : 'Admin'),
           customerName: saleData.customer_name,
           customerPhone: saleData.customer_phone || '',
           customerAddress: saleData.customer_address || '',
@@ -1645,6 +1646,7 @@ export default function Retail3Billing({ type }) {
                       setReceiptData({
                         saleId: s.id,
                         date: formatDateTime(s.created_at),
+                        cashierName: s.cashier_name || user?.name || user?.username || (user?.email ? user.email.split('@')[0] : 'Admin'),
                         customerName: s.customer_name || 'Walking Customer',
                         customerPhone: s.customer_phone || '',
                         customerAddress: s.customer_address || '',
@@ -1752,6 +1754,7 @@ export default function Retail3Billing({ type }) {
           <div className="bill-info">
             <div className="info-row"><span>Bill No</span> <span>: {receiptData.saleId}</span></div>
             <div className="info-row"><span>Date</span> <span>: {receiptData.date}</span></div>
+            <div className="info-row"><span>Cashier</span> <span>: {receiptData.cashierName || user?.name || 'Admin'}</span></div>
             <div className="info-row"><span>Name</span> <span>: {receiptData.customerName}</span></div>
             {receiptData.customerPhone && <div className="info-row"><span>Phone</span> <span>: {receiptData.customerPhone}</span></div>}
             {receiptData.customerAddress && <div className="info-row"><span>Address</span> <span>: {receiptData.customerAddress}</span></div>}

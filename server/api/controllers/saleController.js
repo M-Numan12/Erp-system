@@ -12,7 +12,7 @@ const isAdmin = (req) => req.user.role === 'admin';
 exports.getSales = async (req, res) => {
   try {
     const { type } = req.query;
-    let query = 'SELECT * FROM sales';
+    let query = 'SELECT s.*, u.name AS cashier_name FROM sales s LEFT JOIN users u ON s.user_id = u.id';
     let params = [];
 
     const activeTab = isAdmin(req) ? type : (req.user.module_type || 'Retail 1');
@@ -20,16 +20,16 @@ exports.getSales = async (req, res) => {
     let conditions = [];
     if (activeTab) {
       if (activeTab === 'Wholesale') {
-        conditions.push('(sale_type = $1 OR sale_type IS NULL)');
+        conditions.push('(s.sale_type = $1 OR s.sale_type IS NULL)');
       } else {
-        conditions.push('sale_type = $1');
+        conditions.push('s.sale_type = $1');
       }
       params.push(activeTab);
     }
 
     if (!isAdmin(req) && req.query.ignore_date_limit !== 'true') {
       // Limit non-admin users to the last 30 days
-      conditions.push("created_at >= NOW() - INTERVAL '30 days'");
+      conditions.push("s.created_at >= NOW() - INTERVAL '30 days'");
     }
 
     if (conditions.length > 0) {
@@ -37,7 +37,7 @@ exports.getSales = async (req, res) => {
     }
 
     const limit = req.query.limit ? parseInt(req.query.limit) : 5000;
-    query += ` ORDER BY created_at DESC LIMIT $${params.length + 1}`;
+    query += ` ORDER BY s.created_at DESC LIMIT $${params.length + 1}`;
     params.push(limit);
     const result = await pool.query(query, params);
     res.json(result.rows);
@@ -237,7 +237,7 @@ exports.createSale = async (req, res) => {
 // Get sale details with items
 exports.getSaleById = async (req, res) => {
   try {
-    const sale = await pool.query('SELECT * FROM sales WHERE id = $1', [req.params.id]);
+    const sale = await pool.query('SELECT s.*, u.name AS cashier_name FROM sales s LEFT JOIN users u ON s.user_id = u.id WHERE s.id = $1', [req.params.id]);
     if (sale.rows.length === 0) return res.status(404).json({ error: 'Sale not found' });
 
     if (!isAdmin(req)) {

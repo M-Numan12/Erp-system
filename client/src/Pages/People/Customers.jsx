@@ -1601,6 +1601,7 @@ export default function Customers({ type }) {
               <div style={{ margin: '10px 0', fontSize: '12px', display: 'flex', flexDirection: 'column', gap: '3px' }}>
                 <div style={{ display: 'flex' }}><span style={{ width: '90px' }}>Receipt No</span> <span>: PYM-{receiptData.id}</span></div>
                 <div style={{ display: 'flex' }}><span style={{ width: '90px' }}>Date</span> <span>: {new Date(receiptData.payment_date).toLocaleDateString('en-GB')} {new Date(receiptData.payment_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span></div>
+                <div style={{ display: 'flex' }}><span style={{ width: '90px' }}>Cashier</span> <span>: {user?.name || user?.username || 'Admin'}</span></div>
                 <div style={{ display: 'flex' }}><span style={{ width: '90px' }}>Name</span> <span>: {receiptData.customer_name}</span></div>
                 {receiptData.customer_phone && <div style={{ display: 'flex' }}><span style={{ width: '90px' }}>Phone</span> <span>: {receiptData.customer_phone}</span></div>}
                 {receiptData.customer_address && <div style={{ display: 'flex' }}><span style={{ width: '90px' }}>Address</span> <span>: {receiptData.customer_address}</span></div>}
