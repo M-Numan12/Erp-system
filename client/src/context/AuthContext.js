@@ -43,10 +43,11 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   // Device revocation is enforced by the API on every request; periodically
-  // revalidate so an already-open dashboard signs out without a page reload.
+  // revalidate when tab is visible so an already-open dashboard signs out without a page reload.
   useEffect(() => {
     if (!user) return undefined;
     const checkSession = async () => {
+      if (document.hidden) return;
       try {
         await api.get('/auth/me');
       } catch (err) {
@@ -57,7 +58,7 @@ export const AuthProvider = ({ children }) => {
         }
       }
     };
-    const timer = setInterval(checkSession, 15000);
+    const timer = setInterval(checkSession, 60000);
     return () => clearInterval(timer);
   }, [user]);
 

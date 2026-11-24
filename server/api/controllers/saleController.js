@@ -262,33 +262,45 @@ exports.getSaleById = async (req, res) => {
 exports.getCustomerLedger = async (req, res) => {
   try {
     const { from, to } = req.query;
+    let params = [req.params.customerId];
+    let authJoin = '';
+    let authWhere = '';
+
     if (!isAdmin(req)) {
-      const allowedCustomer = await pool.query(
-        'SELECT id FROM customers WHERE id = $1 AND module_type = $2',
-        [req.params.customerId, req.user.module_type || 'Retail 1']
-      );
-      if (allowedCustomer.rows.length === 0) {
-        return res.status(404).json({ error: 'Customer not found' });
-      }
+      authJoin = 'INNER JOIN customers c ON c.id = s.customer_id';
+      params.push(req.user.module_type || 'Retail 1');
+      authWhere = ` AND c.module_type = $${params.length}`;
     }
+
     let query = `
       SELECT s.*, 
       COALESCE(s.vehicle_number, v1.vehicle_number, '—') as vehicle_number,
       v2.vehicle_number as vehicle_number2,
-      (SELECT JSON_AGG(si) FROM (
-        SELECT si.id, si.product_id, si.product_name as name, si.qty, si.rate, si.subtotal, p.brand 
-        FROM sale_items si 
-        LEFT JOIN products p ON si.product_id = p.id 
-        WHERE si.sale_id = s.id
-      ) si) as items
+      COALESCE(si_agg.items, s.items) as items
       FROM sales s 
+      ${authJoin}
       LEFT JOIN vehicles v1 ON s.vehicle_id = v1.id
       LEFT JOIN vehicles v2 ON s.vehicle_id2 = v2.id
-      WHERE s.customer_id = $1`;
-    let params = [req.params.customerId];
+      LEFT JOIN LATERAL (
+        SELECT JSON_AGG(
+          JSON_BUILD_OBJECT(
+            'id', si.id,
+            'product_id', si.product_id,
+            'name', si.product_name,
+            'qty', si.qty,
+            'rate', si.rate,
+            'subtotal', si.subtotal,
+            'brand', p.brand
+          )
+        ) AS items
+        FROM sale_items si
+        LEFT JOIN products p ON si.product_id = p.id
+        WHERE si.sale_id = s.id
+      ) si_agg ON true
+      WHERE s.customer_id = $1${authWhere}`;
 
     if (from && to) {
-      query += ` AND s.created_at >= $2 AND s.created_at <= $3`;
+      query += ` AND s.created_at >= $${params.length + 1} AND s.created_at <= $${params.length + 2}`;
       params.push(from + " 00:00:00", to + " 23:59:59");
     }
 

@@ -2,6 +2,11 @@ const jwt = require('jsonwebtoken');
 const pool = require('../config/db');
 const { credentialVersion } = require('../utils/passwordSecurity');
 
+// Short-lived in-memory cache (8 seconds) for verified user + device sessions
+// Prevents 6+ parallel API requests on page load from each making redundant DB roundtrips
+const authSessionCache = new Map();
+const AUTH_CACHE_TTL_MS = 8000;
+
 const normalizeUserAgent = (ua) => {
   if (!ua) return 'Unknown';
   return ua
@@ -10,7 +15,7 @@ const normalizeUserAgent = (ua) => {
     .trim();
 };
 
-module.exports = async function (req, res, next) {
+const authMiddleware = async function (req, res, next) {
   // Get token from header
   const authHeader = req.header('Authorization');
 
@@ -26,16 +31,51 @@ module.exports = async function (req, res, next) {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     req.user = decoded.user;
     if (req.user) {
-      // Check if user's password has changed since the token was issued
-      const userResult = await pool.query('SELECT name, password FROM users WHERE id = $1', [parseInt(req.user.id, 10)]);
-      if (userResult.rows.length === 0) {
-        return res.status(401).json({ msg: 'User no longer exists. Authorization denied.' });
+      const deviceRecordId = Number(req.user.deviceRecordId);
+      if (!Number.isSafeInteger(deviceRecordId) || deviceRecordId <= 0) {
+        return res.status(401).json({ msg: 'Please sign in again to register this device.' });
       }
-      
-      const dbUser = userResult.rows[0];
+
+      const userId = parseInt(req.user.id, 10);
+      const cacheKey = `${userId}:${deviceRecordId}:${req.user.credentialVersion || ''}`;
+      const now = Date.now();
+      const cached = authSessionCache.get(cacheKey);
+
+      let dbUser;
+      if (cached && now - cached.ts < AUTH_CACHE_TTL_MS) {
+        dbUser = cached.dbUser;
+      } else {
+        // Single combined query for user credential verification + device approval check
+        const userResult = await pool.query(
+          `SELECT u.name, u.password, ud.id AS approved_device_id
+           FROM users u
+           LEFT JOIN user_devices ud ON ud.id = $2 AND ud.user_id = u.id AND ud.is_approved = true
+           WHERE u.id = $1`,
+          [userId, deviceRecordId]
+        );
+        if (userResult.rows.length === 0) {
+          authSessionCache.delete(cacheKey);
+          return res.status(401).json({ msg: 'User no longer exists. Authorization denied.' });
+        }
+        dbUser = userResult.rows[0];
+        if (
+          req.user.credentialVersion &&
+          req.user.credentialVersion === credentialVersion(dbUser.password, process.env.JWT_SECRET) &&
+          dbUser.approved_device_id
+        ) {
+          authSessionCache.set(cacheKey, { dbUser, ts: now });
+        }
+      }
+
       req.user.name = dbUser.name;
       if (!req.user.credentialVersion || req.user.credentialVersion !== credentialVersion(dbUser.password, process.env.JWT_SECRET)) {
+        authSessionCache.delete(cacheKey);
         return res.status(401).json({ msg: 'Password changed or session expired. Please log in again.' });
+      }
+
+      if (!dbUser.approved_device_id) {
+        authSessionCache.delete(cacheKey);
+        return res.status(401).json({ msg: 'Device access revoked. Please sign in again.' });
       }
 
       const email = (req.user.email || '').toLowerCase();
@@ -46,22 +86,6 @@ module.exports = async function (req, res, next) {
       } else if (email.includes('retail2') || email.includes('retailseller2') || email.includes('wali2022')) {
         req.user.module_type = 'Retail 2';
       }
-
-      const isUserAdmin = (req.user.role || '').toLowerCase().includes('admin') || (req.user.email || '').toLowerCase().trim() === 'datawaley.support@gmail.com' || (req.user.email || '').toLowerCase().trim() === 'hassam4288@gmail.com';
-
-      // A JWT is valid only for the device approved at login.
-      // Deleting the device record revokes its token on the next API call.
-      const deviceRecordId = Number(req.user.deviceRecordId);
-      if (!Number.isSafeInteger(deviceRecordId) || deviceRecordId <= 0) {
-        return res.status(401).json({ msg: 'Please sign in again to register this device.' });
-      }
-      const approval = await pool.query(
-        'SELECT id FROM user_devices WHERE id = $1 AND user_id = $2 AND is_approved = true',
-        [deviceRecordId, req.user.id]
-      );
-      if (!approval.rows.length) {
-        return res.status(401).json({ msg: 'Device access revoked. Please sign in again.' });
-      }
     }
     next();
   } catch (err) {
@@ -69,3 +93,6 @@ module.exports = async function (req, res, next) {
     res.status(401).json({ msg: 'Token is not valid' });
   }
 };
+
+authMiddleware.clearCache = () => authSessionCache.clear();
+module.exports = authMiddleware;

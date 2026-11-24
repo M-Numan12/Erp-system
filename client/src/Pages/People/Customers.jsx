@@ -89,6 +89,7 @@ const emptyForm = {
 export default function Customers({ type }) {
   const { user } = useContext(AuthContext);
   const ledgerReportRef = useRef(null);
+  const ledgerCacheRef = useRef({});
 
   const [activeTab, setActiveTab] = useState(() => {
     if (type) return type;
@@ -152,13 +153,17 @@ export default function Customers({ type }) {
     // The starting point before all available history
     const absoluteBaseOpeningBal = liveBalance - historySum;
 
-    // 3. Generate running balance per row
+    // 3. Generate running balance per row and pre-parse items once
     let running = absoluteBaseOpeningBal;
     const enriched = sortedAsc.map(row => {
       const debit = parseFloat(row.net_amount) || 0;
       const credit = parseFloat(row.paid_amount) || 0;
       running += (debit - credit);
-      return { ...row, running_balance: running };
+      let parsedItems = Array.isArray(row.items) ? row.items : [];
+      if (typeof row.items === 'string') {
+        try { parsedItems = JSON.parse(row.items) || []; } catch (e) { parsedItems = []; }
+      }
+      return { ...row, items: parsedItems, running_balance: running };
     });
 
     if (ledgerFilter === 'all') return enriched;
@@ -294,19 +299,20 @@ export default function Customers({ type }) {
   const fetchRecords = async () => {
     if (!activeTab) return;
     try {
-      const res = await fetch(`${API}?type=${activeTab}`, {
-        headers: { "Authorization": `Bearer ${localStorage.getItem('token')}` }
-      });
-      const data = await res.json();
+      const headers = { "Authorization": `Bearer ${localStorage.getItem('token')}` };
+      const [res, banksRes] = await Promise.all([
+        fetch(`${API}?type=${activeTab}`, { headers }),
+        fetch(`${API_BASE_URL}/banks`, { headers })
+      ]);
+      const [data, banksData] = await Promise.all([res.json(), banksRes.json()]);
       const finalRecs = Array.isArray(data) ? data : [];
-      setRecords(finalRecs);
-
-      const banksRes = await fetch(`${API_BASE_URL}/banks`, {
-        headers: { "Authorization": `Bearer ${localStorage.getItem('token')}` }
-      });
-      const banksData = await banksRes.json();
       const finalBanks = Array.isArray(banksData) ? banksData : [];
+      setRecords(finalRecs);
       setBankAccounts(finalBanks);
+      try {
+        localStorage.setItem(`cache_customers_${activeTab}`, JSON.stringify(finalRecs));
+        localStorage.setItem(`cache_banks_list`, JSON.stringify(finalBanks));
+      } catch (e) { }
       return finalRecs;
     } catch (err) {
       console.error("Failed to fetch data", err);
@@ -316,6 +322,12 @@ export default function Customers({ type }) {
 
   useEffect(() => {
     if (!activeTab) return;
+    try {
+      const cachedCusts = localStorage.getItem(`cache_customers_${activeTab}`);
+      const cachedBanks = localStorage.getItem(`cache_banks_list`);
+      if (cachedCusts) setRecords(JSON.parse(cachedCusts));
+      if (cachedBanks) setBankAccounts(JSON.parse(cachedBanks));
+    } catch (e) { }
     fetchRecords();
 
     // Smart polling: only poll when tab is active
@@ -394,17 +406,37 @@ export default function Customers({ type }) {
       setLedgerTo(filter === 'today' ? todayDate : "");
     }
     setShowLedgerModal(true);
-    setLoading(true);
+
+    // Instant 0ms render from in-memory or sessionStorage cache if available
+    const cachedLedger = ledgerCacheRef.current[customer.id] || (() => {
+      try {
+        const raw = sessionStorage.getItem(`cache_ledger_${customer.id}`);
+        return raw ? JSON.parse(raw) : null;
+      } catch (e) { return null; }
+    })();
+
+    if (cachedLedger) {
+      setLedgerData(cachedLedger);
+      setLoading(false);
+    } else {
+      setLoading(true);
+    }
+
     try {
       const url = `${API_BASE_URL}/sales/ledger/${customer.id}`;
       const res = await fetch(url, {
         headers: { "Authorization": `Bearer ${localStorage.getItem('token')}` }
       });
       const data = await res.json();
-      setLedgerData(Array.isArray(data) ? data : []);
+      const finalData = Array.isArray(data) ? data : [];
+      ledgerCacheRef.current[customer.id] = finalData;
+      try {
+        sessionStorage.setItem(`cache_ledger_${customer.id}`, JSON.stringify(finalData));
+      } catch (e) { }
+      setLedgerData(finalData);
     } catch (err) {
       console.error("Failed to fetch ledger", err);
-      setLedgerData([]);
+      if (!cachedLedger) setLedgerData([]);
     }
     setLoading(false);
   };

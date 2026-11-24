@@ -919,7 +919,18 @@ export default function WholesaleBilling({ type }) {
     setLedgerFilter(filter);
     setLedgerSearch("");
     setShowLedgerModal(true);
-    setLoading(true);
+
+    const cacheKey = `cache_ledger_${customer.id}_${from}_${to}`;
+    let hasCached = false;
+    try {
+      const cached = sessionStorage.getItem(cacheKey) || (!from && !to ? sessionStorage.getItem(`cache_ledger_${customer.id}`) : null);
+      if (cached) {
+        setLedgerData(JSON.parse(cached));
+        hasCached = true;
+      }
+    } catch (e) { }
+
+    if (!hasCached) setLoading(true);
     try {
       let url = `${SALES_API}/ledger/${customer.id}`;
       if (from && to) url += `?from=${from}&to=${to}`;
@@ -927,7 +938,12 @@ export default function WholesaleBilling({ type }) {
         headers: { "Authorization": `Bearer ${localStorage.getItem('token')}` }
       });
       const data = await res.json();
-      setLedgerData(data);
+      const finalData = Array.isArray(data) ? data : [];
+      setLedgerData(finalData);
+      try {
+        sessionStorage.setItem(cacheKey, JSON.stringify(finalData));
+        if (!from && !to) sessionStorage.setItem(`cache_ledger_${customer.id}`, JSON.stringify(finalData));
+      } catch (e) { }
     } catch (err) {
       console.error("Failed to fetch ledger", err);
     }

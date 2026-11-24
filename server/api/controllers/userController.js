@@ -1,5 +1,6 @@
 const pool = require('../config/db');
 const { hashPassword } = require('../utils/passwordSecurity');
+const auth = require('../middleware/auth');
 
 // GET all users (Admin only)
 exports.getUsers = async (req, res) => {
@@ -57,6 +58,7 @@ exports.updateUser = async (req, res) => {
       return res.status(404).json({ msg: 'User not found' });
     }
 
+    if (auth.clearCache) auth.clearCache();
     res.json(result.rows[0]);
   } catch (err) {
     console.error(err.message);
@@ -72,6 +74,7 @@ exports.deleteUser = async (req, res) => {
     if (result.rows.length === 0) {
       return res.status(404).json({ msg: 'User not found' });
     }
+    if (auth.clearCache) auth.clearCache();
     res.json({ msg: 'User deleted successfully' });
   } catch (err) {
     console.error(err.message);
@@ -102,6 +105,7 @@ exports.logoutDevice = async (req, res) => {
     if (result.rows.length === 0) {
       return res.status(404).json({ msg: 'Device not found' });
     }
+    if (auth.clearCache) auth.clearCache();
     res.json({ msg: 'Device logged out successfully' });
   } catch (err) {
     console.error(err.message);
@@ -120,6 +124,7 @@ exports.approveDevice = async (req, res) => {
     if (result.rows.length === 0) {
       return res.status(404).json({ msg: 'Device not found' });
     }
+    if (auth.clearCache) auth.clearCache();
     res.json({ msg: 'Device approved successfully' });
   } catch (err) {
     console.error(err.message);
