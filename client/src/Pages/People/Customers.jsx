@@ -136,6 +136,7 @@ export default function Customers({ type }) {
   const [ledgerFrom, setLedgerFrom] = useState(todayStr);
   const [ledgerTo, setLedgerTo] = useState(todayStr);
   const [ledgerFilter, setLedgerFilter] = useState("today");
+  const [ledgerSearch, setLedgerSearch] = useState("");
   const liveBalance = useMemo(() => {
     const bal = parseFloat(selectedCustomer?.balance);
     return isNaN(bal) ? 0 : bal;
@@ -190,6 +191,89 @@ export default function Customers({ type }) {
       return true;
     });
   }, [ledgerData, liveBalance, ledgerFilter, ledgerFrom, ledgerTo]);
+
+  const filteredLedgerData = useMemo(() => {
+    if (!ledgerSearch.trim()) return sortedLedgerData;
+    const term = ledgerSearch.trim().toLowerCase();
+    const numericTerm = term.replace(/,/g, '');
+
+    const matchesAmount = (val) => {
+      if (val === null || val === undefined || val === '') return false;
+      const num = parseFloat(val);
+      if (isNaN(num)) return false;
+      const absNum = Math.abs(num);
+      const rawStr = String(absNum);
+      const formattedStr = absNum.toLocaleString().toLowerCase();
+      return rawStr.includes(numericTerm) || formattedStr.includes(term);
+    };
+
+    return sortedLedgerData.filter(row => {
+      const dateStr = row.created_at ? new Date(row.created_at).toLocaleDateString('en-GB').toLowerCase() : '';
+      const billIdStr = `#sal-${row.id}`.toLowerCase();
+      const payIdStr = `#pay-${row.id}`.toLowerCase();
+      const vehicleStr = `${row.vehicle_number || ''} ${row.vehicle_number2 || ''}`.toLowerCase();
+      const paymentTypeStr = (row.payment_type || '').toLowerCase();
+      const notesStr = `${row.notes || ''} ${row.description || ''}`.toLowerCase();
+
+      const isReturn = parseFloat(row.net_amount) < 0;
+      const debitVal = !isReturn && parseFloat(row.net_amount) > 0 ? parseFloat(row.net_amount) : 0;
+      const creditVal = isReturn ? Math.abs(parseFloat(row.net_amount)) : (parseFloat(row.paid_amount) > 0 ? parseFloat(row.paid_amount) : 0);
+
+      if (
+        dateStr.includes(term) ||
+        billIdStr.includes(term) ||
+        payIdStr.includes(term) ||
+        String(row.id || '').toLowerCase().includes(term) ||
+        vehicleStr.includes(term) ||
+        paymentTypeStr.includes(term) ||
+        notesStr.includes(term)
+      ) {
+        return true;
+      }
+
+      if (
+        (debitVal > 0 && matchesAmount(debitVal)) ||
+        (creditVal > 0 && matchesAmount(creditVal)) ||
+        matchesAmount(row.net_amount) ||
+        matchesAmount(row.paid_amount) ||
+        matchesAmount(row.total_amount) ||
+        matchesAmount(row.running_balance) ||
+        (parseFloat(row.delivery_charges || 0) > 0 && (matchesAmount(row.delivery_charges) || 'delivery'.includes(term))) ||
+        (parseFloat(row.discount || 0) > 0 && (matchesAmount(row.discount) || 'discount'.includes(term))) ||
+        (parseFloat(row.steel_labour || 0) > 0 && (matchesAmount(row.steel_labour) || 'steel labour'.includes(term)))
+      ) {
+        return true;
+      }
+
+      let items = [];
+      try {
+        items = typeof row.items === 'string' ? JSON.parse(row.items) : (row.items || []);
+      } catch (e) { items = []; }
+
+      for (const item of items) {
+        const formattedName = formatItemName(item.brand, item.name || item.product_name).toLowerCase();
+        const itemName = (item.name || item.product_name || '').toLowerCase();
+        const itemBrand = (item.brand || '').toLowerCase();
+        const itemTotal = (parseFloat(item.qty) || 0) * (parseFloat(item.rate) || 0);
+
+        if (
+          formattedName.includes(term) ||
+          itemName.includes(term) ||
+          itemBrand.includes(term) ||
+          String(item.qty || '').includes(numericTerm) ||
+          matchesAmount(item.rate) ||
+          matchesAmount(itemTotal)
+        ) {
+          return true;
+        }
+      }
+
+      if (isReturn && ('stock return'.includes(term) || 'refund'.includes(term))) return true;
+      if (parseFloat(row.net_amount || 0) === 0 && parseFloat(row.paid_amount || 0) > 0 && 'payment received'.includes(term)) return true;
+
+      return false;
+    });
+  }, [sortedLedgerData, ledgerSearch]);
   const [paymentAmount, setPaymentAmount] = useState("");
   const [paymentRef, setPaymentRef] = useState("");
   const [paymentType, setPaymentType] = useState("Cash");
@@ -303,6 +387,7 @@ export default function Customers({ type }) {
     const todayDate = new Date().toLocaleDateString('en-CA');
     setSelectedCustomer(customer);
     setLedgerFilter(filter);
+    setLedgerSearch("");
     // Default to today's date range when opening
     if (filter === 'today' || filter === 'all') {
       setLedgerFrom(filter === 'today' ? todayDate : "");
@@ -918,7 +1003,7 @@ export default function Customers({ type }) {
 
         // Construct rows for PrimeReact DataTable
         const datatableRows = [
-          {
+          ...(!ledgerSearch.trim() ? [{
             id: 'opening',
             isOpening: true,
             created_at: null,
@@ -927,8 +1012,8 @@ export default function Customers({ type }) {
             paid_amount: 0,
             total_amount: 0,
             running_balance: periodOpeningBal
-          },
-          ...sortedLedgerData
+          }] : []),
+          ...filteredLedgerData
         ];
 
         return (
@@ -1026,7 +1111,7 @@ export default function Customers({ type }) {
                       </td>
                     </tr>
 
-                    {sortedLedgerData.map((row, index) => {
+                    {filteredLedgerData.map((row, index) => {
                       let items = [];
                       try { items = typeof row.items === 'string' ? JSON.parse(row.items) : (row.items || []); } catch (e) { }
                       const isReturn = parseFloat(row.net_amount) < 0;
@@ -1080,10 +1165,10 @@ export default function Customers({ type }) {
                     <tr style={{ background: '#f8fafc', fontWeight: 'bold' }}>
                       <td colSpan="5" style={{ border: '1px solid #cbd5e1', padding: '8px', textAlign: 'right' }}>Period Totals:</td>
                       <td style={{ border: '1px solid #cbd5e1', padding: '8px', textAlign: 'right', color: 'red' }}>
-                        Rs. {sortedLedgerData.reduce((sum, r) => sum + (parseFloat(r.net_amount) > 0 ? parseFloat(r.net_amount) : 0), 0).toLocaleString()}
+                        Rs. {filteredLedgerData.reduce((sum, r) => sum + (parseFloat(r.net_amount) > 0 ? parseFloat(r.net_amount) : 0), 0).toLocaleString()}
                       </td>
                       <td style={{ border: '1px solid #cbd5e1', padding: '8px', textAlign: 'right', color: 'green' }}>
-                        Rs. {sortedLedgerData.reduce((sum, r) => {
+                        Rs. {filteredLedgerData.reduce((sum, r) => {
                           const net = parseFloat(r.net_amount) || 0;
                           const paid = parseFloat(r.paid_amount) || 0;
                           return sum + (net < 0 ? Math.abs(net) : (paid > 0 ? paid : 0));
@@ -1138,14 +1223,47 @@ export default function Customers({ type }) {
                   )}
                 </div>
 
+                {/* Search Bar inside Customer CRM Ledger */}
+                <div style={{ marginBottom: '20px', display: 'flex', gap: '12px', alignItems: 'center' }}>
+                  <div className="search-bar" style={{
+                    flex: 1,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    border: '1px solid #cbd5e1',
+                    borderRadius: '10px',
+                    padding: '8px 14px',
+                    background: 'white',
+                    boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
+                  }}>
+                    <Search size={18} color="#64748b" />
+                    <input
+                      type="text"
+                      placeholder="Search ledger by product/project name, amount, bill no, vehicle, or description..."
+                      value={ledgerSearch}
+                      onChange={(e) => setLedgerSearch(e.target.value)}
+                      style={{ border: 'none', outline: 'none', width: '100%', fontSize: '0.9rem', color: '#1e293b' }}
+                    />
+                    {ledgerSearch && (
+                      <button
+                        type="button"
+                        onClick={() => setLedgerSearch("")}
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}
+                      >
+                        <X size={16} />
+                      </button>
+                    )}
+                  </div>
+                </div>
+
                 <div className="stats-mini-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px', marginBottom: '24px' }}>
                   <div className="stat-item" style={{ background: '#f8fafc', padding: '16px', borderRadius: '12px', border: '1px solid #f1f5f9' }}>
                     <div style={{ fontSize: '0.75rem', color: '#64748b', textTransform: 'uppercase', fontWeight: 600 }}>Total Records</div>
-                    <div style={{ fontSize: '1.25rem', color: '#0f172a', fontWeight: 700 }}>{sortedLedgerData.length} items</div>
+                    <div style={{ fontSize: '1.25rem', color: '#0f172a', fontWeight: 700 }}>{filteredLedgerData.length} items</div>
                   </div>
                   <div className="stat-item" style={{ background: '#f8fafc', padding: '16px', borderRadius: '12px', border: '1px solid #f1f5f9' }}>
                     <div style={{ fontSize: '0.75rem', color: '#64748b', textTransform: 'uppercase', fontWeight: 600 }}>Total Billed Value</div>
-                    <div style={{ fontSize: '1.25rem', color: '#0f172a', fontWeight: 700 }}>Rs. {sortedLedgerData.reduce((sum, item) => sum + parseFloat(item.total_amount), 0).toLocaleString()}</div>
+                    <div style={{ fontSize: '1.25rem', color: '#0f172a', fontWeight: 700 }}>Rs. {filteredLedgerData.reduce((sum, item) => sum + (parseFloat(item.total_amount) || 0), 0).toLocaleString()}</div>
                   </div>
                   <div className="stat-item" style={{ background: liveBalance > 0 ? '#fff1f2' : '#f0fdf4', padding: '16px', borderRadius: '12px', border: '1px solid #f1f5f9' }}>
                     <div style={{ fontSize: '0.75rem', color: '#64748b', textTransform: 'uppercase', fontWeight: 600 }}>Current Live Balance</div>
@@ -1174,7 +1292,7 @@ export default function Customers({ type }) {
                     >
                       <Column
                         header="S.No"
-                        body={(row, options) => row.isOpening ? '—' : options.rowIndex}
+                        body={(row, options) => row.isOpening ? '—' : (ledgerSearch.trim() ? options.rowIndex + 1 : options.rowIndex)}
                         style={{ width: '45px', textAlign: 'center' }}
                       />
                       <Column
@@ -1357,7 +1475,7 @@ export default function Customers({ type }) {
                           const net = parseFloat(row.net_amount) || 0;
                           return net > 0 ? <span style={{ fontWeight: '600', color: '#ef4444' }}>Rs. {net.toLocaleString()}</span> : <span style={{ color: '#cbd5e1' }}>—</span>;
                         }}
-                        footer={`Rs. ${sortedLedgerData.reduce((sum, r) => sum + (parseFloat(r.net_amount) > 0 ? parseFloat(r.net_amount) : 0), 0).toLocaleString()}`}
+                        footer={`Rs. ${filteredLedgerData.reduce((sum, r) => sum + (parseFloat(r.net_amount) > 0 ? parseFloat(r.net_amount) : 0), 0).toLocaleString()}`}
                         footerStyle={{ textAlign: 'right', fontWeight: '700', color: '#ef4444' }}
                         style={{ textAlign: 'right', width: '110px' }}
                       />
@@ -1373,7 +1491,7 @@ export default function Customers({ type }) {
                             ? <span style={{ fontWeight: '600', color: '#16a34a' }}>Rs. {creditVal.toLocaleString()}</span>
                             : <span style={{ color: '#cbd5e1' }}>—</span>;
                         }}
-                        footer={`Rs. ${sortedLedgerData.reduce((sum, r) => {
+                        footer={`Rs. ${filteredLedgerData.reduce((sum, r) => {
                           const net = parseFloat(r.net_amount) || 0;
                           const paid = parseFloat(r.paid_amount) || 0;
                           return sum + (net < 0 ? Math.abs(net) : (paid > 0 ? paid : 0));

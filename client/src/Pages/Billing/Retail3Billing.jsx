@@ -245,30 +245,35 @@ export default function Retail3Billing({ type }) {
 
   const filteredLedgerData = useMemo(() => {
     if (!ledgerSearch.trim()) return calculatedLedgerData;
-    const term = ledgerSearch.toLowerCase();
+    const term = ledgerSearch.trim().toLowerCase();
+    const numericTerm = term.replace(/,/g, '');
+    const matchesAmt = (val) => {
+      const num = parseFloat(val);
+      if (isNaN(num)) return false;
+      const absNum = Math.abs(num);
+      return String(absNum).includes(numericTerm) || absNum.toLocaleString().toLowerCase().includes(term);
+    };
     return calculatedLedgerData.filter(row => {
       const dateStr = new Date(row.created_at).toLocaleDateString('en-GB').toLowerCase();
-      const debitStr = String(row.net_amount || 0);
-      const creditStr = String(row.paid_amount || 0);
-      const balanceStr = String(row.running_balance || 0);
-
-      if (dateStr.includes(term) || debitStr.includes(term) || creditStr.includes(term) || balanceStr.includes(term)) {
+      if (dateStr.includes(term) || matchesAmt(row.net_amount) || matchesAmt(row.paid_amount) || matchesAmt(row.running_balance)) {
         return true;
       }
 
       if (parseFloat(row.net_amount) > 0) {
-        if (`#sal-${row.id}`.includes(term) || `sal-${row.id}`.includes(term)) return true;
+        if (`#sal-${row.id}`.includes(term) || `sal-${row.id}`.includes(term) || String(row.id).includes(term)) return true;
         let items = [];
         try {
           items = typeof row.items === 'string' ? JSON.parse(row.items) : (row.items || []);
         } catch (e) { items = []; }
         for (const item of items) {
-          if ((item.name || '').toLowerCase().includes(term) || String(item.rate || '').includes(term)) return true;
+          const fullName = formatItemName(item.brand, item.name).toLowerCase();
+          const itemTotal = (parseFloat(item.qty) || 0) * (parseFloat(item.rate) || 0);
+          if (fullName.includes(term) || (item.name || '').toLowerCase().includes(term) || (item.brand || '').toLowerCase().includes(term) || matchesAmt(item.rate) || matchesAmt(itemTotal)) return true;
         }
-        if (parseFloat(row.delivery_charges || 0) > 0 && 'delivery'.includes(term)) return true;
-        if (parseFloat(row.discount || 0) > 0 && 'discount'.includes(term)) return true;
+        if (parseFloat(row.delivery_charges || 0) > 0 && ('delivery'.includes(term) || matchesAmt(row.delivery_charges))) return true;
+        if (parseFloat(row.discount || 0) > 0 && ('discount'.includes(term) || matchesAmt(row.discount))) return true;
       } else {
-        if (`#pay-${row.id}`.includes(term) || `pay-${row.id}`.includes(term)) return true;
+        if (`#pay-${row.id}`.includes(term) || `pay-${row.id}`.includes(term) || String(row.id).includes(term)) return true;
         if ('payment received'.includes(term)) return true;
         if ((row.payment_type || '').toLowerCase().includes(term)) return true;
       }
