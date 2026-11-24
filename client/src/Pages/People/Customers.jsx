@@ -134,9 +134,9 @@ export default function Customers({ type }) {
   const [selectedCustomer, setSelectedCustomer] = useState(null);
   const [ledgerData, setLedgerData] = useState([]);
   const todayStr = new Date().toLocaleDateString('en-CA');
-  const [ledgerFrom, setLedgerFrom] = useState(todayStr);
-  const [ledgerTo, setLedgerTo] = useState(todayStr);
-  const [ledgerFilter, setLedgerFilter] = useState("today");
+  const [ledgerFrom, setLedgerFrom] = useState("");
+  const [ledgerTo, setLedgerTo] = useState("");
+  const [ledgerFilter, setLedgerFilter] = useState("all");
   const [ledgerSearch, setLedgerSearch] = useState("");
   const liveBalance = useMemo(() => {
     const bal = parseFloat(selectedCustomer?.balance);
@@ -395,27 +395,27 @@ export default function Customers({ type }) {
     setShowModal(true);
   };
 
-  const openLedger = async (customer, filter = "today") => {
+  const openLedger = async (customer, filter = "all") => {
     const todayDate = new Date().toLocaleDateString('en-CA');
     setSelectedCustomer(customer);
     setLedgerFilter(filter);
     setLedgerSearch("");
-    // Default to today's date range when opening
     if (filter === 'today' || filter === 'all') {
       setLedgerFrom(filter === 'today' ? todayDate : "");
       setLedgerTo(filter === 'today' ? todayDate : "");
     }
     setShowLedgerModal(true);
 
-    // Instant 0ms render from in-memory or sessionStorage cache if available
+    // Instant 0ms render from in-memory or sessionStorage cache if available (only if non-empty)
     const cachedLedger = ledgerCacheRef.current[customer.id] || (() => {
       try {
-        const raw = sessionStorage.getItem(`cache_ledger_${customer.id}`);
-        return raw ? JSON.parse(raw) : null;
+        const raw = sessionStorage.getItem(`cache_ledger_v2_${customer.id}`);
+        const parsed = raw ? JSON.parse(raw) : null;
+        return Array.isArray(parsed) && parsed.length > 0 ? parsed : null;
       } catch (e) { return null; }
     })();
 
-    if (cachedLedger) {
+    if (cachedLedger && cachedLedger.length > 0) {
       setLedgerData(cachedLedger);
       setLoading(false);
     } else {
@@ -428,12 +428,15 @@ export default function Customers({ type }) {
         headers: { "Authorization": `Bearer ${localStorage.getItem('token')}` }
       });
       const data = await res.json();
-      const finalData = Array.isArray(data) ? data : [];
-      ledgerCacheRef.current[customer.id] = finalData;
-      try {
-        sessionStorage.setItem(`cache_ledger_${customer.id}`, JSON.stringify(finalData));
-      } catch (e) { }
-      setLedgerData(finalData);
+      if (res.ok && Array.isArray(data)) {
+        ledgerCacheRef.current[customer.id] = data;
+        try {
+          sessionStorage.setItem(`cache_ledger_v2_${customer.id}`, JSON.stringify(data));
+        } catch (e) { }
+        setLedgerData(data);
+      } else if (!cachedLedger) {
+        setLedgerData([]);
+      }
     } catch (err) {
       console.error("Failed to fetch ledger", err);
       if (!cachedLedger) setLedgerData([]);

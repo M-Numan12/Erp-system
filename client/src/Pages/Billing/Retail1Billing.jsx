@@ -921,12 +921,13 @@ export default function Retail1Billing({ type }) {
     setLedgerSearch("");
     setShowLedgerModal(true);
 
-    const cacheKey = `cache_ledger_${customer.id}_${from}_${to}`;
+    const cacheKey = `cache_ledger_v2_${customer.id}_${from}_${to}`;
     let hasCached = false;
     try {
-      const cached = sessionStorage.getItem(cacheKey) || (!from && !to ? sessionStorage.getItem(`cache_ledger_${customer.id}`) : null);
-      if (cached) {
-        setLedgerData(JSON.parse(cached));
+      const cached = sessionStorage.getItem(cacheKey) || (!from && !to ? sessionStorage.getItem(`cache_ledger_v2_${customer.id}`) : null);
+      const parsed = cached ? JSON.parse(cached) : null;
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        setLedgerData(parsed);
         hasCached = true;
       }
     } catch (e) { }
@@ -939,12 +940,13 @@ export default function Retail1Billing({ type }) {
         headers: { "Authorization": `Bearer ${localStorage.getItem('token')}` }
       });
       const data = await res.json();
-      const finalData = Array.isArray(data) ? data : [];
-      setLedgerData(finalData);
-      try {
-        sessionStorage.setItem(cacheKey, JSON.stringify(finalData));
-        if (!from && !to) sessionStorage.setItem(`cache_ledger_${customer.id}`, JSON.stringify(finalData));
-      } catch (e) { }
+      if (res.ok && Array.isArray(data)) {
+        setLedgerData(data);
+        try {
+          sessionStorage.setItem(cacheKey, JSON.stringify(data));
+          if (!from && !to) sessionStorage.setItem(`cache_ledger_v2_${customer.id}`, JSON.stringify(data));
+        } catch (e) { }
+      }
     } catch (err) {
       console.error("Failed to fetch ledger", err);
     }

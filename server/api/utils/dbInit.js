@@ -248,7 +248,9 @@ async function syncDatabaseSchema() {
     `UPDATE user_devices SET is_approved = TRUE WHERE is_approved IS NULL;`,
     `ALTER TABLE user_devices ADD COLUMN IF NOT EXISTS location VARCHAR(255);`,
     `ALTER TABLE user_devices ADD COLUMN IF NOT EXISTS latitude DECIMAL(9,6);`,
-    `ALTER TABLE user_devices ADD COLUMN IF NOT EXISTS longitude DECIMAL(9,6);`
+    `ALTER TABLE user_devices ADD COLUMN IF NOT EXISTS longitude DECIMAL(9,6);`,
+    `ALTER TABLE user_devices ADD COLUMN IF NOT EXISTS device_key_hash VARCHAR(64);`,
+    `CREATE UNIQUE INDEX IF NOT EXISTS user_devices_user_key_unique ON user_devices (user_id, device_key_hash) WHERE device_key_hash IS NOT NULL;`
   ];
 
   let totalExecuted = 0;
